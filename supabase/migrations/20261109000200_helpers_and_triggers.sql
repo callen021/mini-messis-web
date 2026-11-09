@@ -33,7 +33,8 @@ stable
 security definer
 set search_path = ''
 as $$
-  select public.member_role_on(p_team_id) in ('coach', 'assistant');
+  -- coalesce: a non-member must yield false, not null, so `if not is_staff(...)` raises in plpgsql
+  select coalesce(public.member_role_on(p_team_id) in ('coach', 'assistant'), false);
 $$;
 
 create or replace function public.is_coach(p_team_id uuid)
@@ -43,7 +44,7 @@ stable
 security definer
 set search_path = ''
 as $$
-  select public.member_role_on(p_team_id) = 'coach';
+  select coalesce(public.member_role_on(p_team_id) = 'coach', false);
 $$;
 
 create or replace function public.is_owner(p_team_id uuid)

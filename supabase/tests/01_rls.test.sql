@@ -1,7 +1,7 @@
 -- RLS tests (pgTAP). Run with `supabase test db` against a freshly reset local database.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(32);
 
 -- ---------- helpers ----------
 create or replace function pg_temp.mk_user(p_id uuid, p_email text, p_confirmed boolean default true)
@@ -115,9 +115,10 @@ select is((select player_id from public.skill_results), 'e0000000-0000-0000-0000
 select throws_ok(
   $$insert into public.skill_results (player_id, skill_test_id, value) values ('e0000000-0000-0000-0000-00000000000a', 'f0000000-0000-0000-0000-000000000001', 7)$$,
   '42501', null, 'parent cannot record skill results');
-select throws_ok(
-  $$update public.teams set name = 'Pwned' where id = (select v from ctx where k = 'team_a')$$,
-  null, null, 'parent cannot rename the team');
+update public.teams set name = 'Pwned' where id = (select v from ctx where k = 'team_a');
+select pg_temp.logout();
+select is((select name from public.teams where id = (select v from ctx where k = 'team_a')), 'Team A', 'parent cannot rename the team (silent no-op under RLS)');
+select pg_temp.login('a0000000-0000-0000-0000-000000000003');
 select pg_temp.logout();
 
 -- ---------- assistant: writes allowed, coach-only things not ----------
