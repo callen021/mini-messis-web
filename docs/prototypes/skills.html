@@ -1,0 +1,483 @@
+<title>Mini-Messi's Player Skills</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<style>
+/* Layout: a phone frame on a quiet desk; inside it the app's own iOS-style tokens from legacy/index.html */
+:root{
+  --desk:#e9ebe6; --desk-fg:#1f2a24; --desk-muted:#6a746d; --desk-card:#f7f8f6; --desk-line:#d3d7d1;
+  --bg:#f2f2f7; --panel:#fff; --panel2:#f2f2f7; --fill:rgba(120,120,128,.12); --fill2:rgba(120,120,128,.2);
+  --text:#000; --text2:rgba(60,60,67,.6); --text3:rgba(60,60,67,.3); --sep:rgba(60,60,67,.29);
+  --tint:#0b7a4b; --tint-soft:rgba(11,122,75,.12); --on-tint:#fff; --red:#ff3b30; --orange:#ff9500; --blue:#007aff; --green:#34c759;
+  --bar:rgba(249,249,249,.9); --sheet:rgba(249,249,249,.96); --seg-pill:#fff; --shadow:0 1px 2px rgba(0,0,0,.04),0 8px 24px rgba(0,0,0,.06);
+  --ui:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){
+  --desk:#16181a; --desk-fg:#e8ebe8; --desk-muted:#8d968f; --desk-card:#1f2224; --desk-line:#2e3335;
+  --bg:#000; --panel:#1c1c1e; --panel2:#2c2c2e; --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.36);
+  --text:#fff; --text2:rgba(235,235,245,.6); --text3:rgba(235,235,245,.3); --sep:rgba(84,84,88,.65);
+  --tint:#30d158; --tint-soft:rgba(48,209,88,.16); --on-tint:#03240f; --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a;
+  --bar:rgba(22,22,24,.9); --sheet:rgba(28,28,30,.97); --seg-pill:#636366; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5); color-scheme:dark}}
+:root[data-theme="dark"]{
+  --desk:#16181a; --desk-fg:#e8ebe8; --desk-muted:#8d968f; --desk-card:#1f2224; --desk-line:#2e3335;
+  --bg:#000; --panel:#1c1c1e; --panel2:#2c2c2e; --fill:rgba(120,120,128,.24); --fill2:rgba(120,120,128,.36);
+  --text:#fff; --text2:rgba(235,235,245,.6); --text3:rgba(235,235,245,.3); --sep:rgba(84,84,88,.65);
+  --tint:#30d158; --tint-soft:rgba(48,209,88,.16); --on-tint:#03240f; --blue:#0a84ff; --green:#30d158; --orange:#ff9f0a; --red:#ff453a;
+  --bar:rgba(22,22,24,.9); --sheet:rgba(28,28,30,.97); --seg-pill:#636366; --shadow:0 1px 2px rgba(0,0,0,.4),0 8px 24px rgba(0,0,0,.5); color-scheme:dark}
+
+*{box-sizing:border-box}
+body{margin:0;background:var(--desk);color:var(--desk-fg);font-family:var(--ui);padding-block:20px 32px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+.wrap{max-width:1040px;margin:0 auto;display:grid;grid-template-columns:400px minmax(0,1fr);gap:28px;align-items:start}
+@media (max-width:820px){.wrap{grid-template-columns:1fr}.phone{width:100%!important;max-width:420px;margin:0 auto}}
+
+.desk h1{font-size:22px;margin:0 0 4px;letter-spacing:-.01em;text-wrap:balance}
+.desk p{margin:0 0 14px;color:var(--desk-muted);font-size:14px;line-height:1.45;max-width:60ch}
+.desk .ctl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin-bottom:16px}
+.desk label{font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:var(--desk-muted);display:block;margin-bottom:5px}
+.dseg{display:inline-flex;background:var(--desk-card);border:1px solid var(--desk-line);border-radius:9px;padding:2px}
+.dseg button{border:0;background:transparent;color:var(--desk-fg);font:inherit;font-size:13px;padding:6px 12px;border-radius:7px;cursor:pointer}
+.dseg button.on{background:var(--tint);color:var(--on-tint);font-weight:600}
+.dseg button:focus-visible,.phone button:focus-visible,.phone input:focus-visible,.phone select:focus-visible,.phone textarea:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+.note{background:var(--desk-card);border:1px solid var(--desk-line);border-radius:12px;padding:14px 16px;font-size:14px;line-height:1.5}
+.note b{display:block;margin-bottom:4px}
+.note ol{margin:6px 0 0;padding-left:20px}
+.note li{margin:3px 0}
+.legend{margin-top:14px;font-size:13px;color:var(--desk-muted);line-height:1.5}
+
+.phone{width:400px;height:820px;max-height:calc(100vh - 56px);min-height:620px;border-radius:44px;background:#0d0d0e;padding:12px;box-shadow:0 30px 60px rgba(0,0,0,.35),0 0 0 1px rgba(0,0,0,.4);position:relative}
+.screen{position:relative;height:100%;border-radius:34px;overflow:hidden;background:var(--bg);color:var(--text);display:flex;flex-direction:column;font-size:15px}
+.notch{position:absolute;top:10px;left:50%;transform:translateX(-50%);width:112px;height:30px;background:#0d0d0e;border-radius:18px;z-index:20}
+.topbar{height:92px;flex:none;background:var(--bar);backdrop-filter:blur(14px);border-bottom:1px solid var(--sep);display:flex;align-items:flex-end;justify-content:center;padding-bottom:10px;position:relative;z-index:5}
+.topbar .ttl{font-weight:600;font-size:16px;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.topbar .back{position:absolute;left:10px;bottom:6px;border:0;background:transparent;color:var(--tint);font:inherit;font-size:16px;display:flex;align-items:center;gap:2px;padding:4px 6px;cursor:pointer}
+.topbar .back svg{width:12px;height:20px;fill:none;stroke:currentColor;stroke-width:2.6;stroke-linecap:round;stroke-linejoin:round}
+main{flex:1;overflow-y:auto;overflow-x:hidden;padding:14px 16px 24px}
+.tabbar{flex:none;height:74px;background:var(--bar);backdrop-filter:blur(14px);border-top:1px solid var(--sep);display:flex;align-items:flex-start;padding:8px 6px 0}
+.tabbar .tabs{flex:1;display:flex}
+.tabbar button{flex:1;border:0;background:transparent;color:var(--text2);font:inherit;font-size:10px;display:flex;flex-direction:column;align-items:center;gap:3px;padding:2px 0;cursor:pointer}
+.tabbar button.active{color:var(--tint)}
+.tabbar .gear{flex:none;width:54px;margin-left:4px;border-left:1px solid var(--sep)}
+.tabbar svg{width:24px;height:24px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.page{display:none}.page.active{display:block}
+h1.large{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px}
+.sub{color:var(--text2);font-size:14px;margin:0 0 12px}
+.section{font-size:13px;letter-spacing:.06em;text-transform:uppercase;color:var(--text2);margin:18px 2px 6px;display:flex;justify-content:space-between;align-items:center}
+.group{background:var(--panel);border-radius:14px;box-shadow:var(--shadow);overflow:hidden}
+.row{display:flex;align-items:center;gap:12px;min-height:48px;padding:8px 14px;border-bottom:1px solid var(--sep);font-size:16px}
+.row:last-child{border-bottom:0}
+.row.btn{width:100%;border:0;border-bottom:1px solid var(--sep);background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer}
+.row.btn:last-child{border-bottom:0}
+.row .lbl{flex:1;min-width:0}
+.row .lbl small{display:block;color:var(--text2);font-size:13px;margin-top:1px}
+.row .val{color:var(--text2);font-variant-numeric:tabular-nums}
+.row .icon{width:30px;height:30px;border-radius:8px;display:grid;place-items:center;flex:none;color:#fff}
+.row .icon svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.chev{width:8px;height:14px;flex:none;border-right:2px solid var(--text3);border-top:2px solid var(--text3);transform:rotate(45deg);margin-right:2px}
+.num{width:30px;height:30px;border-radius:15px;background:var(--fill);display:grid;place-items:center;font-weight:700;font-size:13px;color:var(--text2);flex:none;font-variant-numeric:tabular-nums}
+.num.me{background:var(--tint);color:var(--on-tint)}
+.seg{display:flex;background:var(--fill);border-radius:9px;padding:2px;margin-bottom:12px}
+.seg button{flex:1;border:0;background:transparent;color:var(--text);font:inherit;font-size:13px;padding:6px;border-radius:7px;cursor:pointer}
+.seg button.on{background:var(--seg-pill);font-weight:600;box-shadow:0 1px 3px rgba(0,0,0,.12)}
+.tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.tile{background:var(--panel);border-radius:12px;box-shadow:var(--shadow);padding:10px 6px;text-align:center;min-width:0}
+.tile b{display:block;font-size:22px;font-weight:800;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+.tile span{font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:.04em}
+.chip{display:inline-block;background:var(--tint-soft);color:var(--tint);font-weight:700;font-size:11px;letter-spacing:.04em;padding:3px 8px;border-radius:10px;vertical-align:middle}
+.chip.pb{background:rgba(255,149,0,.16);color:var(--orange)}
+.chip.draft{background:rgba(0,122,255,.14);color:var(--blue)}
+.pill{font-size:12px;color:var(--text2);background:var(--fill);padding:2px 8px;border-radius:9px;text-transform:none;letter-spacing:0}
+.hero{display:flex;gap:14px;align-items:center;padding:4px 0 6px}
+.jersey{width:64px;height:64px;border-radius:16px;background:#7b3fe4;color:#fff;display:grid;place-items:center;font-weight:900;font-size:26px;flex:none;font-variant-numeric:tabular-nums;box-shadow:inset 0 -10px 20px rgba(0,0,0,.18)}
+.hero .name{font-size:26px;font-weight:800;letter-spacing:-.02em;line-height:1.1}
+.hero .meta{color:var(--text2);font-size:13px;margin-top:3px}
+.spark{width:72px;height:26px;flex:none}
+.spark path{fill:none;stroke:var(--tint);stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.spark .area{fill:var(--tint);opacity:.14;stroke:none}
+.spark circle{fill:var(--tint)}
+.best{font-weight:700;font-variant-numeric:tabular-nums;white-space:nowrap}
+.best small{font-weight:400;color:var(--text2)}
+.toolbar{display:flex;gap:8px;margin:10px 0 2px}
+.b{flex:1;border:0;border-radius:11px;background:var(--tint);color:var(--on-tint);font:inherit;font-size:15px;font-weight:600;padding:11px;cursor:pointer}
+.b.gray{background:var(--fill);color:var(--text)}
+.b.danger{background:transparent;color:var(--red)}
+.b:disabled{opacity:.45;cursor:default}
+.hist .d{width:88px;color:var(--text2);font-size:13px;flex:none}
+.hist .v{font-weight:700;font-variant-numeric:tabular-nums;flex:1}
+.hist .n{color:var(--text2);font-size:13px;flex:2;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.howto{font-size:14px;line-height:1.45;color:var(--text2);padding:12px 14px}
+.howto b{color:var(--text)}
+.footer{font-size:12px;color:var(--text2);line-height:1.4;margin:8px 4px 0}
+.toggle{width:46px;height:28px;border-radius:14px;background:var(--fill2);border:0;position:relative;flex:none;cursor:pointer}
+.toggle::after{content:"";position:absolute;top:2px;left:2px;width:24px;height:24px;border-radius:12px;background:#fff;box-shadow:0 2px 5px rgba(0,0,0,.25);transition:transform .15s}
+.toggle.on{background:var(--green)}.toggle.on::after{transform:translateX(18px)}
+.updown{display:flex;gap:4px}
+.updown button{width:30px;height:30px;border:0;border-radius:8px;background:var(--fill);color:var(--text);cursor:pointer;font-size:14px}
+.updown button:disabled{opacity:.3}
+.empty{padding:14px;color:var(--text2);font-size:14px;line-height:1.4}
+.lock{display:flex;gap:10px;align-items:flex-start;padding:12px 14px;font-size:13px;color:var(--text2);line-height:1.4}
+.lock svg{width:18px;height:18px;flex:none;stroke:var(--text2);fill:none;stroke-width:1.8;margin-top:2px}
+.prow{display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--sep);font-size:15px}
+.prow:last-child{border-bottom:0}
+.prow .pname{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.prow .pname small{color:var(--text2);margin-left:4px}
+.prow .stat{width:36px;text-align:right;font-variant-numeric:tabular-nums;font-weight:600}
+.prow.stathead{font-size:11px;text-transform:uppercase;letter-spacing:.05em;color:var(--text2);padding:7px 14px}
+.prow.stathead .stat{font-weight:600}
+.prow.out{opacity:.55}
+/* skills matrix */
+.matrix{overflow-x:auto;-webkit-overflow-scrolling:touch}
+.matrix table{border-collapse:collapse;min-width:100%;font-size:13px;font-variant-numeric:tabular-nums}
+.matrix th,.matrix td{padding:9px 8px;border-bottom:1px solid var(--sep);white-space:nowrap;text-align:right}
+.matrix tr:last-child td{border-bottom:0}
+.matrix th{font-size:10px;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);font-weight:600;vertical-align:bottom}
+.matrix th:first-child,.matrix td:first-child{text-align:left;position:sticky;left:0;background:var(--panel);z-index:1;padding-left:14px;min-width:96px}
+.matrix td:first-child button{border:0;background:transparent;color:var(--tint);font:inherit;font-size:14px;font-weight:600;padding:0;cursor:pointer;text-align:left}
+.matrix td b{font-weight:700}
+.matrix .up{color:var(--green);font-size:11px;margin-left:2px}
+.matrix .dn{color:var(--orange);font-size:11px;margin-left:2px}
+.matrix .none{color:var(--text3)}
+.matrix tr.me td{background:var(--tint-soft)}
+.matrix tr.me td:first-child{background:var(--tint-soft)}
+/* sheet */
+.backdrop{position:absolute;inset:0;background:rgba(0,0,0,.4);display:none;align-items:flex-end;z-index:30;border-radius:34px}
+.backdrop.show{display:flex}
+.sheet{width:100%;max-height:90%;overflow-y:auto;background:var(--sheet);backdrop-filter:blur(18px);border-radius:22px 22px 34px 34px;padding:10px 14px 22px}
+.sheet .grab{width:36px;height:5px;border-radius:3px;background:var(--text3);margin:2px auto 12px}
+.sheet h3{margin:0 0 12px;font-size:19px;font-weight:700}
+.sheet p.hint{font-size:13px;color:var(--text2);margin:-6px 0 12px;line-height:1.4}
+.fld{display:block;margin-bottom:12px}
+.fld>span{display:block;font-size:12px;letter-spacing:.05em;text-transform:uppercase;color:var(--text2);margin-bottom:5px}
+.fld>span i{font-style:normal;color:var(--orange);margin-left:6px}
+.fld input,.fld select,.fld textarea{width:100%;border:0;border-radius:10px;background:var(--panel);color:var(--text);font:inherit;font-size:17px;padding:11px 12px}
+.fld input:disabled,.fld select:disabled{opacity:.55}
+.fld textarea{resize:none;min-height:70px;font-size:15px}
+.inrow{display:flex;align-items:center;gap:8px}
+.inrow input{flex:1;min-width:0}
+.inrow span{color:var(--text2);font-size:15px}
+.sheet .b{width:100%;margin-top:4px}
+.sheet .cancel{margin-top:8px;background:var(--panel);color:var(--tint)}
+.lib .row.btn .lbl small{white-space:normal}
+.toast{position:absolute;left:50%;bottom:92px;transform:translateX(-50%) translateY(10px);background:var(--text);color:var(--bg);padding:9px 14px;border-radius:12px;font-size:14px;font-weight:600;opacity:0;transition:.2s;z-index:40;white-space:nowrap;max-width:90%;overflow:hidden;text-overflow:ellipsis}
+.toast.show{opacity:1;transform:translateX(-50%)}
+@media (prefers-reduced-motion:reduce){.toggle::after,.toast{transition:none}}
+</style>
+
+<div class="wrap">
+  <div class="phone"><div class="screen">
+    <div class="notch"></div>
+    <div class="topbar"><button class="back" id="back" hidden><svg viewBox="0 0 12 20"><path d="M10 2 2 10l8 8"/></svg><span id="backLbl"></span></button><div class="ttl" id="ttl">Stats</div></div>
+    <main id="main">
+      <section class="page" id="pg-roster">
+        <h1 class="large">Team</h1>
+        <div class="seg"><button>Rotation</button><button class="on">Roster</button></div>
+        <p class="sub" id="rosterSub"></p>
+        <div class="section">Playing today</div>
+        <div class="group" id="roster"></div>
+        <p class="footer">Tap a player to open their page.</p>
+      </section>
+
+      <section class="page active" id="pg-stats">
+        <h1 class="large">Stats</h1>
+        <p class="sub" id="statsSub"></p>
+        <div class="seg" id="statsSeg"><button data-v="game">Current game</button><button data-v="season" class="on">Season</button><button data-v="skills">Skills</button></div>
+        <div id="statsGS">
+          <div class="section">Team</div>
+          <div class="tiles" style="grid-template-columns:repeat(5,1fr)" id="teamTiles"></div>
+          <div class="section">Players</div>
+          <div class="group" id="playerStats"></div>
+          <p class="footer">Goals, assists and quarters played are counted from saved games and the scoring log. Tap a player for their page.</p>
+        </div>
+        <div id="statsSK">
+          <div class="section"><span>Personal bests</span><span class="pill" id="skPill"></span></div>
+          <div class="group matrix" id="matrix"></div>
+          <p class="footer" id="skFoot">Best result on record for each test. An arrow shows whether the latest result beat (↑) or missed (↓) the one before it. Swipe sideways for more tests; tap a name for the full history and trend.</p>
+        </div>
+      </section>
+
+      <section class="page" id="pg-player">
+        <div class="hero"><div class="jersey" id="pJersey">7</div><div><div class="name" id="pName"></div><div class="meta" id="pMeta"></div></div></div>
+        <div class="section">Season · Fall 2026</div>
+        <div class="tiles" id="pTiles"></div>
+        <div id="guardWrap"><div class="section">Guardians</div><div class="group" id="guardians"></div></div>
+        <div class="section"><span>Skills</span><span class="pill" id="skillCount"></span></div>
+        <div class="group" id="skillList"></div>
+        <div class="toolbar" id="recordBar"><button class="b" id="recordBtn">Record a result</button></div>
+        <p class="footer" id="skillFoot">Best is the personal best for each test; the line is the trend over the last sessions. Tap a test for every result on record.</p>
+      </section>
+
+      <section class="page" id="pg-test">
+        <h1 class="large" id="tName"></h1>
+        <p class="sub" id="tSub"></p>
+        <div class="tiles" style="grid-template-columns:1fr 1fr 1fr" id="tTiles"></div>
+        <div class="section">How to run it</div>
+        <div class="group"><div class="howto" id="tHow"></div></div>
+        <div class="section">History</div>
+        <div class="group hist" id="tHist"></div>
+        <div class="toolbar" id="tBar"><button class="b" id="tRecord">Record a result</button></div>
+        <p class="footer" id="tFoot">Results are kept in order; nothing is averaged away. Whoever recorded a result, or any coach, can edit or delete it.</p>
+      </section>
+
+      <section class="page" id="pg-settings">
+        <h1 class="large">Settings</h1>
+        <p class="sub">Sport, team setup, appearance and backups</p>
+        <div class="section">Team</div>
+        <div class="group">
+          <div class="row"><span class="lbl">Team name</span><span class="val">Strikers</span></div>
+          <div class="row"><span class="lbl">Players on the field<small>including the goalkeeper</small></span><span class="val">7</span></div>
+          <div class="row"><span class="lbl">Quarters<small>4 quarters per game</small></span><span class="val">4</span></div>
+          <button class="row btn" id="toSkills"><span class="lbl">Skills tests<small id="skillsSummary"></small></span><span class="chev"></span></button>
+          <button class="row btn"><span class="lbl">Members<small>2 coaches · 9 parents · 1 pending</small></span><span class="chev"></span></button>
+        </div>
+        <div class="section">Appearance</div>
+        <div class="group"><div class="row"><span class="lbl">Theme</span><div class="seg" style="margin:0;width:170px"><button>Light</button><button>Dark</button><button class="on">Auto</button></div></div></div>
+        <div class="section">Data &amp; backups</div>
+        <div class="group"><div class="row"><span class="lbl">Export backup</span><span class="chev"></span></div><div class="row"><span class="lbl">Import legacy backup</span><span class="chev"></span></div></div>
+      </section>
+
+      <section class="page" id="pg-skills">
+        <h1 class="large">Skills tests</h1>
+        <p class="sub" id="sSub"></p>
+        <div class="section">Shown on player pages</div>
+        <div class="group" id="testEditor"></div>
+        <div class="section" id="hiddenHead">Hidden</div>
+        <div class="group" id="testHidden"></div>
+        <div class="group" style="margin-top:12px">
+          <button class="row btn" id="addTest"><span class="icon" style="background:var(--tint)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span class="lbl">Add a custom test</span><span class="chev"></span></button>
+          <button class="row btn" id="addLib"><span class="icon" style="background:var(--blue)"><svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2zM4 19a2 2 0 0 0 2 2h12"/></svg></span><span class="lbl">Add from library<small>Tests from other sports' default sets</small></span><span class="chev"></span></button>
+          <button class="row btn" id="restore"><span class="icon" style="background:var(--orange)"><svg viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M20.5 3v5h-5"/></svg></span><span class="lbl">Restore defaults<small>Bring back any hidden default test</small></span></button>
+        </div>
+        <p class="footer">Tap a test to edit it. The order here is the order on every player page and on the Stats table. Hidden tests keep their history. A test with results can be hidden but not deleted.</p>
+      </section>
+    </main>
+    <nav class="tabbar">
+      <div class="tabs">
+        <button data-tab="field"><svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M12 4v16M3 9h3v6H3M21 9h-3v6h3"/><circle cx="12" cy="12" r="2.4"/></svg>Field</button>
+        <button data-tab="roster"><svg viewBox="0 0 24 24"><circle cx="9" cy="8" r="3.5"/><path d="M2.5 20a6.5 6.5 0 0 1 13 0"/><path d="M16 5a3 3 0 0 1 0 6M17.5 14.5a5.5 5.5 0 0 1 4 5.5"/></svg>Team</button>
+        <button data-tab="games"><svg viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M9 15l2 2 4-4"/></svg>Games</button>
+        <button data-tab="stats" class="active"><svg viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/></svg>Stats</button>
+      </div>
+      <button class="gear" data-tab="settings" aria-label="Settings"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.7 1.7 0 0 0-1.8-.3 1.7 1.7 0 0 0-1 1.5V21a2 2 0 1 1-4 0v-.1a1.7 1.7 0 0 0-1.1-1.5 1.7 1.7 0 0 0-1.8.3l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1a1.7 1.7 0 0 0 .3-1.8 1.7 1.7 0 0 0-1.5-1H3a2 2 0 1 1 0-4h.1a1.7 1.7 0 0 0 1.5-1.1 1.7 1.7 0 0 0-.3-1.8l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1a1.7 1.7 0 0 0 1.8.3H9a1.7 1.7 0 0 0 1-1.5V3a2 2 0 1 1 4 0v.1a1.7 1.7 0 0 0 1 1.5 1.7 1.7 0 0 0 1.8-.3l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.7 1.7 0 0 0-.3 1.8V9a1.7 1.7 0 0 0 1.5 1H21a2 2 0 1 1 0 4h-.1a1.7 1.7 0 0 0-1.5 1z"/></svg></button>
+    </nav>
+    <div class="backdrop" id="backdrop"><div class="sheet" id="sheet"></div></div>
+    <div class="toast" id="toast"></div>
+  </div></div>
+
+  <div class="desk">
+    <h1>Skills on the Stats page — click-through</h1>
+    <p>Second pass. Skills now live as a third segment on Stats; the gear is Settings again, and the test list is managed from Settings → Skills tests. Switch the role to see the parent view and the sport to preview the draft default sets. Nothing is saved.</p>
+    <div class="ctl">
+      <div><label>Viewing as</label><div class="dseg" id="roleSeg"><button class="on" data-v="coach">Coach</button><button data-v="assistant">Assistant</button><button data-v="parent">Parent (Nolan's)</button></div></div>
+      <div><label>Sport</label><div class="dseg" id="sportSeg"><button class="on" data-v="soccer">Soccer</button><button data-v="baseball">Baseball</button><button data-v="basketball">Basketball</button><button data-v="lacrosse">Lacrosse</button></div></div>
+      <div><label>Theme</label><div class="dseg" id="themeSeg"><button class="on" data-v="">Auto</button><button data-v="light">Light</button><button data-v="dark">Dark</button></div></div>
+    </div>
+    <div class="note"><b>Try this</b>
+      <ol>
+        <li>On <b>Stats</b>, tap the <b>Skills</b> segment: every player's personal best per test, with an arrow when the latest result beat or missed the one before. Swipe the table sideways.</li>
+        <li>Tap <b>Nolan</b> (there or on the Roster): the four season tiles, guardians (coach view only) and the Skills list with trend lines. Playing time is gone from this page.</li>
+        <li>Tap <b>Juggling</b> for the history, then <b>Record a result</b>. Tap an old result to edit or delete it.</li>
+        <li>Tap the gear, then <b>Skills tests</b>. Hide, reorder, tap a test to edit it (metric locks once it has results), add a custom one, pull one in from the library, or restore hidden defaults. Try deleting Juggling: it refuses because it has history.</li>
+        <li>Switch to <b>Parent</b>: the Skills table shrinks to Nolan, Record and the test editor disappear, and other kids' pages show no skills.</li>
+      </ol>
+    </div>
+    <div class="legend">Assistant coaches can edit the test list and record results, same as the head coach. Baseball, basketball and lacrosse default sets are drafts for your review.</div>
+  </div>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const make=(t,c,x)=>{const e=document.createElement(t);if(c)e.className=c;if(x!==undefined)e.textContent=x;return e};
+/* ---------- default test sets per sport ---------- */
+const T=(key,name,how,metric,o={})=>({key,name,how,metric,unit:o.unit||'yd',sides:!!o.sides,higher:o.higher!==false,active:true,draft:!!o.draft,attempts:o.attempts||5,isDefault:true,custom:false});
+const DEFAULTS={
+ soccer:[
+  T('ticktocks','Tick-tocks','Count alternating inside-foot touches in a small marked box. Stop when the ball leaves the box or the player loses the rhythm.','count'),
+  T('juggling','Juggling','Start with a hand drop. Count consecutive foot touches before the ball hits the ground.','count'),
+  T('dribble','Dribbling with control','Weave through four cones on the same course each time. Time the run and record the fastest attempt that goes around every cone.','time_seconds',{higher:false}),
+  T('passing','Passing accuracy','From 5 yards, pass a stationary ball through a 1-yard cone gate. Five tries with each foot.','made_of_attempted',{sides:true}),
+  T('shooting','Shooting accuracy','Five shots from 7 yards at the same goal without a keeper. Count shots that go in.','made_of_attempted'),
+  T('kickdist','Kick distance','Kick a stationary ball down a marked lane. Measure to where it first lands, using the same size ball each time.','distance',{unit:'yd'}),
+  T('sprint','Sprint speed','Run 20 yards from a standing start. Two tries, same start signal and timing method each session.','time_seconds',{higher:false})],
+ baseball:[
+  T('throwacc','Throwing accuracy','From 40 feet, throw at a target on a fence or net. Ten throws; count hits.','made_of_attempted',{attempts:10,draft:true}),
+  T('throwdist','Throwing distance','Crow-hop and throw down a marked lane. Measure to the first bounce. Best of three.','distance',{unit:'ft',draft:true}),
+  T('tee','Tee contact','Ten swings off a tee into a net. Count solid line-drive contacts.','made_of_attempted',{attempts:10,draft:true}),
+  T('grounders','Ground balls','Ten rolled grounders at game speed. Count clean fields and throws.','made_of_attempted',{attempts:10,draft:true}),
+  T('popups','Fly balls','Ten tossed pop-ups. Count clean catches.','made_of_attempted',{attempts:10,draft:true}),
+  T('homefirst','Home to first','Swing, then sprint to first base. Time from contact to the bag. Best of two.','time_seconds',{higher:false,draft:true})],
+ basketball:[
+  T('ft','Free throws','Ten free throws from the line. Count makes.','made_of_attempted',{attempts:10,draft:true}),
+  T('layups','Layups','Ten layups, five from each side, off the dribble. Count makes.','made_of_attempted',{attempts:5,sides:true,draft:true}),
+  T('dribblecones','Dribble weave','Dribble through five cones and back. Time the run; a lost ball restarts the attempt.','time_seconds',{higher:false,draft:true}),
+  T('passwall','Chest passes','Chest passes against a wall from 6 feet for 30 seconds. Count catches.','count',{draft:true}),
+  T('sprintcourt','Baseline to baseline','Sprint the length of the court from a standing start. Best of two.','time_seconds',{higher:false,draft:true})],
+ lacrosse:[
+  T('wallball','Wall ball','Throw and catch against a wall from 5 yards for 60 seconds, alternating hands. Count catches.','count',{draft:true}),
+  T('shoot','Shooting accuracy','Ten shots from 8 yards at an open goal with corners marked. Count shots in a corner.','made_of_attempted',{attempts:10,draft:true}),
+  T('ground','Ground balls','Ten rolled ground balls. Count clean scoops on the first try.','made_of_attempted',{attempts:10,draft:true}),
+  T('cradle','Cradle and run','Weave four cones while cradling. Time the run; a dropped ball restarts it.','time_seconds',{higher:false,draft:true}),
+  T('sprint20','Sprint speed','Run 20 yards from a standing start. Best of two.','time_seconds',{higher:false,draft:true})]};
+const SPORT_UI={soccer:{emoji:'⚽',name:'Soccer',cols:['G','A','QP'],tiles:[['G','Goals'],['A','Assists'],['QP','Quarters'],['GP','Games']],team:['Played','W-L-T','For','Against','Diff'],teamVals:['6','4-1-1','19','9','+10']},
+ baseball:{emoji:'⚾',name:'Baseball',cols:['R','H','HR'],tiles:[['H','Hits'],['R','Runs'],['HR','Home runs'],['AVG','Avg']],team:['Played','W-L','Runs','Against','Diff'],teamVals:['6','4-2','41','30','+11']},
+ basketball:{emoji:'🏀',name:'Basketball',cols:['PTS','FG','FT'],tiles:[['PTS','Points'],['FG','Field goals'],['3PT','Threes'],['FT','Free throws']],team:['Played','W-L','Points','Against','Diff'],teamVals:['6','3-3','168','160','+8']},
+ lacrosse:{emoji:'🥍',name:'Lacrosse',cols:['G','A','QP'],tiles:[['G','Goals'],['A','Assists'],['QP','Quarters'],['GP','Games']],team:['Played','W-L-T','For','Against','Diff'],teamVals:['6','4-1-1','31','22','+9']}};
+
+/* ---------- sample team ---------- */
+const PLAYERS=[['p1','Nolan',7],['p2','Teddy',4],['p3','Jack',10],['p4','Weston',2],['p5','Sam',9],['p6','Milo',11],['p7','Quincy',5],['p8','Hal',8],['p9','Nick',3],['p10','Atlas',6]].map(([id,name,num])=>({id,name,num}));
+const STATS={p1:[4,2,21,6],p2:[1,3,22,6],p3:[6,1,20,6],p4:[0,0,18,5],p5:[2,2,23,6],p6:[0,1,19,6],p7:[1,0,17,5],p8:[3,2,22,6],p9:[0,0,16,4],p10:[2,1,21,6]};
+const GUARD={p1:[['Cody Allen','Dad','approved'],['Sarah Allen','Mom','approved']],p2:[['Mark Reyes','Dad','approved']],p3:[['Dana Whitfield','Mom','pending']]};
+let rid=0;const R=(pid,key,on,v,o={})=>({id:'r'+(++rid),pid,key,on,value:v,attempts:o.att,side:o.side,note:o.note||'',by:o.by||'Coach Cody'});
+let results=[
+ R('p1','ticktocks','2026-09-14',12),R('p1','ticktocks','2026-10-05',17,{note:'Kept rhythm longer'}),R('p1','ticktocks','2026-10-26',20),
+ R('p1','juggling','2026-09-14',2),R('p1','juggling','2026-10-05',3),R('p1','juggling','2026-10-19',5,{note:'Thigh then foot'}),R('p1','juggling','2026-11-02',4),
+ R('p1','dribble','2026-09-14',14.8),R('p1','dribble','2026-10-05',13.1),R('p1','dribble','2026-10-26',12.4,{note:'Clean, all four cones'}),
+ R('p1','passing','2026-10-05',3,{att:5,side:'right'}),R('p1','passing','2026-10-05',1,{att:5,side:'left'}),R('p1','passing','2026-10-26',4,{att:5,side:'right'}),R('p1','passing','2026-10-26',2,{att:5,side:'left'}),
+ R('p1','shooting','2026-10-05',2,{att:5}),R('p1','shooting','2026-10-26',3,{att:5}),
+ R('p1','kickdist','2026-10-26',25,{note:'Size 4 ball'}),
+ R('p1','sprint','2026-09-14',4.9),R('p1','sprint','2026-10-26',4.6),
+ R('p2','ticktocks','2026-10-05',9),R('p2','ticktocks','2026-10-26',14),R('p2','dribble','2026-10-26',13.6),R('p2','shooting','2026-10-26',2,{att:5}),R('p2','sprint','2026-10-26',4.8),
+ R('p3','ticktocks','2026-10-26',18),R('p3','juggling','2026-10-05',7),R('p3','juggling','2026-10-26',9),R('p3','dribble','2026-10-05',12.9),R('p3','dribble','2026-10-26',13.2),R('p3','shooting','2026-10-26',4,{att:5}),R('p3','sprint','2026-10-26',4.4),R('p3','kickdist','2026-10-26',28),
+ R('p4','ticktocks','2026-10-26',6),R('p4','juggling','2026-10-26',1),R('p4','sprint','2026-10-26',5.3),
+ R('p5','ticktocks','2026-10-26',11),R('p5','juggling','2026-10-05',4),R('p5','juggling','2026-10-26',3),R('p5','shooting','2026-10-26',3,{att:5}),R('p5','sprint','2026-10-26',4.7),
+ R('p6','ticktocks','2026-10-26',8),R('p6','dribble','2026-10-26',14.9),R('p6','sprint','2026-10-26',5.0),
+ R('p7','juggling','2026-10-26',2),R('p7','kickdist','2026-10-26',19),
+ R('p8','ticktocks','2026-10-26',15),R('p8','juggling','2026-10-26',6),R('p8','kickdist','2026-10-05',20),R('p8','kickdist','2026-10-26',22),R('p8','sprint','2026-10-26',4.5),
+ R('p9','ticktocks','2026-10-26',5),R('p9','sprint','2026-10-26',5.4),
+ R('p10','ticktocks','2026-10-26',13),R('p10','juggling','2026-10-26',4),R('p10','shooting','2026-10-26',1,{att:5}),R('p10','sprint','2026-10-26',4.9)];
+
+/* ---------- state ---------- */
+let role='coach',sport='soccer',tests=structuredClone(DEFAULTS.soccer),curP='p1',curT='',stack=[],statsView='season';
+const MY_KIDS=['p1'];
+const canEdit=()=>role!=='parent';
+const canSee=pid=>canEdit()||MY_KIDS.includes(pid);
+const player=id=>PLAYERS.find(p=>p.id===id);
+const test=k=>tests.find(t=>t.key===k);
+const fmtDate=s=>{const [y,m,d]=s.split('-').map(Number);return new Date(y,m-1,d).toLocaleDateString(undefined,{month:'short',day:'numeric'})};
+const today=()=>{const d=new Date();return [d.getFullYear(),String(d.getMonth()+1).padStart(2,'0'),String(d.getDate()).padStart(2,'0')].join('-')};
+function fmt(t,r){if(!r)return '–';if(t.metric==='made_of_attempted')return `${r.value}/${r.attempts}${r.side?' '+(r.side==='right'?'R':'L'):''}`;if(t.metric==='time_seconds')return r.value.toFixed(1)+' s';if(t.metric==='distance')return r.value+' '+t.unit;return String(r.value)}
+const score=(t,r)=>t.metric==='made_of_attempted'?r.value/r.attempts:r.value;
+const resultsFor=(pid,key)=>results.filter(r=>r.pid===pid&&r.key===key).sort((a,b)=>a.on.localeCompare(b.on)||a.id.localeCompare(b.id));
+const mainSide=(t,list)=>t.sides?list.filter(x=>x.side==='right'):list;
+function best(t,list){if(!list.length)return null;return list.reduce((b,r)=>!b||(t.higher?score(t,r)>score(t,b):score(t,r)<score(t,b))?r:b,null)}
+const hasResults=key=>results.some(r=>r.key===key);
+const metricLbl=t=>({count:'Count',time_seconds:'Time (s)',distance:'Distance ('+t.unit+')',made_of_attempted:'Made of '+t.attempts})[t.metric]+(t.sides?' · L/R':'')+(t.higher?' · higher wins':' · lower wins');
+function spark(t,list){const pts=list.slice(-8).map(r=>score(t,r));if(pts.length<2)return null;const W=72,H=26,mn=Math.min(...pts),mx=Math.max(...pts),rg=mx-mn||1;
+ const xy=pts.map((v,i)=>[4+i*(W-8)/(pts.length-1),t.higher?H-4-(v-mn)/rg*(H-8):4+(v-mn)/rg*(H-8)]);const d=xy.map((p,i)=>(i?'L':'M')+p[0].toFixed(1)+' '+p[1].toFixed(1)).join(' ');const last=xy[xy.length-1];
+ const w=make('span');w.innerHTML=`<svg class="spark" viewBox="0 0 ${W} ${H}" aria-hidden="true"><path class="area" d="${d} L${last[0].toFixed(1)} ${H} L${xy[0][0].toFixed(1)} ${H} Z"/><path d="${d}"/><circle cx="${last[0].toFixed(1)}" cy="${last[1].toFixed(1)}" r="2.2"/></svg>`;return w.firstChild}
+
+/* ---------- navigation ---------- */
+const TITLES={roster:'Team',stats:'Stats',player:'Player',test:'Skill',settings:'Settings',skills:'Skills tests',field:'Field',games:'Games'};
+const RENDER={roster:renderRoster,stats:renderStats,player:renderPlayer,test:renderTest,settings:renderSettings,skills:renderSkills};
+const ROOTS=['roster','stats','settings','field','games'];
+const activeId=()=>document.querySelector('.page.active').id.slice(3);
+function go(id,push=true){if(ROOTS.includes(id))stack=[];else if(push)stack.push(activeId());
+ document.querySelectorAll('.page').forEach(p=>p.classList.toggle('active',p.id==='pg-'+id));
+ $('back').hidden=!stack.length;$('backLbl').textContent=stack.length?TITLES[stack[stack.length-1]]:'';
+ $('ttl').textContent=id==='player'?player(curP).name:id==='test'?test(curT).name:TITLES[id];
+ const tab={player:stack[0]||'roster',test:stack[0]||'roster',skills:'settings'}[id]||id;
+ document.querySelectorAll('.tabbar [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
+ RENDER[id]?.();$('main').scrollTo(0,0)}
+$('back').onclick=()=>go(stack.pop()||'stats',false);
+document.querySelectorAll('.tabbar [data-tab]').forEach(b=>b.onclick=()=>{const t=b.dataset.tab;if(t==='field'||t==='games'){toast(TITLES[t]+' is unchanged from the current app');return}go(t)});
+let toastT;function toast(m){const t=$('toast');t.textContent=m;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),1900)}
+
+/* ---------- roster ---------- */
+function renderRoster(){const S=SPORT_UI[sport],host=$('roster');host.replaceChildren();$('rosterSub').textContent=`${S.emoji} Strikers · ${PLAYERS.length} players`;
+ PLAYERS.forEach(p=>{const b=make('button','row btn');const n=make('span','num'+(MY_KIDS.includes(p.id)&&role==='parent'?' me':''),String(p.num));const l=make('span','lbl',p.name);
+  const cnt=results.filter(r=>r.pid===p.id&&test(r.key)).length;if(canSee(p.id))l.append(make('small','',cnt?`${cnt} skill results`:'No skill results yet'));
+  b.append(n,l,make('span','chev'));b.onclick=()=>{curP=p.id;go('player')};host.append(b)})}
+
+/* ---------- stats ---------- */
+$('statsSeg').onclick=e=>{const b=e.target.closest('button');if(!b)return;statsView=b.dataset.v;renderStats()};
+function renderStats(){const S=SPORT_UI[sport];document.querySelectorAll('#statsSeg button').forEach(b=>b.classList.toggle('on',b.dataset.v===statsView));
+ const sk=statsView==='skills';$('statsGS').hidden=sk;$('statsSK').hidden=!sk;
+ if(!sk){$('statsSub').textContent=statsView==='season'?'6 games this season':'vs Mini Tyler\'s · Nov 2';const tt=$('teamTiles');tt.replaceChildren();S.team.forEach((l,i)=>{const d=make('div','tile');d.append(make('b','',S.teamVals[i]),make('span','',l));tt.append(d)});
+  const h=$('playerStats');h.replaceChildren();const hd=make('div','prow stathead');hd.append(make('span','pname','Player'));S.cols.forEach(c=>hd.append(make('span','stat',c)));h.append(hd);
+  PLAYERS.slice().sort((a,b)=>STATS[b.id][0]-STATS[a.id][0]||STATS[b.id][1]-STATS[a.id][1]).forEach(p=>{const r=make('button','prow');r.style.cssText='width:100%;border:0;background:transparent;color:inherit;font:inherit;text-align:left;cursor:pointer';const n=make('span','pname');const nm=make('b','',p.name);nm.style.color='var(--tint)';n.append(nm,make('small','','#'+p.num));r.append(n);STATS[p.id].slice(0,3).forEach(v=>r.append(make('span','stat',String(v))));r.onclick=()=>{curP=p.id;go('player')};h.append(r)});return}
+ $('statsSub').textContent=role==='parent'?'Your player\'s personal bests':`${S.emoji} Strikers · personal bests`;
+ const active=tests.filter(t=>t.active),rows=PLAYERS.filter(p=>canSee(p.id));$('skPill').textContent=`${active.length} tests`;
+ const m=$('matrix');m.replaceChildren();if(!active.length){m.append(make('div','empty','No tests shown. Add or restore tests under Settings → Skills tests.'));return}
+ const tb=make('table'),thead=make('thead'),hr=make('tr');hr.append(make('th','','Player'));active.forEach(t=>hr.append(make('th','',t.name.replace('Dribbling with control','Dribble').replace(' accuracy','').replace('Sprint speed','Sprint').replace('Kick distance','Kick'))));thead.append(hr);tb.append(thead);
+ const tbody=make('tbody');rows.forEach(p=>{const tr=make('tr',MY_KIDS.includes(p.id)&&role==='parent'?'me':'');const td0=make('td');const b=make('button','',p.name);b.onclick=()=>{curP=p.id;go('player')};td0.append(b);tr.append(td0);
+  active.forEach(t=>{const list=mainSide(t,resultsFor(p.id,t.key)),bst=best(t,list),td=make('td');if(!bst){td.append(make('span','none','–'))}else{td.append(make('b','',fmt(t,bst).replace(' R','')));if(list.length>1){const a=list[list.length-1],z=list[list.length-2],d=score(t,a)-score(t,z);if(d)td.append(make('span',(d>0)===t.higher?'up':'dn',(d>0)===t.higher?'↑':'↓'))}}tr.append(td)});tbody.append(tr)});
+ tb.append(tbody);m.append(tb)}
+
+/* ---------- player page ---------- */
+function renderPlayer(){const p=player(curP),S=SPORT_UI[sport],st=STATS[p.id]||[0,0,0,0];$('pJersey').textContent=p.num;$('pName').textContent=p.name;$('pMeta').textContent=`#${p.num} · Strikers · ${S.emoji} ${S.name}`;
+ const tl=$('pTiles');tl.replaceChildren();S.tiles.forEach(([k,lbl],i)=>{const d=make('div','tile');d.append(make('b','',sport==='baseball'&&k==='AVG'?'.'+String(280+st[0]*9).slice(-3):String(st[i])),make('span','',lbl));tl.append(d)});
+ const gw=$('guardWrap');gw.hidden=!canEdit();if(canEdit()){const g=$('guardians');g.replaceChildren();(GUARD[p.id]||[]).forEach(([n,rel,s])=>{const r=make('div','row');const l=make('span','lbl',n);l.append(make('small','',rel));r.append(l,make('span',s==='pending'?'chip pb':'chip',s==='pending'?'PENDING':'LINKED'));g.append(r)});if(!(GUARD[p.id]||[]).length)g.append(make('div','empty','No parent linked yet. Share the team code.'))}
+ const host=$('skillList');host.replaceChildren();const active=tests.filter(t=>t.active);
+ if(!canSee(p.id)){const l=make('div','lock');l.innerHTML='<svg viewBox="0 0 24 24"><rect x="4" y="10" width="16" height="11" rx="2"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg><span>Skill results are shared only with a player\'s own parents. You can see positions, playing time and stats for the whole team.</span>';host.append(l);$('skillCount').textContent='';$('recordBar').hidden=true;$('skillFoot').hidden=true;return}
+ $('recordBar').hidden=!canEdit();$('skillFoot').hidden=false;let n=0;
+ if(!active.length)host.append(make('div','empty','No tests shown. A coach can add or restore tests under Settings → Skills tests.'));
+ active.forEach(t=>{const all=resultsFor(p.id,t.key),list=mainSide(t,all);n+=all.length;const b=make('button','row btn');const l=make('span','lbl');l.append(document.createTextNode(t.name));if(t.draft)l.append(document.createTextNode(' '),make('span','chip draft','DRAFT'));
+  const bst=best(t,list),last=all[all.length-1];
+  if(t.sides&&all.length){const r=best(t,all.filter(x=>x.side==='right')),lf=best(t,all.filter(x=>x.side==='left'));l.append(make('small','',`Best ${r?fmt(t,r):'–'} · ${lf?fmt(t,lf):'–'} · last ${fmtDate(last.on)}`))}
+  else l.append(make('small','',all.length?`Best ${fmt(t,bst)} · latest ${fmt(t,last)} · ${fmtDate(last.on)}`:'No results yet'));
+  b.append(l);const sp=spark(t,list);if(sp)b.append(sp);
+  const v=make('span','best',bst?fmt(t,bst).replace(' R',''):'–');if(bst&&list.length>1&&bst.id===list[list.length-1].id)v.append(make('small','',' PB'));b.append(v,make('span','chev'));
+  b.onclick=()=>{curT=t.key;go('test')};host.append(b)});
+ $('skillCount').textContent=`${n} results`;$('recordBtn').onclick=()=>recordSheet(p.id,'')}
+
+/* ---------- test page ---------- */
+function renderTest(){const t=test(curT),p=player(curP),all=resultsFor(p.id,t.key),list=mainSide(t,all);$('tName').textContent=t.name;
+ const ml={count:'Count · higher is better',time_seconds:'Seconds · lower is better',distance:`${t.unit==='ft'?'Feet':t.unit==='m'?'Meters':'Yards'} · higher is better`,made_of_attempted:`Made of ${t.attempts}${t.sides?' · each side':''}`}[t.metric];
+ $('tSub').textContent=`${p.name} · ${ml}`;$('tHow').innerHTML=`<b>How to run it.</b> ${t.how}`;
+ const tl=$('tTiles');tl.replaceChildren();const bst=best(t,list),last=all[all.length-1];
+ [['Best',bst?fmt(t,bst):'–'],['Latest',last?fmt(t,last):'–'],['Sessions',String(new Set(all.map(r=>r.on)).size)]].forEach(([k,v])=>{const d=make('div','tile');d.append(make('b','',v),make('span','',k));tl.append(d)});
+ const h=$('tHist');h.replaceChildren();if(!all.length)h.append(make('div','empty',canEdit()?'No results yet. Record the first one below.':'No results yet.'));
+ all.slice().reverse().forEach(r=>{const row=make(canEdit()?'button':'div','row'+(canEdit()?' btn':''));row.append(make('span','d',fmtDate(r.on)));const v=make('span','v',fmt(t,r));if(bst&&r.id===bst.id)v.append(document.createTextNode(' '),make('span','chip pb','PB'));row.append(v,make('span','n',r.note||r.by));if(canEdit()){row.append(make('span','chev'));row.onclick=()=>recordSheet(p.id,t.key,r)}h.append(row)});
+ $('tBar').hidden=!canEdit();$('tFoot').hidden=!canEdit();$('tRecord').onclick=()=>recordSheet(p.id,t.key)}
+
+/* ---------- settings & skills editor ---------- */
+function renderSettings(){const shown=tests.filter(t=>t.active).length,hid=tests.length-shown;$('skillsSummary').textContent=`${shown} shown${hid?` · ${hid} hidden`:''}`;$('toSkills').disabled=!canEdit();$('toSkills').style.opacity=canEdit()?'':'.5'}
+$('toSkills').onclick=()=>{if(!canEdit()){toast('Coaches manage the test list');return}go('skills')};
+function testRow(t,i,list){const row=make('div','row');const tg=make('button','toggle'+(t.active?' on':''));tg.setAttribute('role','switch');tg.setAttribute('aria-checked',String(t.active));tg.setAttribute('aria-label',t.name+(t.active?' shown':' hidden'));tg.onclick=()=>{t.active=!t.active;renderSkills();toast(t.active?`${t.name} shown`:`${t.name} hidden · history kept`)};
+ const l=make('button','lbl');l.style.cssText='border:0;background:transparent;color:inherit;font:inherit;text-align:left;padding:0;cursor:pointer';l.append(document.createTextNode(t.name));if(t.draft)l.append(document.createTextNode(' '),make('span','chip draft','DRAFT'));if(t.custom)l.append(document.createTextNode(' '),make('span','chip','CUSTOM'));l.append(make('small','',metricLbl(t)+(hasResults(t.key)?' · has results':'')));l.onclick=()=>editTestSheet(t);
+ row.append(tg,l);if(t.active){const ud=make('div','updown');const up=make('button','','↑'),dn=make('button','','↓');up.disabled=!i;dn.disabled=i===list.length-1;up.setAttribute('aria-label','Move up');dn.setAttribute('aria-label','Move down');
+  const swap=(a,b)=>{const ia=tests.indexOf(list[a]),ib=tests.indexOf(list[b]);[tests[ia],tests[ib]]=[tests[ib],tests[ia]];renderSkills()};up.onclick=()=>swap(i,i-1);dn.onclick=()=>swap(i,i+1);ud.append(up,dn);row.append(ud)}else row.append(make('span','chev'));return row}
+function renderSkills(){const S=SPORT_UI[sport],shown=tests.filter(t=>t.active),hid=tests.filter(t=>!t.active);$('sSub').textContent=`${S.emoji} ${S.name} · ${shown.length} shown${hid.length?` · ${hid.length} hidden`:''}`;
+ const h=$('testEditor');h.replaceChildren();shown.forEach((t,i)=>h.append(testRow(t,i,shown)));if(!shown.length)h.append(make('div','empty','Nothing shown. Switch a hidden test back on or add one.'));
+ const hh=$('testHidden');hh.replaceChildren();$('hiddenHead').hidden=hh.hidden=!hid.length;hid.forEach((t,i)=>hh.append(testRow(t,i,hid)));
+ const missing=DEFAULTS[sport].filter(d=>!tests.some(t=>t.key===d.key));$('restore').hidden=!missing.length&&!hid.some(t=>t.isDefault)}
+$('restore').onclick=()=>{let n=0;DEFAULTS[sport].forEach(d=>{const t=tests.find(x=>x.key===d.key);if(!t){tests.push(structuredClone(d));n++}else if(!t.active){t.active=true;n++}});renderSkills();toast(n?`${n} default test${n>1?'s':''} restored`:'All defaults already shown')};
+$('addLib').onclick=()=>sheet(f=>{f.classList.add('lib');f.append(make('h3','','Add from library'));f.append(Object.assign(make('p','hint','Default tests from the other sports. Added tests become this team\'s own copy to edit.')));
+ const g=make('div','group');Object.entries(DEFAULTS).filter(([k])=>k!==sport).forEach(([k,list])=>list.filter(d=>!tests.some(t=>t.key===d.key)).forEach(d=>{const b=make('button','row btn');const l=make('span','lbl',d.name);l.append(make('small','',`${SPORT_UI[k].emoji} ${SPORT_UI[k].name} · ${metricLbl(d)}`));b.append(l,make('span','chev'));b.onclick=()=>{tests.push({...structuredClone(d),isDefault:false,draft:false});closeSheet();renderSkills();toast(`${d.name} added`)};g.append(b)}));f.append(g)});
+$('addTest').onclick=()=>editTestSheet(null);
+function editTestSheet(t){const locked=t&&hasResults(t.key);sheet(f=>{f.append(make('h3','',t?'Edit test':'Add a custom test'));if(locked)f.append(Object.assign(make('p','hint','This test has results on record, so the metric and the higher/lower rule are locked. Hide it and add a new test if you need a different version.')));
+ const nm=inp('Name','e.g. Throw-ins','text',t?t.name:'');const how=make('label','fld');how.innerHTML='<span>How to run it</span>';const ta=make('textarea');ta.placeholder='Same setup every time so results compare.';ta.value=t?t.how:'';how.append(ta);
+ const mt=sel('Metric',[['count','Count'],['time_seconds','Time in seconds'],['distance','Distance'],['made_of_attempted','Made of attempted']],t?t.metric:'count');
+ const hi=sel('Which is better',[['yes','Higher'],['no','Lower']],t?(t.higher?'yes':'no'):'yes');const unit=sel('Unit',[['yd','Yards'],['ft','Feet'],['m','Meters']],t?t.unit:'yd');const att=inp('Attempts','5','number',t?String(t.attempts):'5');const sides=sel('Per side',[['no','One result'],['yes','Left and right']],t&&t.sides?'yes':'no');
+ const ms=mt.querySelector('select');const sync=()=>{unit.hidden=ms.value!=='distance';att.hidden=sides.hidden=ms.value!=='made_of_attempted';if(!t)hi.querySelector('select').value=ms.value==='time_seconds'?'no':'yes'};ms.onchange=sync;sync();
+ if(locked){ms.disabled=true;hi.querySelector('select').disabled=true;unit.querySelector('select').disabled=true;att.querySelector('input').disabled=true;sides.querySelector('select').disabled=true;[mt,hi].forEach(x=>x.querySelector('span').innerHTML+='<i>locked</i>')}
+ f.append(nm,how,mt,hi,unit,att,sides);const b=make('button','b',t?'Save changes':'Add test');b.onclick=()=>{const name=nm.querySelector('input').value.trim();if(!name){toast('Give the test a name');return}
+  const vals={name,how:ta.value.trim()||'Custom test.',metric:ms.value,unit:unit.querySelector('select').value,sides:sides.querySelector('select').value==='yes',higher:hi.querySelector('select').value==='yes',attempts:Number(att.querySelector('input').value)||5};
+  if(t)Object.assign(t,locked?{name:vals.name,how:vals.how}:vals);else tests.push({key:'c'+Date.now(),...vals,active:true,draft:false,isDefault:false,custom:true});closeSheet();renderSkills();toast(t?'Test updated':`${name} added`)};f.append(b);
+ if(t){const del=make('button','b danger',locked?'Can\'t delete · has results':'Delete test');del.disabled=locked;del.onclick=()=>{tests=tests.filter(x=>x!==t);closeSheet();renderSkills();toast(`${t.name} deleted`)};f.append(del)}})}
+
+/* ---------- sheets ---------- */
+function inp(label,ph,type='text',val=''){const w=make('label','fld');w.innerHTML=`<span>${label}</span>`;const i=make('input');i.type=type;i.placeholder=ph||'';i.value=val;if(type==='number')i.inputMode='decimal';w.append(i);return w}
+function sel(label,opts,val){const w=make('label','fld');w.innerHTML=`<span>${label}</span>`;const s=make('select');opts.forEach(([v,l])=>s.add(new Option(l,v)));if(val!==undefined)s.value=val;w.append(s);return w}
+function sheet(build){const sh=$('sheet');sh.className='sheet';sh.replaceChildren(make('div','grab'));build(sh);const c=make('button','b cancel','Cancel');c.onclick=closeSheet;sh.append(c);$('backdrop').classList.add('show');$('backdrop').onclick=e=>{if(e.target===$('backdrop'))closeSheet()}}
+function closeSheet(){$('backdrop').classList.remove('show')}
+function recordSheet(pid,key,existing){const act=tests.filter(t=>t.active);if(!act.length){toast('No tests shown · add one in Settings');return}sheet(f=>{const p=player(pid);f.append(make('h3','',existing?'Edit result':'Record a result · '+p.name));
+ const tsel=sel('Test',act.map(t=>[t.key,t.name]),key||act[0].key);if(existing)tsel.querySelector('select').disabled=true;
+ const date=inp('Date','','date',existing?existing.on:today());const box=make('div');const note=inp('Note (optional)','e.g. windy, size 4 ball','text',existing?existing.note:'');
+ let fields={};function build(){const t=test(tsel.querySelector('select').value);box.replaceChildren();fields={};
+  if(t.metric==='made_of_attempted'){const sidesOn=t.sides&&!existing;(sidesOn?['right','left']:[existing?.side||'']).forEach(side=>{const w=make('label','fld');w.innerHTML=`<span>${side?side[0].toUpperCase()+side.slice(1)+' foot':'Made'}</span>`;const r=make('div','inrow');const a=make('input');a.type='number';a.inputMode='numeric';a.placeholder='made';a.value=existing&&(existing.side||'')===side?existing.value:'';const b=make('input');b.type='number';b.inputMode='numeric';b.value=existing?existing.attempts:t.attempts;r.append(a,make('span','','of'),b);w.append(r);box.append(w);fields[side]={a,b}})}
+  else{const w=make('label','fld');const lbl={count:'Longest streak',time_seconds:'Time',distance:'Distance'}[t.metric];w.innerHTML=`<span>${lbl}</span>`;const r=make('div','inrow');const a=make('input');a.type='number';a.inputMode='decimal';a.step=t.metric==='time_seconds'?'0.1':'1';a.placeholder=t.metric==='time_seconds'?'12.4':'0';a.value=existing?existing.value:'';r.append(a);if(t.metric!=='count')r.append(make('span','',t.metric==='time_seconds'?'seconds':t.unit));w.append(r);box.append(w);fields['']={a}}
+  setTimeout(()=>box.querySelector('input')?.focus(),50)}
+ tsel.querySelector('select').onchange=build;build();
+ f.append(tsel,date,box,note);const save=make('button','b',existing?'Save changes':'Save result');save.onclick=()=>{const t=test(tsel.querySelector('select').value);const on=date.querySelector('input').value||today();let added=0;
+  Object.entries(fields).forEach(([side,{a,b}])=>{const v=parseFloat(a.value);if(isNaN(v))return;const rec={pid,key:t.key,on,value:v,attempts:b?Number(b.value)||t.attempts:undefined,side:side||undefined,note:note.querySelector('input').value.trim(),by:role==='assistant'?'Asst. coach':'Coach Cody'};
+   if(existing)Object.assign(existing,rec);else results.push({id:'r'+(++rid),...rec});added++});
+  if(!added){toast('Enter a value first');return}closeSheet();RENDER[activeId()]?.();
+  const list=mainSide(t,resultsFor(pid,t.key)),bst=best(t,list),last=list[list.length-1];toast(existing?'Result updated':bst&&last&&bst.id===last.id&&list.length>1?`New personal best · ${fmt(t,last)}`:`Saved · ${fmt(t,last)}`)};
+ f.append(save);if(existing){const del=make('button','b danger','Delete this result');del.onclick=()=>{results=results.filter(r=>r!==existing);closeSheet();renderTest();toast('Result deleted')};f.append(del)}})}
+
+/* ---------- desk controls ---------- */
+function segs(id,fn){$(id).onclick=e=>{const b=e.target.closest('button');if(!b)return;[...$(id).children].forEach(x=>x.classList.toggle('on',x===b));fn(b.dataset.v)}}
+segs('roleSeg',v=>{role=v;const cur=activeId();if(v==='parent'&&cur==='skills')go('settings');else go(cur,false);toast(v==='parent'?"Viewing as Nolan's parent":'Viewing as '+v)});
+segs('sportSeg',v=>{sport=v;tests=structuredClone(DEFAULTS[v]);statsView='skills';go('stats');if(v!=='soccer')toast('Draft test set · no results yet')});
+segs('themeSeg',v=>{if(v)document.documentElement.dataset.theme=v;else delete document.documentElement.dataset.theme});
+go('stats',false);
+})();
+</script>
