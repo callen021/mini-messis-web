@@ -16,9 +16,16 @@ npm ci
 npm run dev          # http://localhost:5173
 ```
 
-The dev server exposes `/dev/components`, a gallery of every design-system component with
-theme, sport-tint and tab-bar-position switches. It is only compiled into dev builds (or when
-`VITE_DEV_ROUTES=true` is set for a preview build; never set that in a deploy).
+The dev server exposes two dev-only routes, compiled only into dev builds (or when
+`VITE_DEV_ROUTES=true` is set for a preview build; never set that in a deploy):
+
+- `/dev/components` — gallery of every design-system component with theme, sport-tint and
+  tab-bar-position switches.
+- `/dev/field` — every sport × size × formation × view rendered through the real field
+  components, for side-by-side checks against `legacy/index.html` (open that file directly in a
+  browser; it loads sample teams on first run).
+
+`npm run dev` listens on the LAN, so the Network URL it prints opens on a phone on the same Wi-Fi.
 
 ## Scripts
 
@@ -54,6 +61,9 @@ See `docs/BUILD-PROMPT.md` §6 for the target layout. Phase 1 fills in:
   (legacy component CSS, same class names), `field.css`, `print.css`, `base.css` (Tailwind entry)
 - `src/components/` — Tabbar, Sheet / FormSheet / ActionSheet, Toast, Stepper, Segmented, Switch,
   Row / Group / Section / Footer, Button / Toolbar, Tile, Badge / Pill / Tag / Scoreline, Page, Form
+- `src/sports/` — pure sport rules: `definitions` (SPORTS), `formations`, `lineup` (remap, auto-fill,
+  counts, balance), `field` (images + homography), `colors`, `jersey` (SVG). Unit-tested.
+- `src/lineups/` — `FieldStage` (artwork + placed slots) and `Jersey` components
 - `src/app/` — router, providers, TabLayout, placeholder pages
 - `src/lib/` — `ui-store` (Zustand, device-local theme/view), `theme`, `haptics`, `cn`
 - `src/dev/ComponentsPage.tsx` — the gallery

@@ -71,6 +71,39 @@ the root. Moving to a custom domain later is a one-line change to that variable 
 `server.host = true` (and `preview.host`) so `npm run dev` is reachable from a phone on the same
 Wi-Fi without `--host`; Vite prints the Network URL on start.
 
+## 2026-11-09 — Phase 2
+
+### D12. Sports engine is pure and immutable
+
+`src/sports/` has no React, no Supabase and no shared state. Every lineup function
+(`remap`, `fixPeriods`, `autoFill`, `assignSlot`, …) takes periods/players/formations as
+arguments and returns new objects instead of mutating, so TanStack Query and React can diff
+results and optimistic updates stay cheap. The legacy code mutated `state` in place; the rules
+were ported line for line, with the random tie-break injectable for deterministic tests.
+
+### D13. Positions carry an explicit `code`
+
+Legacy positions had `code` only for soccer/lacrosse and fell back to `role` elsewhere
+(`pos.code || pos.role` scattered through the renderer). The port normalises every position to
+`{ role, code, x, y }` at generation time so the database (`lineup_slots.position_code`) and the
+UI never need the fallback.
+
+### D14. Field artwork is static files, runtime-cached
+
+The eight base64 WebP images (≈2.3 MB) were extracted to `public/fields/<sport>-<view>.webp`.
+Image dimensions and homographies live in `src/sports/field.ts`. They are excluded from the
+service worker precache and cached on first use (CacheFirst, 90 days) so installing the PWA stays
+fast and a baseball-only team never downloads the soccer pitch. Football has no artwork and reuses
+the soccer pitch; the sport is disabled anyway.
+
+### D15. Jerseys are SVG strings injected once per jersey
+
+`jerseySvg()` returns the legacy SVG markup (gradients keyed by a per-jersey id) and the
+`<Jersey/>` component injects it with `dangerouslySetInnerHTML`. Rewriting ~60 path elements as
+JSX bought nothing and risked drift from the legacy artwork; the string is generated from our
+own constants, never from user input. Shared patterns live in `<JerseyDefs/>`, rendered once per
+page.
+
 ### D9. App icon is a vector (`public/icon.svg`); PNG sizes are derived from it
 
 No hi-res source of the legacy icon exists, so the mark was redrawn as an SVG in the same spirit

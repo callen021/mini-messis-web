@@ -13,12 +13,21 @@ const devRoutesEnabled = import.meta.env.DEV || import.meta.env.VITE_DEV_ROUTES 
 function makeDevRoutes(): RouteObject[] {
   if (!devRoutesEnabled) return [];
   const ComponentsPage = lazy(() => import('@/dev/ComponentsPage'));
+  const FieldPage = lazy(() => import('@/dev/FieldPage'));
   return [
     {
       path: '/dev/components',
       element: (
         <Suspense fallback={null}>
           <ComponentsPage />
+        </Suspense>
+      ),
+    },
+    {
+      path: '/dev/field',
+      element: (
+        <Suspense fallback={null}>
+          <FieldPage />
         </Suspense>
       ),
     },
