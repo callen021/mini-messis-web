@@ -11,6 +11,13 @@ export const qk = {
     ['team', teamId, 'lineups', gameId ?? 'template'] as const,
   games: (teamId: string) => ['team', teamId, 'games'] as const,
   liveGame: (teamId: string) => ['team', teamId, 'live-game'] as const,
+  /** Per-player stats; `scope` is 'season' or a game id. */
+  stats: (teamId: string, scope: string) => ['team', teamId, 'stats', scope] as const,
   guardians: (userId: string) => ['guardians', userId] as const,
+  /** Everything about one game lives under ['game', id] so one invalidation refreshes the detail page. */
   game: (gameId: string) => ['game', gameId] as const,
+  scoreEvents: (gameId: string) => ['game', gameId, 'events'] as const,
+  plateAppearances: (gameId: string) => ['game', gameId, 'plate-appearances'] as const,
+  coachNotes: (gameId: string) => ['game', gameId, 'coach-notes'] as const,
+  gamePlayers: (gameId: string) => ['game', gameId, 'players'] as const,
 };

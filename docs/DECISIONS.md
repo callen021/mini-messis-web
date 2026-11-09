@@ -197,3 +197,45 @@ from it with sharp; re-run that render whenever the SVG changes. The SVG is also
 Smoke tests need `/dev/components`, so the Playwright web server is `vite dev`. Two projects:
 a Pixel 7 profile (phone width, touch) and Desktop Chrome. WebKit is not installed in CI to keep
 it fast; iOS-specific checks are done manually on device.
+
+### D27. The score is always the sum of `score_events`; the client never stores a total
+
+Every screen that shows a score (Field cards, Games list, game detail, Stats tiles) sums the log,
+either through the `game_scores` view or from the cached event list. Adding, editing or deleting an
+event is an optimistic list mutation that also invalidates the game, the games list, the live game
+and the stats queries. Realtime on `score_events` and `plate_appearances` (unfiltered, RLS-scoped)
+does the same for other viewers. The 400 ms double-tap guard from the legacy `addGoal` lives in
+`scoring.ts` and is shared by every score button.
+
+### D28. Per-sport scoring rules live in the sport definition, mirrored by the SQL trigger
+
+`SportDefinition.scoring` names the event kinds (`goal`; `free_throw`/`field_goal`/`three_pointer`;
+`run`), their points, whether assists exist, the panel layout and the stat columns. The database
+trigger `score_events_validate` is the authority on points; the client sends the same value so
+optimistic rows render correctly before the round trip. Basketball's panel shows the scorer picker
+inline (defaulting to the last scorer) above the six +1/+2/+3 buttons so one tap posts the score;
+the spec's "tapping opens the scorer picker" was read as "the scorer is chosen in the same sheet".
+
+### D29. Stats are computed in SQL by `player_season_stats`
+
+One `security invoker` function returns every column for every sport (periods played, goals,
+assists, basketball points by type, runs, batting line). Column selection, AVG and sorting happen
+in the client from the sport's `columns`. Scope is the current season (live + done games) or one
+game. Removed players appear with their last `game_players` snapshot name and `removed = true`;
+rows with nothing to show are hidden client-side, as in the legacy table.
+
+### D30. Baseball batting order is stored on the player row
+
+`players.batting_order` (set atomically by `set_batting_order`) and `teams.last_batter_player_id`
+replace the legacy `order[]`/`lastBat`. Players marked out are skipped when computing the order,
+so their slot is kept for when they return. The "batted" tap sets the last batter and, during a
+live game, opens the optional result sheet; "Save · batted, no result" keeps the one-tap flow.
+Extra innings append an empty period to the live game's lineups through `save_lineups`; the
+template is untouched.
+
+### D31. Schedule fields and `.ics` export are client-only additions
+
+`games` already carried `start_time`, `location`, `home_away` and `parent_notes`. The Games page
+shows an Upcoming section with those fields (parents read it), the detail page edits them inline,
+and "Add to calendar" builds an RFC 5545 file in the browser (floating local time, 90-minute
+default length, all-day when no start time). No server component is involved.

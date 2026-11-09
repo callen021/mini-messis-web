@@ -1,10 +1,16 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
+import { useNavigate } from 'react-router';
 import { LoadingScreen, useIsCoach, useIsStaff } from '@/auth/guards';
 import { Button, Toolbar } from '@/components/Button';
 import { EditableTitle } from '@/components/EditableTitle';
 import { Footer } from '@/components/List';
 import { useActionSheet } from '@/components/Sheet';
 import { useToast } from '@/components/Toast';
+import { useAddScoreEvent, useCreateGame, useDeleteScoreEvent, useScoreEvents } from '@/games/api';
+import { makeNameLookup } from '@/games/names';
+import { NewGameSheet } from '@/games/NewGameSheet';
+import { ScorePanel } from '@/games/ScorePanel';
+import { describeEvent } from '@/games/scoring';
 import { errorMessage } from '@/lib/supabase';
 import { useUIStore } from '@/lib/ui-store';
 import { SPORTS, shortPeriod } from '@/sports/definitions';
@@ -48,6 +54,13 @@ export function FieldPage() {
   const save = useSavePlan(teamId, plan.gameId);
   const rename = useRenameTeam(teamId);
   const children = useMyChildren();
+  const navigate = useNavigate();
+  const events = useScoreEvents(plan.gameId ?? undefined);
+  const addEvent = useAddScoreEvent(teamId, plan.gameId ?? '');
+  const deleteEvent = useDeleteScoreEvent(teamId, plan.gameId ?? '');
+  const createGame = useCreateGame(teamId);
+  const [scoring, setScoring] = useState<number | null>(null);
+  const [starting, setStarting] = useState<number | null>(null);
 
   const allPlayers = useMemo(() => players.data ?? [], [players.data]);
   const enginePlayers = useMemo(() => toEnginePlayers(allPlayers), [allPlayers]);
@@ -63,6 +76,51 @@ export function FieldPage() {
   const colors = (team.colors ?? {}) as Record<string, string>;
   const highlight = children.data ?? new Set<string>();
   const nameOf = (id: string) => playerName(allPlayers.find((p) => p.id === id));
+  const log = events.data ?? [];
+  const score = log.reduce(
+    (acc, e) => {
+      acc[e.side] += e.points;
+      return acc;
+    },
+    { us: 0, them: 0 },
+  );
+  const names = makeNameLookup(allPlayers);
+  const firstKind = S.scoring.events[0];
+  const scoreNoun = firstKind?.noun ?? 'score';
+
+  /** Score button in a card header: adds to the live game, or starts one first (legacy `scoreButton`). */
+  const scoreButton = (i: number) => {
+    const live = !!plan.liveGame;
+    const label = live
+      ? `Score ${score.us} to ${score.them}. Add a ${scoreNoun} in ${noun} ${i + 1}`
+      : `Start a game and record ${S.scoring.unitPlural.toLowerCase()}`;
+    const inner = (
+      <>
+        <small>US</small>
+        <b>{score.us}</b>
+        <i aria-hidden="true">–</i>
+        <b>{score.them}</b>
+        <small>THEM</small>
+      </>
+    );
+    if (!isStaff) {
+      return live ? (
+        <span className="score live" aria-label={`Score ${score.us} to ${score.them}`}>
+          {inner}
+        </span>
+      ) : null;
+    }
+    return (
+      <button
+        type="button"
+        className={`score${live ? ' live' : ''}`}
+        aria-label={label}
+        onClick={() => (live ? setScoring(i) : setStarting(i))}
+      >
+        {inner}
+      </button>
+    );
+  };
 
   const commit = (next: Period[], message?: string) => {
     save.mutate(next, {
@@ -141,8 +199,8 @@ export function FieldPage() {
   if (plan.isPending || players.isPending) return <LoadingScreen />;
 
   const sub = plan.liveGame
-    ? `Live vs ${plan.liveGame.opponent} · ${isStaff ? 'tap a jersey to assign' : 'lineup updates live'}`
-    : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${N} ${noun}s${isStaff ? ' · tap a jersey to assign' : ''}`;
+    ? `Live vs ${plan.liveGame.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ` · tap a score to add a ${scoreNoun}` : ''}`
+    : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${N} ${noun}s${isStaff ? ' · tap a jersey to assign · tap a score to start a game' : ''}`;
 
   return (
     <section className="page">
@@ -179,9 +237,57 @@ export function FieldPage() {
             onAssign={(slot, pid) => onAssign(i, slot, pid)}
             onAutoFill={() => onAutoFill(i, false)}
             onRedo={() => onAutoFill(i, true)}
+            headerExtra={scoreButton(i)}
           />
         ))}
       </div>
+      {isStaff && plan.liveGame && (
+        <ScorePanel
+          open={scoring !== null}
+          onClose={() => setScoring(null)}
+          S={S}
+          opponent={plan.liveGame.opponent}
+          periodCount={N || 1}
+          initialPeriod={scoring ?? 0}
+          players={activePlayers}
+          names={names}
+          events={log}
+          onAdd={(ev) => {
+            addEvent.mutate(ev, { onError: (e) => toast(errorMessage(e)) });
+            toast(
+              ev.side === 'them'
+                ? `${plan.liveGame?.opponent ?? 'Opponent'} scored · ${S.periodName(N)} ${ev.period_index + 1}`
+                : `${firstKind?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'} · ${S.periodName(N)} ${ev.period_index + 1}`,
+            );
+          }}
+          onUndo={(ev) => {
+            deleteEvent.mutate(ev.id, { onError: (e) => toast(errorMessage(e)) });
+            toast(`Removed · ${describeEvent(S, N || 1, plan.liveGame?.opponent ?? '', ev, names)}`);
+          }}
+        />
+      )}
+      {isStaff && !plan.liveGame && (
+        <NewGameSheet
+          open={starting !== null}
+          onClose={() => setStarting(null)}
+          liveExists={false}
+          startOnly
+          busy={createGame.isPending}
+          onSubmit={(input) =>
+            createGame.mutate(
+              { ...input, start: true },
+              {
+                onSuccess: (g) => {
+                  setStarting(null);
+                  toast(`Game on · vs ${g.opponent}`);
+                  void navigate('/field');
+                },
+                onError: (e) => toast(errorMessage(e)),
+              },
+            )
+          }
+        />
+      )}
       {periods.length === 0 && <Footer>No periods yet — check the team setup in Settings.</Footer>}
       {isStaff ? (
         <>

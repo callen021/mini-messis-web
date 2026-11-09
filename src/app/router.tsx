@@ -14,6 +14,11 @@ import { MembersPage } from '@/teams/pages/MembersPage';
 import { PendingPage } from '@/teams/pages/PendingPage';
 import { WelcomePage } from '@/teams/pages/WelcomePage';
 import { RequireTeam } from '@/teams/TeamContext';
+import { BattingOrderPage } from '@/games/BattingOrderPage';
+import { GamePage } from '@/games/GamePage';
+import { GamesPage } from '@/games/GamesPage';
+import { LineupPage } from '@/games/LineupPage';
+import { StatsPage } from '@/games/StatsPage';
 import { FieldPage } from '@/lineups/FieldPage';
 import { TeamPage } from '@/roster/TeamPage';
 import { AuthLayout } from './layouts/AuthLayout';
@@ -100,10 +105,13 @@ export const routes: RouteObject[] = [
                 children: [
                   { index: true, element: <Navigate to="/field" replace /> },
                   { path: '/field', element: <FieldPage /> },
-                  { path: '/lineup', element: <Placeholder title="Lineup" phase={5} /> },
+                  { path: '/lineup', element: <LineupPage /> },
+                  { path: '/lineup/order', element: <BattingOrderPage /> },
                   { path: '/team', element: <TeamPage /> },
-                  { path: '/games', element: <Placeholder title="Games" phase={5} /> },
-                  { path: '/stats', element: <Placeholder title="Stats" phase={5} /> },
+                  { path: '/games', element: <GamesPage /> },
+                  { path: '/games/:gameId', element: <GamePage /> },
+                  { path: '/stats', element: <StatsPage /> },
+                  { path: '/players/:playerId', element: <Placeholder title="Player" phase={6} /> },
                   { path: '/settings', element: <SettingsPage /> },
                   { path: '/settings/members', element: <MembersPage /> },
                   { path: '/profile', element: <ProfilePage /> },

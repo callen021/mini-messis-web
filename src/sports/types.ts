@@ -64,6 +64,62 @@ export interface SportDefinition {
   sample: readonly string[];
   /** Sports with games/scoring in the legacy app (all sports get games in the rebuild). */
   games?: boolean;
+  /** How this sport scores and which per-player stat columns it shows. */
+  scoring: ScoringRules;
+}
+
+/** One kind of scoring event, stored as `score_events.event_type`; points are validated server-side too. */
+export interface ScoreEventKind {
+  type: string;
+  /** Short label on a button: 'Goal', '+2', 'Run'. */
+  label: string;
+  /** Long label in the log: 'goal', 'field goal', 'run'. */
+  noun: string;
+  points: number;
+}
+
+export type ScorePanelKind = 'goal' | 'points' | 'run';
+
+export interface StatColumn {
+  key: StatKey;
+  /** Column header: 'G', 'PTS', 'AVG'. */
+  label: string;
+  /** Tooltip / accessible name. */
+  title: string;
+}
+
+export type StatKey =
+  | 'periods_played'
+  | 'goals'
+  | 'assists'
+  | 'points'
+  | 'field_goals'
+  | 'three_pointers'
+  | 'free_throws'
+  | 'runs'
+  | 'at_bats'
+  | 'hits'
+  | 'doubles'
+  | 'triples'
+  | 'home_runs'
+  | 'rbi'
+  | 'walks'
+  | 'strikeouts'
+  | 'avg';
+
+export interface ScoringRules {
+  /** Event kinds in display order; the first is the default (`goal`, `field_goal`, `run`). */
+  events: readonly ScoreEventKind[];
+  /** Score panel layout: one Add button per side, +1/+2/+3 per side, or run buttons with the inning. */
+  panel: ScorePanelKind;
+  /** Whether our events record an assist. */
+  assists: boolean;
+  /** 'Goals' / 'Points' / 'Runs' for tiles ('Goals for', 'Against'). */
+  unitPlural: string;
+  /** Stat table columns in order (the name column is implicit). */
+  columns: readonly StatColumn[];
+  /** The column highlighted in the tint when non-zero (legacy: goals). */
+  hot: StatKey;
 }
 
 /** Slot assignment for one period of a plan: player ids by slot index ('' = open). */

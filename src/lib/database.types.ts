@@ -991,6 +991,32 @@ export type Database = {
         }
         Returns: Json
       }
+      player_season_stats: {
+        Args: { p_game_id?: string; p_season_id?: string; p_team_id: string }
+        Returns: {
+          player_id: string
+          name: string
+          number: string | null
+          removed: boolean
+          periods_played: number
+          goals: number
+          assists: number
+          points: number
+          field_goals: number
+          three_pointers: number
+          free_throws: number
+          runs: number
+          plate_appearances: number
+          at_bats: number
+          hits: number
+          doubles: number
+          triples: number
+          home_runs: number
+          rbi: number
+          walks: number
+          strikeouts: number
+        }[]
+      }
       rotate_join_code: { Args: { p_team_id: string }; Returns: string }
       save_lineups: {
         Args: { p_game_id?: string; p_periods?: Json; p_team_id: string }
@@ -1002,6 +1028,10 @@ export type Database = {
           p_sport: Database["public"]["Enums"]["sport"]
         }
         Returns: number
+      }
+      set_batting_order: {
+        Args: { p_player_ids: string[]; p_team_id: string }
+        Returns: undefined
       }
       set_member_role: {
         Args: {

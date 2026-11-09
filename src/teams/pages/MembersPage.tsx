@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Navigate } from 'react-router';
 import { useIsCoach } from '@/auth/guards';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
@@ -32,6 +33,13 @@ const ROLE_LABEL: Record<MemberRole, string> = {
 };
 
 export function MembersPage() {
+  const { role } = useCurrentTeam();
+  // Parents have no business here (the join code is for coaches to hand out); Settings hides the link.
+  if (role === 'parent') return <Navigate to="/settings" replace />;
+  return <MembersAdmin />;
+}
+
+function MembersAdmin() {
   const { teamId, team, isOwner } = useCurrentTeam();
   const isCoach = useIsCoach();
   const toast = useToast();

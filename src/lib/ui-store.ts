@@ -14,6 +14,7 @@ export const FIELD_VIEWS: readonly FieldView[] = ['persp', 'flat'];
  * profile loads. `sport` only drives the tint; the real current team comes from the server.
  */
 export type TeamView = 'rotation' | 'roster';
+export type StatsView = 'game' | 'season';
 
 export interface UIState {
   theme: Theme;
@@ -22,6 +23,9 @@ export interface UIState {
   /** Team tab segment (remembered like the legacy app). */
   teamView: TeamView;
   setTeamView: (teamView: TeamView) => void;
+  /** Stats tab segment. */
+  statsView: StatsView;
+  setStatsView: (statsView: StatsView) => void;
   setTheme: (theme: Theme) => void;
   setFieldView: (fieldView: FieldView) => void;
   setSport: (sport: SportKey) => void;
@@ -37,6 +41,8 @@ export const useUIStore = create<UIState>()(
       sport: 'soccer',
       teamView: 'rotation',
       setTeamView: (teamView) => set({ teamView }),
+      statsView: 'season',
+      setStatsView: (statsView) => set({ statsView }),
       setTheme: (theme) => set({ theme }),
       setFieldView: (fieldView) => set({ fieldView }),
       setSport: (sport) => set({ sport }),
@@ -44,7 +50,13 @@ export const useUIStore = create<UIState>()(
     {
       name: UI_STORAGE_KEY,
       version: 1,
-      partialize: (s) => ({ theme: s.theme, fieldView: s.fieldView, sport: s.sport, teamView: s.teamView }),
+      partialize: (s) => ({
+        theme: s.theme,
+        fieldView: s.fieldView,
+        sport: s.sport,
+        teamView: s.teamView,
+        statsView: s.statsView,
+      }),
     },
   ),
 );

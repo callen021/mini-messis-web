@@ -4,7 +4,13 @@ import { UI_STORAGE_KEY, useUIStore } from '../ui-store';
 describe('ui-store', () => {
   beforeEach(() => {
     localStorage.clear();
-    useUIStore.setState({ theme: 'auto', fieldView: 'persp', sport: 'soccer', teamView: 'rotation' });
+    useUIStore.setState({
+      theme: 'auto',
+      fieldView: 'persp',
+      sport: 'soccer',
+      teamView: 'rotation',
+      statsView: 'season',
+    });
   });
 
   it('defaults match the legacy app', () => {
@@ -25,6 +31,7 @@ describe('ui-store', () => {
       fieldView: 'persp',
       sport: 'lacrosse',
       teamView: 'rotation',
+      statsView: 'season',
     });
     expect(parsed.version).toBe(1);
   });
