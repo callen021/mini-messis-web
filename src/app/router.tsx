@@ -14,6 +14,8 @@ import { MembersPage } from '@/teams/pages/MembersPage';
 import { PendingPage } from '@/teams/pages/PendingPage';
 import { WelcomePage } from '@/teams/pages/WelcomePage';
 import { RequireTeam } from '@/teams/TeamContext';
+import { FieldPage } from '@/lineups/FieldPage';
+import { TeamPage } from '@/roster/TeamPage';
 import { AuthLayout } from './layouts/AuthLayout';
 import { TabLayout } from './layouts/TabLayout';
 import { NotFound } from './pages/NotFound';
@@ -97,9 +99,9 @@ export const routes: RouteObject[] = [
                 element: <TabLayout />,
                 children: [
                   { index: true, element: <Navigate to="/field" replace /> },
-                  { path: '/field', element: <Placeholder title="Field" phase={4} /> },
+                  { path: '/field', element: <FieldPage /> },
                   { path: '/lineup', element: <Placeholder title="Lineup" phase={5} /> },
-                  { path: '/team', element: <Placeholder title="Team" phase={4} /> },
+                  { path: '/team', element: <TeamPage /> },
                   { path: '/games', element: <Placeholder title="Games" phase={5} /> },
                   { path: '/stats', element: <Placeholder title="Stats" phase={5} /> },
                   { path: '/settings', element: <SettingsPage /> },

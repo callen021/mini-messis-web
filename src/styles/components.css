@@ -1389,3 +1389,11 @@ select.input {
 .teamswitch:active {
   background: var(--fill2);
 }
+
+/* parent's own child in lists */
+.prow.mine .pname {
+  color: var(--tint);
+}
+.mt-3 {
+  margin-top: 12px;
+}

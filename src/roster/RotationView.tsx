@@ -1,0 +1,237 @@
+import { useMemo, useState } from 'react';
+import { Button, Toolbar } from '@/components/Button';
+import { Footer, Group, Section } from '@/components/List';
+import { Switch } from '@/components/Switch';
+import { useToast } from '@/components/Toast';
+import { errorMessage } from '@/lib/supabase';
+import { playerName, toEnginePlayers, useCurrentPlan, useFormations, useSavePlan } from '@/lineups/api';
+import { toEnginePeriods } from '@/lineups/convert';
+import { textColor } from '@/sports/colors';
+import { SPORTS, chipLabel } from '@/sports/definitions';
+import {
+  autoFillAll,
+  balance,
+  balanceHint,
+  counts,
+  fixPeriods,
+  openCount,
+  placePlayer,
+  totalLevel,
+} from '@/sports/lineup';
+import { type Period } from '@/sports/types';
+import { type Player } from '@/teams/api';
+import { useCurrentTeam } from '@/teams/TeamContext';
+import { useSetAvailable } from './api';
+import { PositionPickerSheet } from './PositionPickerSheet';
+
+export function RotationView({
+  players,
+  canEdit,
+  highlight,
+}: {
+  players: Player[];
+  canEdit: boolean;
+  highlight: ReadonlySet<string>;
+}) {
+  const { teamId, team, sport } = useCurrentTeam();
+  const S = SPORTS[sport];
+  const toast = useToast();
+  const { forms, formationFor } = useFormations();
+  const plan = useCurrentPlan(teamId);
+  const save = useSavePlan(teamId, plan.gameId);
+  const setAvailable = useSetAvailable(teamId);
+  const [picking, setPicking] = useState<{ player: Player; periodIndex: number } | null>(null);
+
+  const enginePlayers = useMemo(() => toEnginePlayers(players), [players]);
+  const periods: Period[] = useMemo(
+    () => fixPeriods(toEnginePeriods(plan.periods), forms, S, enginePlayers),
+    [plan.periods, forms, S, enginePlayers],
+  );
+  const c = counts(periods, enginePlayers);
+  const N = periods.length;
+  const noun = S.periodName(N).toLowerCase();
+  const colors = (team.colors ?? {}) as Record<string, string>;
+  const active = players.filter((p) => p.is_available);
+  const outs = players.filter((p) => !p.is_available);
+  const bal = balance(periods, enginePlayers);
+
+  const commit = (next: Period[], msg?: string) => {
+    save.mutate(next, { onError: (e) => toast(errorMessage(e)) });
+    if (msg) toast(msg);
+  };
+
+  const toggle = (p: Player, on: boolean) => {
+    setAvailable.mutate({ id: p.id, available: on }, { onError: (e) => toast(errorMessage(e)) });
+    toast(on ? `${p.first_name} is back in` : `${p.first_name} out · positions cleared`);
+  };
+
+  const onPick = (slot: number | null) => {
+    if (!picking) return;
+    const q = periods[picking.periodIndex];
+    if (!q) return;
+    const f = formationFor(q.formation);
+    const r = placePlayer(q, picking.player.id, slot);
+    const next = [...periods];
+    next[picking.periodIndex] = r.period;
+    const code = slot !== null ? (f.positions[slot]?.code ?? '') : '';
+    const msg =
+      slot === null
+        ? `${picking.player.first_name} sits ${noun} ${picking.periodIndex + 1}`
+        : r.bumped
+          ? `${picking.player.first_name} in at ${code} · ${playerName(players.find((p) => p.id === r.bumped))} unassigned`
+          : `${picking.player.first_name} in at ${code}`;
+    commit(next, msg);
+  };
+
+  const onAutoAll = () => {
+    if (!openCount(periods)) {
+      toast('No open spots');
+      return;
+    }
+    const r = autoFillAll(periods, forms, S, enginePlayers);
+    commit(
+      r.periods,
+      r.filled ? `${r.filled} spot${r.filled > 1 ? 's' : ''} filled` : 'Nobody left on the bench',
+    );
+  };
+
+  const row = (p: Player, isOut: boolean) => (
+    <div
+      key={p.id}
+      className={`prow${N > 4 ? ' stack' : ''}${isOut ? ' out' : ''}${highlight.has(p.id) ? ' mine' : ''}`}
+    >
+      {canEdit && (
+        <Switch
+          label={
+            isOut
+              ? `${p.first_name} is out — tap to make active`
+              : `${p.first_name} is playing today — tap to mark out`
+          }
+          size="sm"
+          checked={!isOut}
+          onChange={(on) => toggle(p, on)}
+        />
+      )}
+      <div className="pname">
+        {p.first_name}
+        {p.jersey_number && <small>#{p.jersey_number}</small>}
+      </div>
+      {!isOut && (
+        <>
+          <div className="qchips">
+            {periods.map((q, qi) => {
+              const f = formationFor(q.formation);
+              const i = q.slots.indexOf(p.id);
+              const pos = i < 0 ? undefined : f.positions[i];
+              const code = pos?.code ?? '';
+              const col = pos ? (colors[S.group(pos.role)] ?? '#888') : undefined;
+              const cls = `qchip${code ? ' on' : ' empty'}${code && q.auto.includes(i) ? ' auto' : ''}`;
+              const label = `${p.first_name}, ${S.periodName(N)} ${qi + 1}: ${code || 'sitting out'}`;
+              return (
+                <div key={qi} className="qcell">
+                  <span className="qlab">{chipLabel(S, N, qi)}</span>
+                  {canEdit ? (
+                    <button
+                      type="button"
+                      className={cls}
+                      style={col ? { background: col, color: textColor(col) } : undefined}
+                      aria-label={label}
+                      onClick={() => setPicking({ player: p, periodIndex: qi })}
+                    >
+                      {code || '–'}
+                    </button>
+                  ) : (
+                    <span
+                      className={cls}
+                      style={
+                        col
+                          ? { background: col, color: textColor(col), cursor: 'default' }
+                          : { cursor: 'default' }
+                      }
+                      aria-label={label}
+                    >
+                      {code || '–'}
+                    </span>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+          <div className={`total ${totalLevel(c[p.id] ?? 0, N)}`} aria-label={`${c[p.id] ?? 0} ${noun}s`}>
+            {c[p.id] ?? 0}
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  const ordered = highlight.size
+    ? [...active.filter((p) => highlight.has(p.id)), ...active.filter((p) => !highlight.has(p.id))]
+    : active;
+
+  return (
+    <>
+      {canEdit && (
+        <Toolbar>
+          <Button variant="tinted" onClick={onAutoAll}>
+            Auto-fill open spots
+          </Button>
+        </Toolbar>
+      )}
+      <Section>Playing time</Section>
+      <Group>
+        {ordered.map((p) => row(p, false))}
+        {!active.length && <div className="prow">Add players on the Roster view.</div>}
+      </Group>
+      {outs.length > 0 && (
+        <>
+          <Section>Out this game</Section>
+          <Group>{outs.map((p) => row(p, true))}</Group>
+        </>
+      )}
+      <Section>Balance</Section>
+      <Group>
+        <div className="balance">
+          {bal ? (
+            <>
+              <p>
+                Range{' '}
+                <b>
+                  {bal.min}–{bal.max}
+                </b>{' '}
+                {noun}s · average <b>{bal.average}</b>
+              </p>
+              <div
+                className="meter"
+                role="img"
+                aria-label={`Playing time spread: least ${bal.min}, most ${bal.max} ${noun}s`}
+              >
+                <i className={bal.spread ? 'spread' : undefined} style={{ width: `${bal.percent}%` }} />
+              </div>
+              <p>{balanceHint(bal, noun)}</p>
+            </>
+          ) : (
+            <p>{balanceHint(null, noun)}</p>
+          )}
+        </div>
+      </Group>
+      <Footer>
+        {canEdit
+          ? `Tap a ${noun} box to put a player in a position for that ${noun}, or choose * Sitting out to sit them. Picking a position someone else holds swaps them in and leaves the other player unassigned. Auto-fill gives open spots to the players with the fewest ${noun}s, rotating position groups; a dotted corner marks an auto pick. Mid-${noun} substitutions aren't counted.`
+          : `Each box shows the position for that ${noun}; the number at the end is how many ${noun}s the player is scheduled for. This is the coach's plan and updates live.`}
+      </Footer>
+      {picking && (
+        <PositionPickerSheet
+          open
+          onClose={() => setPicking(null)}
+          title={`${picking.player.first_name} · ${S.periodName(N)} ${picking.periodIndex + 1}`}
+          player={picking.player}
+          period={periods[picking.periodIndex] ?? { formation: '', slots: [], auto: [] }}
+          formation={formationFor(periods[picking.periodIndex]?.formation ?? '')}
+          players={players}
+          onPick={onPick}
+        />
+      )}
+    </>
+  );
+}

@@ -13,10 +13,15 @@ export const FIELD_VIEWS: readonly FieldView[] = ['persp', 'flat'];
  * profile (Phase 3) — this store is the local cache so the PWA paints correctly before the
  * profile loads. `sport` only drives the tint; the real current team comes from the server.
  */
+export type TeamView = 'rotation' | 'roster';
+
 export interface UIState {
   theme: Theme;
   fieldView: FieldView;
   sport: SportKey;
+  /** Team tab segment (remembered like the legacy app). */
+  teamView: TeamView;
+  setTeamView: (teamView: TeamView) => void;
   setTheme: (theme: Theme) => void;
   setFieldView: (fieldView: FieldView) => void;
   setSport: (sport: SportKey) => void;
@@ -30,6 +35,8 @@ export const useUIStore = create<UIState>()(
       theme: 'auto',
       fieldView: 'persp',
       sport: 'soccer',
+      teamView: 'rotation',
+      setTeamView: (teamView) => set({ teamView }),
       setTheme: (theme) => set({ theme }),
       setFieldView: (fieldView) => set({ fieldView }),
       setSport: (sport) => set({ sport }),
@@ -37,7 +44,7 @@ export const useUIStore = create<UIState>()(
     {
       name: UI_STORAGE_KEY,
       version: 1,
-      partialize: (s) => ({ theme: s.theme, fieldView: s.fieldView, sport: s.sport }),
+      partialize: (s) => ({ theme: s.theme, fieldView: s.fieldView, sport: s.sport, teamView: s.teamView }),
     },
   ),
 );

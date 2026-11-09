@@ -146,6 +146,37 @@ request and is cleared on approval; the coach adds the player and links them aft
 SECURITY DEFINER. Pending users see their own request's team name through
 `my_pending_requests()` for the same reason.
 
+## 2026-11-09 — Phase 4
+
+### D23. A plan is saved whole, atomically, with last-write-wins
+
+Every lineup edit (jersey tap, formation change, auto-fill, clear) computes the next plan with the
+pure engine and sends all periods to `save_lineups(team_id, game_id, periods)`, which rewrites the
+lineups and slots in one transaction. A plan is at most 12 × 15 slots, so the payload is tiny, the
+client never has to diff slots, and partial writes cannot leave a period half-updated. Concurrent
+coaches overwrite each other at the plan level (last write wins), as the spec allows for v1; the
+Realtime subscription makes the loser see the result within a second or two.
+
+### D24. Optimistic updates through TanStack Query, no local draft state
+
+Mutations set the query cache to the expected result in `onMutate`, roll back in `onError` and
+refetch in `onSettled`. Pages render straight from the cache, so the UI is instant on a bad
+signal and self-corrects. The offline mutation queue (Phase 8) will sit underneath the same hooks.
+
+### D25. Players are soft-deleted; "out" clears them from the plan server-side
+
+`archive_player` sets `archived_at` and nulls the player out of the template and live game in one
+call, so game history keeps the snapshot while the roster and plan drop them.
+`set_player_available(false)` does the same clearing (legacy "out · positions cleared"). Completed
+games are never touched by either.
+
+### D26. Player picker is a bottom sheet, bench first
+
+The legacy jersey `<select>` is replaced by `PlayerPickerSheet`: bench players (with their period
+count) first, then "move from X" for players already on the field, then Clear. Semantics match the
+legacy `onchange`: picking a player who holds another slot moves them and opens their old slot.
+The rotation grid's chip menu keeps the legacy swap semantics (`placePlayer`).
+
 ### D15. Jerseys are SVG strings injected once per jersey
 
 `jerseySvg()` returns the legacy SVG markup (gradients keyed by a per-jersey id) and the

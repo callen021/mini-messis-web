@@ -68,10 +68,6 @@ The CLI targets the **local** stack by default, so both scripts pass `--remote`.
 `npm run db:types:local` against its Docker database. `npm run db:diff` shows schema drift
 between the migrations and the linked project.
 
-```bash
-
-```
-
 Dashboard settings to mirror `supabase/config.toml`: Authentication → URL Configuration → Site URL
 `https://callen021.github.io/mini-messis-web/` and add `http://localhost:5173/**` plus the Pages
 URL with `/**` to the redirect allow-list; Authentication → Providers → Email → "Confirm email" on.

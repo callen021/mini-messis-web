@@ -896,6 +896,10 @@ export type Database = {
       }
     }
     Functions: {
+      archive_player: { Args: { p_player_id: string }; Returns: undefined }
+      save_lineups: { Args: { p_team_id: string; p_game_id?: string; p_periods: Json }; Returns: undefined }
+      set_player_available: { Args: { p_player_id: string; p_available: boolean }; Returns: undefined }
+      clear_player_from_plans: { Args: { p_player_id: string }; Returns: undefined }
       approve_guardian_link: {
         Args: { p_approve?: boolean; p_link_id: string }
         Returns: undefined

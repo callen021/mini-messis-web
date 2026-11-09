@@ -4,7 +4,7 @@ import { UI_STORAGE_KEY, useUIStore } from '../ui-store';
 describe('ui-store', () => {
   beforeEach(() => {
     localStorage.clear();
-    useUIStore.setState({ theme: 'auto', fieldView: 'persp', sport: 'soccer' });
+    useUIStore.setState({ theme: 'auto', fieldView: 'persp', sport: 'soccer', teamView: 'rotation' });
   });
 
   it('defaults match the legacy app', () => {
@@ -20,7 +20,12 @@ describe('ui-store', () => {
     const raw = localStorage.getItem(UI_STORAGE_KEY);
     expect(raw).toBeTruthy();
     const parsed = JSON.parse(raw ?? '{}') as { state: Record<string, unknown>; version: number };
-    expect(parsed.state).toEqual({ theme: 'dark', fieldView: 'persp', sport: 'lacrosse' });
+    expect(parsed.state).toEqual({
+      theme: 'dark',
+      fieldView: 'persp',
+      sport: 'lacrosse',
+      teamView: 'rotation',
+    });
     expect(parsed.version).toBe(1);
   });
 });

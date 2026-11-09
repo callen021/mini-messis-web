@@ -10,5 +10,7 @@ export const qk = {
   lineups: (teamId: string, gameId: string | null) =>
     ['team', teamId, 'lineups', gameId ?? 'template'] as const,
   games: (teamId: string) => ['team', teamId, 'games'] as const,
+  liveGame: (teamId: string) => ['team', teamId, 'live-game'] as const,
+  guardians: (userId: string) => ['guardians', userId] as const,
   game: (gameId: string) => ['game', gameId] as const,
 };
