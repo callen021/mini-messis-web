@@ -26,7 +26,7 @@ import { fmtDate, scheduleLine } from './format';
 import { makeNameLookup } from './names';
 import { NewGameSheet } from './NewGameSheet';
 import { ScorePanel } from './ScorePanel';
-import { describeEvent } from './scoring';
+import { describeEvent, scoreNoun } from './scoring';
 import { gameResult, teamRecord } from './stats';
 
 /** Win / Loss / Draw / In progress / Upcoming badge. */
@@ -187,7 +187,11 @@ function LiveGameCard({ game }: { game: GameWithScore }) {
   const log = events.data ?? [];
   const periodCount = plan.periods.length || 1;
   const first = S.scoring.events[0];
-  const noun = first?.noun ?? 'score';
+  const noun = scoreNoun(S);
+  const recorded =
+    S.scoring.panel === 'points'
+      ? `${game.us + game.them} point${game.us + game.them === 1 ? '' : 's'} recorded`
+      : `${log.length} ${noun}${log.length === 1 ? '' : 's'} recorded`;
 
   const finishFlow = async () => {
     const ok = await sheet({
@@ -207,7 +211,7 @@ function LiveGameCard({ game }: { game: GameWithScore }) {
       <Row
         onClick={() => void navigate(`/games/${game.id}`)}
         label={<b>In progress · vs {game.opponent}</b>}
-        detail={`${fmtDate(game.game_date)} · ${log.length} ${noun}${log.length === 1 ? '' : 's'} recorded · tap for details`}
+        detail={`${fmtDate(game.game_date)} · ${recorded} · tap for details`}
       >
         <Scoreline us={game.us} them={game.them} />
       </Row>

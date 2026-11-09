@@ -30,3 +30,8 @@ export function describeEvent(
   const who = names.name(ev.scorer_player_id) || 'Unknown';
   return S.scoring.panel === 'points' ? `${tag} · ${who} · ${noun}` : `${tag} · ${who}`;
 }
+
+/** What one logged event is called in copy: 'goal', 'run', or 'score' for point-based sports. */
+export function scoreNoun(S: SportDefinition): string {
+  return S.scoring.panel === 'points' ? 'score' : (S.scoring.events[0]?.noun ?? 'score');
+}

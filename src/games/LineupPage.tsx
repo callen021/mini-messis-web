@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Navigate, useNavigate } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { Tag } from '@/components/Badge';
 import { Button, Toolbar } from '@/components/Button';
@@ -10,6 +10,7 @@ import { useToast } from '@/components/Toast';
 import { cn } from '@/lib/cn';
 import { errorMessage } from '@/lib/supabase';
 import { useCurrentPlan } from '@/lineups/api';
+import { SPORTS } from '@/sports/definitions';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useAddPlateAppearance, usePlateAppearances, useScoreEvents, useSetLastBatter } from './api';
@@ -19,7 +20,7 @@ import { PlateAppearanceSheet } from './PlateAppearanceSheet';
 
 /** Baseball batting order (legacy Lineup tab): locked list, tap when batted, optional result entry. */
 export function LineupPage() {
-  const { teamId, team } = useCurrentTeam();
+  const { teamId, team, sport } = useCurrentTeam();
   const isStaff = useIsStaff();
   const toast = useToast();
   const sheet = useActionSheet();
@@ -29,6 +30,7 @@ export function LineupPage() {
   const setLast = useSetLastBatter(teamId);
   const [batted, setBatted] = useState<string | null>(null);
 
+  if (!SPORTS[sport].lineup) return <Navigate to="/field" replace />;
   if (players.isPending || plan.isPending) return <LoadingScreen />;
   const roster = players.data ?? [];
   const order = battingOrder(roster);

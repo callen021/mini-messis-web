@@ -107,7 +107,8 @@ export function StatsPage() {
           </div>
         ))}
         {list.length === 0 && <div className="prow">Play a game to see player stats.</div>}
-        {list.length > 0 && rows.length === 0 && !stats.isPending && (
+        {stats.error && <div className="prow">Couldn’t load player stats: {stats.error.message}</div>}
+        {list.length > 0 && rows.length === 0 && !stats.isPending && !stats.error && (
           <div className="prow">No player stats yet.</div>
         )}
       </Group>

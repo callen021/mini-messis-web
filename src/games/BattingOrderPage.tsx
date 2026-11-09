@@ -1,3 +1,4 @@
+import { Navigate } from 'react-router';
 import { LoadingScreen } from '@/auth/guards';
 import { Button, Toolbar } from '@/components/Button';
 import { ChevronDownIcon, ChevronUpIcon } from '@/components/icons';
@@ -5,6 +6,7 @@ import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
+import { SPORTS } from '@/sports/definitions';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useSetBattingOrder } from './api';
@@ -13,11 +15,12 @@ import { makeNameLookup } from './names';
 
 /** Edit the batting order with up/down arrows (legacy "Edit order" screen). */
 export function BattingOrderPage() {
-  const { teamId } = useCurrentTeam();
+  const { teamId, sport } = useCurrentTeam();
   const toast = useToast();
   const players = usePlayers(teamId);
   const setOrder = useSetBattingOrder(teamId);
 
+  if (!SPORTS[sport].lineup) return <Navigate to="/field" replace />;
   if (players.isPending) return <LoadingScreen />;
   const roster = players.data ?? [];
   const order = battingOrder(roster);

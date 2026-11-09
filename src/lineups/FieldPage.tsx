@@ -10,7 +10,7 @@ import { useAddScoreEvent, useCreateGame, useDeleteScoreEvent, useScoreEvents } 
 import { makeNameLookup } from '@/games/names';
 import { NewGameSheet } from '@/games/NewGameSheet';
 import { ScorePanel } from '@/games/ScorePanel';
-import { describeEvent } from '@/games/scoring';
+import { describeEvent, scoreNoun as scoreNounFor } from '@/games/scoring';
 import { errorMessage } from '@/lib/supabase';
 import { useUIStore } from '@/lib/ui-store';
 import { SPORTS, shortPeriod } from '@/sports/definitions';
@@ -86,7 +86,7 @@ export function FieldPage() {
   );
   const names = makeNameLookup(allPlayers);
   const firstKind = S.scoring.events[0];
-  const scoreNoun = firstKind?.noun ?? 'score';
+  const scoreNoun = scoreNounFor(S);
 
   /** Score button in a card header: adds to the live game, or starts one first (legacy `scoreButton`). */
   const scoreButton = (i: number) => {
@@ -199,7 +199,7 @@ export function FieldPage() {
   if (plan.isPending || players.isPending) return <LoadingScreen />;
 
   const sub = plan.liveGame
-    ? `Live vs ${plan.liveGame.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ` · tap a score to add a ${scoreNoun}` : ''}`
+    ? `Live vs ${plan.liveGame.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ` · tap a score to add ${scoreNoun === 'score' ? 'points' : `a ${scoreNoun}`}` : ''}`
     : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${N} ${noun}s${isStaff ? ' · tap a jersey to assign · tap a score to start a game' : ''}`;
 
   return (

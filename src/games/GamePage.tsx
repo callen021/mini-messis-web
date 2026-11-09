@@ -47,7 +47,7 @@ import { makeNameLookup, periodTag } from './names';
 import { paResultLabel, paResultShort } from './batting';
 import { PlateAppearanceSheet } from './PlateAppearanceSheet';
 import { ScorePanel } from './ScorePanel';
-import { describeEvent } from './scoring';
+import { describeEvent, scoreNoun } from './scoring';
 
 export function GamePage() {
   const { gameId } = useParams<{ gameId: string }>();
@@ -112,7 +112,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const isUpcoming = game.status === 'upcoming';
   const anotherLive = !!live.data && live.data.id !== game.id;
   const first = S.scoring.events[0];
-  const noun = first?.noun ?? 'score';
+  const noun = scoreNoun(S);
   const unit = S.scoring.unitPlural;
   const onError = (e: unknown) => toast(errorMessage(e));
 
