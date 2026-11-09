@@ -1,7 +1,7 @@
 -- save_lineups / availability / archive (pgTAP).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(13);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
