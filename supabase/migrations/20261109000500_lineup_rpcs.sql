@@ -4,7 +4,7 @@
 -- p_periods: [{ "period_index": 0, "formation_name": "3-3",
 --               "slots": [{ "position_role": "ST", "position_code": "LW", "player_id": uuid|null, "auto_picked": bool }, ...] }, ...]
 -- Lineups not present in p_periods are deleted (period count shrank). Completed games are never touched.
-create or replace function public.save_lineups(p_team_id uuid, p_game_id uuid, p_periods jsonb)
+create or replace function public.save_lineups(p_team_id uuid, p_game_id uuid default null, p_periods jsonb default '[]'::jsonb)
 returns void
 language plpgsql
 security definer
