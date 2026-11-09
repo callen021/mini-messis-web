@@ -1,0 +1,149 @@
+/* ---------- iOS design tokens (ported from legacy/index.html) ----------
+   The legacy app set data-theme / data-sport on <body>; here they live on <html> so the
+   pre-paint script in index.html can apply them before React mounts (no theme flash). */
+:root {
+  --bg: #f2f2f7;
+  --panel: #ffffff;
+  --panel2: #f2f2f7;
+  --fill: rgba(120, 120, 128, 0.12);
+  --fill2: rgba(120, 120, 128, 0.2);
+  --text: #000;
+  --text2: rgba(60, 60, 67, 0.6);
+  --text3: rgba(60, 60, 67, 0.3);
+  --sep: rgba(60, 60, 67, 0.29);
+  --tint: #0b7a4b;
+  --tint-soft: rgba(11, 122, 75, 0.12);
+  --on-tint: #fff;
+  --red: #ff3b30;
+  --orange: #ff9500;
+  --blue: #007aff;
+  --green: #34c759;
+  --bar: rgba(249, 249, 249, 0.88);
+  --bar-sep: rgba(0, 0, 0, 0.18);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --seg-pill: #fff;
+  --sheet: rgba(249, 249, 249, 0.92);
+  --toast-bg: rgba(40, 40, 42, 0.92);
+  --tb-h: 44px;
+  --tab-h: 50px;
+  --act-h: 62px;
+  --font-ui:
+    -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Helvetica Neue', Inter, Roboto, system-ui, sans-serif;
+  color-scheme: light;
+}
+
+:root[data-theme='dark'] {
+  --bg: #000;
+  --panel: #1c1c1e;
+  --panel2: #2c2c2e;
+  --fill: rgba(120, 120, 128, 0.24);
+  --fill2: rgba(120, 120, 128, 0.36);
+  --text: #fff;
+  --text2: rgba(235, 235, 245, 0.6);
+  --text3: rgba(235, 235, 245, 0.3);
+  --sep: rgba(84, 84, 88, 0.65);
+  --tint: #30d158;
+  --tint-soft: rgba(48, 209, 88, 0.16);
+  --on-tint: #06240f;
+  --red: #ff453a;
+  --orange: #ff9f0a;
+  --blue: #0a84ff;
+  --green: #30d158;
+  --bar: rgba(22, 22, 24, 0.82);
+  --bar-sep: rgba(255, 255, 255, 0.15);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+  --seg-pill: #636366;
+  --sheet: rgba(30, 30, 32, 0.92);
+  color-scheme: dark;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='auto'],
+  :root:not([data-theme]) {
+    --bg: #000;
+    --panel: #1c1c1e;
+    --panel2: #2c2c2e;
+    --fill: rgba(120, 120, 128, 0.24);
+    --fill2: rgba(120, 120, 128, 0.36);
+    --text: #fff;
+    --text2: rgba(235, 235, 245, 0.6);
+    --text3: rgba(235, 235, 245, 0.3);
+    --sep: rgba(84, 84, 88, 0.65);
+    --tint: #30d158;
+    --tint-soft: rgba(48, 209, 88, 0.16);
+    --on-tint: #06240f;
+    --red: #ff453a;
+    --orange: #ff9f0a;
+    --blue: #0a84ff;
+    --green: #30d158;
+    --bar: rgba(22, 22, 24, 0.82);
+    --bar-sep: rgba(255, 255, 255, 0.15);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.4), 0 8px 24px rgba(0, 0, 0, 0.35);
+    --seg-pill: #636366;
+    --sheet: rgba(30, 30, 32, 0.92);
+    color-scheme: dark;
+  }
+}
+
+/* sport tints */
+:root[data-sport='baseball'] {
+  --tint: #b4532a;
+  --tint-soft: rgba(180, 83, 42, 0.13);
+}
+:root[data-sport='basketball'] {
+  --tint: #d9641e;
+  --tint-soft: rgba(217, 100, 30, 0.14);
+}
+:root[data-sport='football'] {
+  --tint: #2a5bd7;
+  --tint-soft: rgba(42, 91, 215, 0.13);
+}
+:root[data-sport='lacrosse'] {
+  --tint: #2a7fd7;
+  --tint-soft: rgba(42, 127, 215, 0.13);
+}
+:root[data-theme='dark'][data-sport='baseball'] {
+  --tint: #ff8a5b;
+  --tint-soft: rgba(255, 138, 91, 0.16);
+  --on-tint: #2a0d02;
+}
+:root[data-theme='dark'][data-sport='basketball'] {
+  --tint: #ff9f3f;
+  --tint-soft: rgba(255, 159, 63, 0.16);
+  --on-tint: #2a1400;
+}
+:root[data-theme='dark'][data-sport='football'] {
+  --tint: #6f9bff;
+  --tint-soft: rgba(111, 155, 255, 0.16);
+  --on-tint: #061a4a;
+}
+:root[data-theme='dark'][data-sport='lacrosse'] {
+  --tint: #5fb0ff;
+  --tint-soft: rgba(95, 176, 255, 0.16);
+  --on-tint: #042040;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='auto'][data-sport='baseball'],
+  :root:not([data-theme])[data-sport='baseball'] {
+    --tint: #ff8a5b;
+    --tint-soft: rgba(255, 138, 91, 0.16);
+    --on-tint: #2a0d02;
+  }
+  :root[data-theme='auto'][data-sport='basketball'],
+  :root:not([data-theme])[data-sport='basketball'] {
+    --tint: #ff9f3f;
+    --tint-soft: rgba(255, 159, 63, 0.16);
+    --on-tint: #2a1400;
+  }
+  :root[data-theme='auto'][data-sport='football'],
+  :root:not([data-theme])[data-sport='football'] {
+    --tint: #6f9bff;
+    --tint-soft: rgba(111, 155, 255, 0.16);
+    --on-tint: #061a4a;
+  }
+  :root[data-theme='auto'][data-sport='lacrosse'],
+  :root:not([data-theme])[data-sport='lacrosse'] {
+    --tint: #5fb0ff;
+    --tint-soft: rgba(95, 176, 255, 0.16);
+    --on-tint: #042040;
+  }
+}

@@ -1,0 +1,98 @@
+@import 'tailwindcss';
+@import './tokens.css';
+@import './components.css';
+@import './field.css';
+@import './print.css';
+
+/* Expose the design tokens to Tailwind utilities (bg-panel, text-text2, border-sep, …).
+   `inline` keeps them as live var() references so theme switching stays instant. */
+@theme inline {
+  --color-bg: var(--bg);
+  --color-panel: var(--panel);
+  --color-panel2: var(--panel2);
+  --color-fill: var(--fill);
+  --color-fill2: var(--fill2);
+  --color-text: var(--text);
+  --color-text2: var(--text2);
+  --color-text3: var(--text3);
+  --color-sep: var(--sep);
+  --color-tint: var(--tint);
+  --color-tint-soft: var(--tint-soft);
+  --color-on-tint: var(--on-tint);
+  --color-red: var(--red);
+  --color-orange: var(--orange);
+  --color-blue: var(--blue);
+  --color-green: var(--green);
+  --font-sans: var(--font-ui);
+  --shadow-card: var(--shadow);
+  --radius-card: 12px;
+}
+
+/* ---------- global (ported from legacy) ---------- */
+* {
+  box-sizing: border-box;
+  -webkit-tap-highlight-color: transparent;
+}
+html {
+  background: var(--bg);
+}
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 17px/1.35 var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overscroll-behavior-y: none;
+  touch-action: manipulation;
+}
+button,
+input,
+select,
+textarea {
+  font-family: inherit;
+  color: inherit;
+}
+button {
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  -webkit-user-select: none;
+}
+button:disabled {
+  cursor: default;
+}
+
+/* Keyboard focus is visible everywhere; pointer focus is not. */
+:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: 2px;
+}
+:focus:not(:focus-visible) {
+  outline: none;
+}
+
+/* The tab bar is fixed; the page content pads around it. */
+.app-main {
+  max-width: 760px;
+  margin: auto;
+  padding-top: calc(var(--tab-h) + env(safe-area-inset-top) + 8px);
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
+}
+.app-main[data-tabbar='bottom'] {
+  padding-top: calc(8px + env(safe-area-inset-top));
+  padding-bottom: calc(var(--tab-h) + 16px + env(safe-area-inset-bottom));
+}
+.has-actionbar {
+  padding-bottom: calc(var(--act-h) + env(safe-area-inset-bottom));
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

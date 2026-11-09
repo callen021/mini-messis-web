@@ -5,3 +5,4 @@ Mobile-first web app for youth-sports coaches and parents: lineups, playing time
 - **Spec:** [docs/BUILD-PROMPT.md](docs/BUILD-PROMPT.md) — mission, constraints, feature inventory, data model, phases.
 - **Skills prototype:** [docs/prototypes/skills.html](docs/prototypes/skills.html) — click-through mock of the player profile and skills screens.
 - **Legacy app:** [legacy/index.html](legacy/index.html) — the functional spec and design reference.
+- **Developer setup:** [docs/SETUP.md](docs/SETUP.md) — install, scripts, env vars. Technical decisions live in [docs/DECISIONS.md](docs/DECISIONS.md).

@@ -1,0 +1,12 @@
+dist
+dev-dist
+coverage
+node_modules
+legacy
+docs/prototypes
+playwright-report
+test-results
+package-lock.json
+src/lib/database.types.ts
+public
+docs/BUILD-PROMPT.md

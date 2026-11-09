@@ -1,0 +1,104 @@
+/* ---------- print (ported from legacy) — only the Field page prints ---------- */
+@media print {
+  @page {
+    size: letter portrait;
+    margin: 0.4in;
+  }
+  body {
+    background: #fff;
+    color: #000;
+    padding: 0;
+  }
+  .tabbar,
+  .noprint,
+  .toolbar,
+  .sub,
+  .backdrop,
+  .toast,
+  .actionbar {
+    display: none !important;
+  }
+  .app-main {
+    max-width: none;
+    padding: 0;
+  }
+  .has-actionbar {
+    padding-bottom: 0;
+  }
+  .large.editable {
+    box-shadow: none;
+  }
+  .qright .score {
+    display: none;
+  }
+  .large {
+    font-size: 20px;
+    margin: 0 0 6px;
+  }
+  .quarters {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    margin: 0;
+  }
+  .qcard {
+    box-shadow: none;
+    border: 1px solid #aaa;
+    break-inside: avoid;
+  }
+  .qhead {
+    padding: 6px 10px;
+  }
+  .qhead h2 {
+    font-size: 14px;
+  }
+  .qhead select {
+    background: none;
+    padding: 0;
+    font-size: 11px;
+  }
+  .qhead .sel::after {
+    display: none;
+  }
+  .pitchwrap {
+    background: none;
+  }
+  .standing,
+  .slot .gshadow {
+    display: none;
+  }
+  .shirt.open {
+    animation: none;
+    filter: none;
+  }
+  .openpill,
+  .opencount {
+    color: #000;
+    background: none;
+    border: 1px solid #777;
+  }
+  .stage img.pitch {
+    filter: grayscale(1) brightness(1.5) contrast(0.6);
+    opacity: 0.6;
+  }
+  .shirt {
+    filter: none;
+  }
+  .shirt svg path {
+    stroke: #333 !important;
+    stroke-width: 3 !important;
+    fill: #fff !important;
+  }
+  .shirt svg .deco {
+    display: none;
+  }
+  .shirt .name,
+  .shirt .num,
+  .shirt .code {
+    color: #000 !important;
+    text-shadow: none;
+  }
+  .bench {
+    font-size: 11px;
+    padding: 6px 10px;
+  }
+}

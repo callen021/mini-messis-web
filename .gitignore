@@ -147,3 +147,9 @@ vite.config.ts.timestamp-*
 
 # Turbo Repo
 .turbo
+
+# Project
+dev-dist
+playwright-report
+test-results
+.env.local

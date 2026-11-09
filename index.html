@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="en" data-theme="auto" data-sport="soccer">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Mini-Messi's" />
+    <meta name="theme-color" id="themeColor" content="#f9f9f9" />
+    <link rel="icon" href="./favicon.png" />
+    <link rel="apple-touch-icon" href="./apple-touch-icon.png" />
+    <title>Mini-Messi's</title>
+    <script>
+      // Apply the saved theme before first paint so a dark-mode user never sees a white flash.
+      (function () {
+        try {
+          var raw = localStorage.getItem('mm-ui');
+          var s = raw ? JSON.parse(raw).state : null;
+          if (s && s.theme) document.documentElement.dataset.theme = s.theme;
+          if (s && s.sport) document.documentElement.dataset.sport = s.sport;
+        } catch (e) {
+          /* ignore */
+        }
+      })();
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
