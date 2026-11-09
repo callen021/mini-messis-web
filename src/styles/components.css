@@ -1267,3 +1267,125 @@ select.input {
   white-space: nowrap;
   border: 0;
 }
+
+/* ---------- auth & onboarding ---------- */
+.auth-main {
+  max-width: 480px;
+  padding-top: calc(28px + env(safe-area-inset-top));
+}
+.auth-logo {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 16px 18px;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.3px;
+}
+.auth-logo img {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  box-shadow: var(--shadow);
+}
+.form-error {
+  margin: 0;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: rgba(255, 59, 48, 0.12);
+  color: var(--red);
+  font-size: 14px;
+  font-weight: 500;
+}
+.footer a {
+  color: var(--tint);
+  text-decoration: none;
+  font-weight: 500;
+}
+.code-input {
+  text-align: center;
+  font-size: 24px;
+  font-weight: 700;
+  letter-spacing: 6px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  text-transform: uppercase;
+}
+.codebox {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 16px;
+  flex-wrap: wrap;
+}
+.code-big {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: 4px;
+  color: var(--tint);
+}
+.loading {
+  padding: 60px 16px;
+  text-align: center;
+  color: var(--text2);
+  font-size: 15px;
+}
+.checklist {
+  display: grid;
+  gap: 6px;
+}
+.checkrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 6px 2px;
+  font-size: 16px;
+}
+.hint {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: var(--text2);
+}
+.badge.ml {
+  margin-left: 8px;
+  vertical-align: middle;
+}
+
+/* team switcher row at the top of each tab page */
+.teamswitch {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 2px 16px 6px;
+  padding: 6px 10px 6px 8px;
+  border: 0;
+  border-radius: 20px;
+  background: var(--fill);
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  max-width: calc(100% - 32px);
+}
+.teamswitch .emoji {
+  font-size: 16px;
+}
+.teamswitch .name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.teamswitch .chev {
+  width: 7px;
+  height: 7px;
+  border-right: 2px solid var(--text3);
+  border-bottom: 2px solid var(--text3);
+  transform: rotate(45deg);
+  margin: -3px 2px 0;
+  flex: none;
+}
+.teamswitch:active {
+  background: var(--fill2);
+}

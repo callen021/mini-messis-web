@@ -42,13 +42,44 @@ The dev server exposes two dev-only routes, compiled only into dev builds (or wh
 
 Before the first `npm run e2e` install a browser: `npx playwright install chromium`.
 
+## Supabase
+
+Developers target the **hosted** Supabase project; local Supabase (Docker) runs only in GitHub
+Actions, where it applies the migrations from scratch, runs the pgTAP RLS tests and regenerates
+the TypeScript types.
+
+The CLI is a dev dependency (`npx supabase …`). One-time setup on a new machine, run by you in a
+terminal because `link` asks for the database password (never give that password to a tool or
+paste it anywhere in the repo):
+
+```bash
+npx supabase login                       # opens the browser for an access token
+npx supabase link --project-ref <ref>    # <ref> is the id in your project URL
+```
+
+Then, whenever `supabase/migrations/` changes:
+
+```bash
+npm run db:push     # applies pending migrations to the linked project (asks for the DB password)
+npm run db:types    # regenerates src/lib/database.types.ts from the linked schema
+```
+
+Dashboard settings to mirror `supabase/config.toml`: Authentication → URL Configuration → Site URL
+`https://callen021.github.io/mini-messis-web/` and add `http://localhost:5173/**` plus the Pages
+URL with `/**` to the redirect allow-list; Authentication → Providers → Email → "Confirm email" on.
+
+`supabase/seed.sql` seeds a demo coach / parent / assistant and the Strikers for local and CI
+databases only. Never run it against the hosted project.
+
 ## Environment variables
 
-Copy `.env.example` to `.env.local` once Phase 3 adds the Supabase client.
+Copy `.env.example` to `.env.local` and fill in the project URL and anon key from the dashboard
+(Project Settings → API). The anon key is public by design; every table is protected by RLS.
+The service_role key never goes in this repo, in `.env.local`, or in CI.
 
 | Variable                 | Where                       | Notes                                   |
 | ------------------------ | --------------------------- | --------------------------------------- |
-| `VITE_SUPABASE_URL`      | `.env.local`, repo variable | Project URL (Phase 3)                   |
+| `VITE_SUPABASE_URL`      | `.env.local`, repo variable | Project URL                             |
 | `VITE_SUPABASE_ANON_KEY` | `.env.local`, repo variable | Anon key only; never the service role   |
 | `VITE_DEV_ROUTES`        | local only                  | `true` exposes `/dev/*` in a prod build |
 | `BASE_PATH`              | CI (deploy)                 | Vite `base`, e.g. `/mini-messis-web/`   |
@@ -74,6 +105,14 @@ See `docs/BUILD-PROMPT.md` §6 for the target layout. Phase 1 fills in:
 in `public/` (`pwa-192.png`, `pwa-512.png`, `pwa-512-maskable.png`, `apple-touch-icon.png`),
 generated from the legacy 180 px icon. Test installability with `npm run build && npm run preview`
 and Lighthouse; the service worker is disabled in `npm run dev`.
+
+The GitHub Actions variables for the Pages deploy are set with the `gh` CLI (values are not
+secrets, but they are per-environment):
+
+```bash
+gh variable set VITE_SUPABASE_URL --body "https://<ref>.supabase.co"
+gh variable set VITE_SUPABASE_ANON_KEY --body "<anon key>"
+```
 
 ## Deploy (Phase 8)
 

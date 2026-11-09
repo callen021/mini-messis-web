@@ -33,7 +33,19 @@ export default tseslint.config(
     rules: {
       'react-refresh/only-export-components': [
         'warn',
-        { allowConstantExport: true, allowExportNames: ['useToast', 'useActionSheet'] },
+        {
+          allowConstantExport: true,
+          allowExportNames: [
+            'useToast',
+            'useActionSheet',
+            'useAuth',
+            'useCurrentTeam',
+            'useOptionalTeam',
+            'useIsStaff',
+            'useIsCoach',
+            'STAFF_ROLES',
+          ],
+        },
       ],
       '@typescript-eslint/no-explicit-any': 'error',
       '@typescript-eslint/consistent-type-imports': ['error', { fixStyle: 'inline-type-imports' }],

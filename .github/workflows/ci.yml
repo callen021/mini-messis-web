@@ -25,11 +25,40 @@ jobs:
       - run: npm run typecheck
       - run: npm run test -- --coverage
       - run: npm run build
+        env:
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
       - uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist
           retention-days: 7
+
+  db:
+    name: Migrations, RLS tests, generated types
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      # Local Supabase (Docker) only in CI — developers target the hosted project.
+      - name: Start local Supabase and apply migrations + seed
+        run: npx supabase start -x studio,imgproxy,inbucket,mailpit,edge-runtime,logflare,vector,supavisor,pg_prove --ignore-health-check
+      - name: Reset database (migrations + seed from scratch)
+        run: npx supabase db reset --no-seed=false
+      - name: RLS and function tests (pgTAP)
+        run: npx supabase test db
+      - name: Regenerate types from the local schema and typecheck against them
+        run: |
+          npx supabase gen types typescript --local --schema public > src/lib/database.types.ts
+          npm run typecheck
+      - name: Show type drift (informational)
+        run: git --no-pager diff --stat -- src/lib/database.types.ts || true
+      - if: always()
+        run: npx supabase stop --no-backup
 
   e2e:
     name: Playwright smoke
@@ -46,6 +75,8 @@ jobs:
       - run: npm run e2e
         env:
           CI: 'true'
+          VITE_SUPABASE_URL: https://example.supabase.co
+          VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
       - uses: actions/upload-artifact@v4
         if: failure()
         with:

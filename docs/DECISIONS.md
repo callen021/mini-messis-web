@@ -96,6 +96,56 @@ service worker precache and cached on first use (CacheFirst, 90 days) so install
 fast and a baseball-only team never downloads the soccer pitch. Football has no artwork and reuses
 the soccer pitch; the sport is disabled anyway.
 
+## 2026-11-09 — Phase 3
+
+### D16. Hosted Supabase for development; local Supabase only in CI
+
+The product owner's laptop targets the hosted project (`supabase link`, `db push`). GitHub
+Actions runs `supabase start`, applies every migration from scratch, runs the pgTAP tests and
+regenerates the types. Secrets never touch the agent: `login`/`link`/`db push` are run by a human
+in a terminal, and only the anon key lives in `.env.local` / Actions variables.
+
+### D17. Authorization helpers are SECURITY DEFINER functions
+
+Policies call `is_active_member(team_id)`, `is_staff`, `is_coach`, `is_owner`, `is_guardian_of`
+and `team_of_*` instead of sub-selecting `team_members` inline. This avoids RLS recursion on
+`team_members`, keeps each policy one line, and gives the planner a stable, inlinable predicate.
+All helpers set an empty `search_path` and are granted to `authenticated` only.
+
+### D18. Column-level rules live in triggers, not policies
+
+Postgres RLS is row-level. "Assistants may edit setup but not rename or change sport",
+"owner_id changes only through transfer_ownership", "a team keeps ≥ 1 active coach" and
+"a test's metric locks once it has results" are enforced by BEFORE triggers that raise `42501`
+or `23514`, so a client bypassing the UI still cannot do them.
+
+### D19. The client supplies the default template and skill tests to `create_team`
+
+Sport rules live in `src/sports/`, so the database cannot know the default formation or the
+default skill-test list. `create_team(...)` takes `p_template` (one lineup per period with role +
+code per slot) and `p_skill_tests` (Phase 6) as jsonb built from the sport definition. The
+function validates shape and inserts atomically.
+
+### D20. Join codes are server-generated base32 without I/L/O/U/0/1
+
+`generate_join_code()` draws 8 characters from a 30-letter alphabet (≈ 6.6 × 10¹¹ codes) using
+`gen_random_bytes`. Lookups and join requests are rate-limited to 5 per 10 minutes per user via
+`join_attempts`. A join-code preview (`lookup_join_code`) returns only the team name, sport and
+roster first names + numbers so a parent can pick their child before the coach approves.
+
+### D21. Unlisted-child requests are their own table
+
+A parent whose child is not on the roster yet has no `player_id` to link to.
+`unlisted_child_requests(member_id, child_name)` carries the free-text name on the membership
+request and is cleared on approval; the coach adds the player and links them afterwards.
+
+### D22. Profiles are private, so member names come from a function
+
+`profiles` is readable only by its owner. Coaches see members' names and emails through
+`list_team_members(team_id)` (staff only), which joins `auth.users` and `profiles` under
+SECURITY DEFINER. Pending users see their own request's team name through
+`my_pending_requests()` for the same reason.
+
 ### D15. Jerseys are SVG strings injected once per jersey
 
 `jerseySvg()` returns the legacy SVG markup (gradients keyed by a per-jersey id) and the

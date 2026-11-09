@@ -1,17 +1,30 @@
 import { expect, test } from '@playwright/test';
 
 test.describe('app shell', () => {
-  test('redirects to the Field tab and switches tabs', async ({ page }) => {
+  test('signed-out visitors land on sign in, with links to sign up and reset', async ({ page }) => {
     await page.goto('/');
-    await expect(page).toHaveURL(/\/field$/);
+    await expect(page).toHaveURL(/\/signin$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+    await expect(page.getByLabel('Email')).toBeVisible();
+    await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
+    await page.getByRole('link', { name: 'Create an account' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Create account' })).toBeVisible();
+    await page.goBack();
+    await page.getByRole('link', { name: 'Forgot your password?' }).click();
+    await expect(page.getByRole('heading', { level: 1, name: 'Reset password' })).toBeVisible();
+  });
+
+  test('protected routes redirect to sign in and remember where you were going', async ({ page }) => {
+    await page.goto('/settings/members');
+    await expect(page).toHaveURL(/\/signin$/);
+    await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
+  });
+
+  test('tab bar renders in the dev field page with the gear at the end', async ({ page }) => {
+    await page.goto('/dev/field');
     const nav = page.getByRole('navigation', { name: 'Main' });
     await expect(nav.getByRole('link')).toHaveCount(5); // 4 tabs + gear
-    await expect(page.getByRole('heading', { level: 1, name: 'Field' })).toBeVisible();
-    await nav.getByRole('link', { name: 'Team' }).click();
-    await expect(page).toHaveURL(/\/team$/);
-    await expect(page.getByRole('heading', { level: 1, name: 'Team' })).toBeVisible();
-    await nav.getByRole('link', { name: 'Settings' }).click();
-    await expect(page.getByRole('heading', { level: 1, name: 'Settings' })).toBeVisible();
+    await expect(nav.getByRole('link').last()).toHaveAccessibleName('Settings');
   });
 
   test('has no horizontal overflow at phone width', async ({ page }) => {
