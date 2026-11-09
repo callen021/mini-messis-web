@@ -116,8 +116,8 @@ The GitHub Actions variables for the Pages deploy are set with the `gh` CLI (val
 secrets, but they are per-environment):
 
 ```bash
-gh variable set VITE_SUPABASE_URL --body "https://lwzehjifjhdjlfjisjds.supabase.co"
-gh variable set VITE_SUPABASE_ANON_KEY --body "<sb_publishable_uEv-MGh_7LJrgk3K3SFROw_ijJ_dhi1>"
+gh variable set VITE_SUPABASE_URL --body "<project-url>"
+gh variable set VITE_SUPABASE_ANON_KEY --body "<publishable-key>"
 ```
 
 ## Deploy (Phase 8)
