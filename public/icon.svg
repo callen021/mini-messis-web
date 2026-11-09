@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Mini-Messi's app icon: soccer ball on a striped pitch. Full-bleed so it also works as a maskable icon.
+       Generated geometry (truncated-icosahedron face pattern); PNG sizes are rendered from this file. -->
+  <defs>
+    <clipPath id="ball"><circle cx="256" cy="262" r="150"/></clipPath>
+    <radialGradient id="shade" cx=".38" cy=".3" r=".8">
+      <stop offset="0" stop-color="#ffffff"/>
+      <stop offset=".6" stop-color="#eef1f3"/>
+      <stop offset="1" stop-color="#b4bcc4"/>
+    </radialGradient>
+  </defs>
+  <rect width="512" height="512" fill="#0b7a4b"/>
+  <g fill="#15895a">
+    <rect y="0" width="512" height="64"/><rect y="128" width="512" height="64"/>
+    <rect y="256" width="512" height="64"/><rect y="384" width="512" height="64"/>
+  </g>
+  <ellipse cx="256" cy="424" rx="150" ry="20" fill="#000" opacity=".22"/>
+  <circle cx="256" cy="262" r="150" fill="url(#shade)"/>
+  <g clip-path="url(#ball)" fill="#15181c">
+    <polygon points="256.0,212.0 303.6,246.5 285.4,302.5 226.6,302.5 208.4,246.5"/>
+    <polygon points="305.4,194.0 289.4,144.8 331.2,114.4 373.1,144.8 357.1,194.0"/>
+    <polygon points="335.9,288.0 377.7,257.6 419.6,288.0 403.6,337.2 351.9,337.2"/>
+    <polygon points="256.0,346.0 297.8,376.4 281.9,425.6 230.1,425.6 214.2,376.4"/>
+    <polygon points="176.1,288.0 160.1,337.2 108.4,337.2 92.4,288.0 134.3,257.6"/>
+    <polygon points="206.6,194.0 154.9,194.0 138.9,144.8 180.8,114.4 222.6,144.8"/>
+  </g>
+  <g clip-path="url(#ball)" fill="none" stroke="#15181c" stroke-width="7" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M256.0 212.0 L256.0 166.0 M256.0 166.0 L289.4 144.8 M256.0 166.0 L222.6 144.8 M303.6 246.5 L347.3 232.3 M347.3 232.3 L377.7 257.6 M347.3 232.3 L357.1 194.0 M285.4 302.5 L312.4 339.7 M312.4 339.7 L297.8 376.4 M312.4 339.7 L351.9 337.2 M226.6 302.5 L199.6 339.7 M199.6 339.7 L160.1 337.2 M199.6 339.7 L214.2 376.4 M208.4 246.5 L164.7 232.3 M164.7 232.3 L154.9 194.0 M164.7 232.3 L134.3 257.6"/>
+  </g>
+  <circle cx="256" cy="262" r="150" fill="none" stroke="#15181c" stroke-width="12"/>
+</svg>

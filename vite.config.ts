@@ -16,7 +16,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: 'autoUpdate',
-      includeAssets: ['apple-touch-icon.png', 'favicon.png'],
+      includeAssets: ['apple-touch-icon.png', 'favicon.png', 'icon.svg'],
       manifest: {
         name: "Mini-Messi's",
         short_name: "Mini-Messi's",
@@ -52,6 +52,13 @@ export default defineConfig({
   ],
   resolve: {
     alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
+  },
+  server: {
+    // Listen on the LAN so the dev build can be opened on a phone; Vite prints the Network URL.
+    host: true,
+  },
+  preview: {
+    host: true,
   },
   build: {
     target: 'es2022',

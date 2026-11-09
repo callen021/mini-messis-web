@@ -76,7 +76,7 @@ export default function ComponentsPage() {
   const toast = useToast();
   const sheet = useActionSheet();
 
-  const [tabPos, setTabPos] = useState<TabbarPosition>('top');
+  const [tabPos, setTabPos] = useState<TabbarPosition>('bottom');
   const [gk, setGk] = useState(true);
   const [active, setActive] = useState(true);
   const [size, setSize] = useState(7);
@@ -152,7 +152,7 @@ export default function ComponentsPage() {
                 ]}
               />
             </Row>
-            <Row label="Tab bar position" detail="Legacy pins it to the top">
+            <Row label="Tab bar position" detail="Bottom is the default; top matches the legacy app">
               <Segmented<TabbarPosition>
                 label="Tab bar position"
                 value={tabPos}

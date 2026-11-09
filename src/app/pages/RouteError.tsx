@@ -11,7 +11,7 @@ export function RouteError() {
       ? err.message
       : 'Something went wrong.';
   return (
-    <main className="app-main" data-tabbar="bottom">
+    <main className="app-main">
       <Page title="Something went wrong" sub={message}>
         <Group>
           <Row onClick={() => window.location.reload()} label="Reload" link chevron />

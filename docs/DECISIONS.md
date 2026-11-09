@@ -31,12 +31,13 @@ file. Tailwind v4 provides the reset and utilities; tokens are exposed to Tailwi
 `@theme inline` (`bg-panel`, `text-text2`, `border-sep`, …) for new layout work. Unlayered
 legacy rules win over Tailwind's `@layer base` reset by design.
 
-### D4. Tab bar position is a prop; default `top` to match the shipped app
+### D4. Tab bar at the bottom (product decision), Field actions become a sticky in-page toolbar
 
-`BUILD-PROMPT.md` says "bottom tab bar", but the legacy app actually fixes the tab bar to the
-**top** (with the Auto-fill / Clear / Print action bar owning the bottom). `Tabbar` accepts
-`position="top" | "bottom"` and the layout pads the content accordingly. Default is `top`
-until the product owner decides (open question in the Phase 1 report).
+The legacy app fixed its tab bar to the top; the product owner chose the **bottom**, matching
+`docs/prototypes/skills.html`, with the Settings gear at the right end of the same bar. The
+Field page's Auto-fill / Clear / Print strip is therefore no longer a separate fixed bottom bar:
+`<Toolbar sticky>` renders it inside the content, `position: sticky` just above the tab bar.
+`Tabbar` keeps a `position="top"` escape hatch because it costs nothing, but nothing uses it.
 
 ### D5. Device-local UI state in Zustand (`mm-ui`), server copy later
 
@@ -63,13 +64,19 @@ Storybook, per the spec.
 GitHub Pages serves project sites under `/<repo>/`. The deploy workflow (Phase 8) sets
 `BASE_PATH=/mini-messis-web/`; everywhere else it is `/`. React Router's `basename` is derived
 from `import.meta.env.BASE_URL` so the same build logic works on Cloudflare/Vercel/Amplify at
-the root.
+the root. Moving to a custom domain later is a one-line change to that variable in the workflow.
 
-### D9. PWA icons are upscaled from the legacy 180 px PNG
+### D11. Dev server listens on the LAN
 
-The only icon in the legacy file is 180×180. We generated 192/512/maskable variants from it so
-the manifest is installable. They are soft at 512; a vector or hi-res source is requested in the
-Phase 1 report.
+`server.host = true` (and `preview.host`) so `npm run dev` is reachable from a phone on the same
+Wi-Fi without `--host`; Vite prints the Network URL on start.
+
+### D9. App icon is a vector (`public/icon.svg`); PNG sizes are derived from it
+
+No hi-res source of the legacy icon exists, so the mark was redrawn as an SVG in the same spirit
+(soccer ball on a striped green pitch), full-bleed so the same artwork serves as the maskable
+icon. `pwa-192/512`, `pwa-512-maskable`, `apple-touch-icon` (180) and `favicon` (64) are rendered
+from it with sharp; re-run that render whenever the SVG changes. The SVG is also the favicon.
 
 ### D10. Playwright runs against the dev server with chromium only
 

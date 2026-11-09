@@ -23,15 +23,15 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(function Button
   );
 });
 
-/** Horizontal strip of buttons under a title. `fixed` pins it to the bottom like the Field page's bar. */
+/** Horizontal strip of buttons. `sticky` keeps it visible just above the tab bar (Field page actions). */
 export function Toolbar({
   children,
-  fixed = false,
+  sticky = false,
   className,
 }: {
   children: React.ReactNode;
-  fixed?: boolean;
+  sticky?: boolean;
   className?: string;
 }) {
-  return <div className={cn('toolbar', fixed && 'actionbar noprint', className)}>{children}</div>;
+  return <div className={cn('toolbar', sticky && 'actionbar noprint', className)}>{children}</div>;
 }

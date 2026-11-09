@@ -12,20 +12,18 @@ export interface PageProps {
   sub?: ReactNode;
   /** Back link rendered above the title. */
   back?: { to: string; label: string };
-  /** Reserve space for a fixed bottom Toolbar. */
-  hasActionBar?: boolean;
   className?: string;
   children?: ReactNode;
 }
 
 /** Standard page scaffold: optional back row, large title, subtitle, content. */
-export function Page({ title, documentTitle, sub, back, hasActionBar, className, children }: PageProps) {
+export function Page({ title, documentTitle, sub, back, className, children }: PageProps) {
   const docTitle = documentTitle ?? (typeof title === 'string' ? title : undefined);
   useEffect(() => {
     if (docTitle) document.title = `${docTitle} · Mini-Messi's`;
   }, [docTitle]);
   return (
-    <section className={cn('page', hasActionBar && 'has-actionbar', className)}>
+    <section className={cn('page', className)}>
       {back && (
         <div className="backrow noprint">
           <Link to={back.to} className="back">

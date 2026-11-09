@@ -72,19 +72,16 @@ button:disabled {
   outline: none;
 }
 
-/* The tab bar is fixed; the page content pads around it. */
+/* The tab bar is fixed at the bottom; the page content pads around it. */
 .app-main {
   max-width: 760px;
   margin: auto;
-  padding-top: calc(var(--tab-h) + env(safe-area-inset-top) + 8px);
-  padding-bottom: calc(16px + env(safe-area-inset-bottom));
-}
-.app-main[data-tabbar='bottom'] {
   padding-top: calc(8px + env(safe-area-inset-top));
   padding-bottom: calc(var(--tab-h) + 16px + env(safe-area-inset-bottom));
 }
-.has-actionbar {
-  padding-bottom: calc(var(--act-h) + env(safe-area-inset-bottom));
+.app-main[data-tabbar='top'] {
+  padding-top: calc(var(--tab-h) + env(safe-area-inset-top) + 8px);
+  padding-bottom: calc(16px + env(safe-area-inset-bottom));
 }
 
 @media (prefers-reduced-motion: reduce) {

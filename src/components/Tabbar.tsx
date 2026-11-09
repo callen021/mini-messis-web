@@ -16,14 +16,14 @@ export interface TabbarProps {
   tabs: readonly TabItem[];
   /** Route for the gear button. Omit to hide it. */
   gearTo?: string | null;
-  /** The legacy app pins the bar to the top (so the action bar can own the bottom). */
+  /** Bottom (default, matches the skills prototype) or top (where the legacy app had it). */
   position?: TabbarPosition;
 }
 
 /** Fixed tab bar with a trailing Settings gear. Taps give a haptic tick where supported. */
-export function Tabbar({ tabs, gearTo = '/settings', position = 'top' }: TabbarProps) {
+export function Tabbar({ tabs, gearTo = '/settings', position = 'bottom' }: TabbarProps) {
   return (
-    <nav className={cn('tabbar', position === 'bottom' && 'bottom')} aria-label="Main">
+    <nav className={cn('tabbar', position === 'top' && 'top')} aria-label="Main">
       <div className="tabs">
         {tabs.map((t) => (
           <NavLink

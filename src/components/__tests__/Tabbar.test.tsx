@@ -37,9 +37,16 @@ describe('Tabbar', () => {
     expect(vibrate).toHaveBeenCalledWith(8);
   });
 
-  it('has a Settings gear and supports the bottom position', async () => {
-    render(<App position="bottom" />);
-    expect(screen.getByRole('navigation')).toHaveClass('bottom');
+  it('is at the bottom by default and supports the legacy top position', () => {
+    const { unmount } = render(<App />);
+    expect(screen.getByRole('navigation')).not.toHaveClass('top');
+    unmount();
+    render(<App position="top" />);
+    expect(screen.getByRole('navigation')).toHaveClass('top');
+  });
+
+  it('has a Settings gear', async () => {
+    render(<App />);
     await userEvent.click(screen.getByRole('link', { name: 'Settings' }));
     expect(screen.getByRole('heading', { name: 'Settings page' })).toBeInTheDocument();
   });
