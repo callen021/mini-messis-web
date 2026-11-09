@@ -60,8 +60,16 @@ npx supabase link --project-ref <ref>    # <ref> is the id in your project URL
 Then, whenever `supabase/migrations/` changes:
 
 ```bash
-npm run db:push     # applies pending migrations to the linked project (asks for the DB password)
-npm run db:types    # regenerates src/lib/database.types.ts from the linked schema
+npm run db:push     # supabase db push --remote: applies pending migrations to the linked project (asks for the DB password)
+npm run db:types    # supabase gen types --remote: regenerates src/lib/database.types.ts from the linked schema
+```
+
+The CLI targets the **local** stack by default, so both scripts pass `--remote`. CI uses
+`npm run db:types:local` against its Docker database. `npm run db:diff` shows schema drift
+between the migrations and the linked project.
+
+```bash
+
 ```
 
 Dashboard settings to mirror `supabase/config.toml`: Authentication → URL Configuration → Site URL
@@ -74,8 +82,10 @@ databases only. Never run it against the hosted project.
 ## Environment variables
 
 Copy `.env.example` to `.env.local` and fill in the project URL and anon key from the dashboard
-(Project Settings → API). The anon key is public by design; every table is protected by RLS.
-The service_role key never goes in this repo, in `.env.local`, or in CI.
+(Project Settings → API Keys). The dashboard now labels the anon key **"Publishable key"** and it
+looks like `sb_publishable_…`; that is the value for `VITE_SUPABASE_ANON_KEY`. It is public by
+design; every table is protected by RLS. The secret key (`sb_secret_…`, formerly service_role)
+never goes in this repo, in `.env.local`, or in CI.
 
 | Variable                 | Where                       | Notes                                   |
 | ------------------------ | --------------------------- | --------------------------------------- |
@@ -110,8 +120,8 @@ The GitHub Actions variables for the Pages deploy are set with the `gh` CLI (val
 secrets, but they are per-environment):
 
 ```bash
-gh variable set VITE_SUPABASE_URL --body "https://<ref>.supabase.co"
-gh variable set VITE_SUPABASE_ANON_KEY --body "<anon key>"
+gh variable set VITE_SUPABASE_URL --body "https://lwzehjifjhdjlfjisjds.supabase.co"
+gh variable set VITE_SUPABASE_ANON_KEY --body "<sb_publishable_uEv-MGh_7LJrgk3K3SFROw_ijJ_dhi1>"
 ```
 
 ## Deploy (Phase 8)
