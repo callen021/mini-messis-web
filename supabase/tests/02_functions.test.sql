@@ -27,6 +27,7 @@ select pg_temp.mk_user('d0000000-0000-0000-0000-000000000002', 'coach2@test.com'
 select pg_temp.mk_user('d0000000-0000-0000-0000-000000000003', 'joiner@test.com');
 
 create temp table ctx (k text primary key, v uuid);
+grant all on ctx to authenticated;
 
 -- profile auto-created on signup
 select is((select count(*)::int from public.profiles where id = 'd0000000-0000-0000-0000-000000000001'), 1, 'profile row is created for a new auth user');

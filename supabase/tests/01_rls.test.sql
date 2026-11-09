@@ -35,12 +35,15 @@ select pg_temp.mk_user('c0000000-0000-0000-0000-000000000001', 'unverified@test.
 
 -- template with one 3-slot period (enough for the tests)
 create temp table ctx (k text primary key, v uuid);
+create temp table txt (k text primary key, v text);
+grant all on ctx, txt to authenticated;
 
 -- ---------- team A, created by coach A ----------
 select pg_temp.login('a0000000-0000-0000-0000-000000000001');
 insert into ctx select 'team_a', public.create_team('Team A', 'soccer', 3, true, 1, '{}'::jsonb,
   '[{"formation_name":"1-1","slots":[{"position_role":"ST","position_code":"ST"},{"position_role":"DEF","position_code":"SW"},{"position_role":"GK","position_code":"GK"}]}]'::jsonb);
 select pg_temp.logout();
+insert into txt select 'code_a', join_code from public.teams where name = 'Team A';
 
 -- players X and Y on team A (as postgres, bypassing RLS for setup)
 insert into public.players (id, team_id, first_name, jersey_number) values
@@ -64,13 +67,13 @@ insert into public.players (id, team_id, first_name) values
 -- ---------- join flow: assistant, parent (child X), and a pending user ----------
 select pg_temp.login('a0000000-0000-0000-0000-000000000002');
 select lives_ok(
-  $$select public.request_join((select join_code from public.teams where name = 'Team A'), 'assistant')$$,
+  $$select public.request_join((select v from txt where k = 'code_a'), 'assistant')$$,
   'assistant can request to join team A');
 select pg_temp.logout();
 
 select pg_temp.login('a0000000-0000-0000-0000-000000000003');
 select lives_ok(
-  $$select public.request_join((select join_code from public.teams where name = 'Team A'), 'parent', array['e0000000-0000-0000-0000-00000000000a'::uuid])$$,
+  $$select public.request_join((select v from txt where k = 'code_a'), 'parent', array['e0000000-0000-0000-0000-00000000000a'::uuid])$$,
   'parent can request to join team A linking child X');
 select is((select count(*)::int from public.players), 0, 'pending parent reads no players');
 select is((select count(*)::int from public.teams), 0, 'pending parent reads no teams');
@@ -78,7 +81,7 @@ select pg_temp.logout();
 
 select pg_temp.login('a0000000-0000-0000-0000-000000000004');
 select lives_ok(
-  $$select public.request_join((select join_code from public.teams where name = 'Team A'), 'parent', '{}', 'Unlisted Kid')$$,
+  $$select public.request_join((select v from txt where k = 'code_a'), 'parent', '{}', 'Unlisted Kid')$$,
   'another parent requests with an unlisted child');
 select pg_temp.logout();
 
@@ -148,7 +151,7 @@ select is((select count(*)::int from public.teams where name = 'Team A'), 1, 'no
 
 -- ---------- unverified users cannot be approved ----------
 select pg_temp.login('c0000000-0000-0000-0000-000000000001');
-select lives_ok($$select public.request_join((select join_code from public.teams where name = 'Team A'), 'parent')$$, 'unverified user can request');
+select lives_ok($$select public.request_join((select v from txt where k = 'code_a'), 'parent')$$, 'unverified user can request');
 select pg_temp.logout();
 select pg_temp.login('a0000000-0000-0000-0000-000000000001');
 select throws_ok(
