@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActionSheetProvider } from '@/components/Sheet';
 import { ToastProvider } from '@/components/Toast';
+import type * as LineupsApi from '@/lineups/api';
 import { type StoredPeriod } from '@/lineups/convert';
 import { SPORTS, formationByName } from '@/sports/definitions';
 import { type Period } from '@/sports/types';
@@ -15,7 +16,7 @@ const setAvailableMutate = vi.fn();
 let periods: StoredPeriod[] = [];
 
 vi.mock('@/lineups/api', async () => {
-  const actual = await vi.importActual<typeof import('@/lineups/api')>('@/lineups/api');
+  const actual = await vi.importActual<typeof LineupsApi>('@/lineups/api');
   const S = SPORTS.soccer;
   const forms = S.formations({ size: 7, gk: true });
   return {
