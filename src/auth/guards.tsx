@@ -1,15 +1,13 @@
 import { type ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
+import { SkeletonPage } from '@/components/Skeleton';
 import { type Enums } from '@/lib/database.types';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useAuth } from './AuthProvider';
 
-export function LoadingScreen({ label = 'Loading…' }: { label?: string }) {
-  return (
-    <div className="loading" role="status" aria-live="polite">
-      {label}
-    </div>
-  );
+/** Page-shaped loading placeholder (title + list skeleton); the label is read by screen readers. */
+export function LoadingScreen({ label = 'Loading…', rows }: { label?: string; rows?: number }) {
+  return <SkeletonPage label={label} rows={rows} />;
 }
 
 /** Children require a session; otherwise go to sign-in and come back afterwards. */

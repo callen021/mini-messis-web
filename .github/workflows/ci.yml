@@ -28,6 +28,8 @@ jobs:
         env:
           VITE_SUPABASE_URL: https://example.supabase.co
           VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+      - name: Bundle budget (entry JS ≤ 250 kB gzipped)
+        run: npm run size
       - uses: actions/upload-artifact@v4
         with:
           name: dist
@@ -61,9 +63,8 @@ jobs:
         run: npx supabase stop --no-backup
 
   e2e:
-    name: Playwright smoke
+    name: Playwright (smoke + coach/parent flows)
     runs-on: ubuntu-latest
-    if: github.event_name == 'pull_request'
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -72,14 +73,25 @@ jobs:
           cache: npm
       - run: npm ci
       - run: npx playwright install --with-deps chromium
+      # The coach/parent flows sign up real users, so they run against a local Supabase with the
+      # migrations and seed applied (email confirmations are off in supabase/config.toml for local).
+      - name: Start local Supabase and apply migrations + seed
+        run: |
+          npx supabase start -x studio,imgproxy,mailpit,edge-runtime,logflare,vector,supavisor --ignore-health-check
+          npx supabase db reset
+      - name: Point the app at local Supabase
+        run: |
+          eval "$(npx supabase status -o env | grep -E '^(API_URL|ANON_KEY)=')"
+          echo "VITE_SUPABASE_URL=$API_URL" >> "$GITHUB_ENV"
+          echo "VITE_SUPABASE_ANON_KEY=$ANON_KEY" >> "$GITHUB_ENV"
       - run: npm run e2e
         env:
           CI: 'true'
-          VITE_SUPABASE_URL: https://example.supabase.co
-          VITE_SUPABASE_ANON_KEY: ci-placeholder-anon-key
       - uses: actions/upload-artifact@v4
         if: failure()
         with:
           name: playwright-report
           path: playwright-report
           retention-days: 7
+      - if: always()
+        run: npx supabase stop --no-backup

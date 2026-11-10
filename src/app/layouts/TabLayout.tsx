@@ -1,5 +1,6 @@
 import { Outlet, ScrollRestoration } from 'react-router';
 import { FieldIcon, GamesIcon, LineupIcon, StatsIcon, TeamIcon } from '@/components/icons';
+import { SyncBanner } from '@/components/SyncBanner';
 import { Tabbar, type TabItem } from '@/components/Tabbar';
 import { useTeamRealtime } from '@/lineups/api';
 import { ProfileSync } from '@/settings/ProfileSync';
@@ -23,6 +24,7 @@ export function TabLayout() {
     <>
       <ProfileSync />
       <main className="app-main">
+        <SyncBanner />
         <TeamSwitcher />
         <Outlet />
       </main>

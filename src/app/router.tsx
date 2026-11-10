@@ -33,6 +33,7 @@ import { AuthLayout } from './layouts/AuthLayout';
 import { TabLayout } from './layouts/TabLayout';
 import { NotFound } from './pages/NotFound';
 import { RouteError } from './pages/RouteError';
+import { TabError } from './pages/TabError';
 
 const base = import.meta.env.BASE_URL.replace(/\/+$/, '');
 
@@ -118,22 +119,28 @@ export const routes: RouteObject[] = [
               {
                 element: <TabLayout />,
                 children: [
-                  { index: true, element: <Navigate to="/field" replace /> },
-                  { path: '/field', element: <FieldPage /> },
-                  { path: '/lineup', element: <LineupPage /> },
-                  { path: '/lineup/order', element: <BattingOrderPage /> },
-                  { path: '/team', element: <TeamPage /> },
-                  { path: '/games', element: <GamesPage /> },
-                  { path: '/games/:gameId', element: <GamePage /> },
-                  { path: '/practices/:practiceId', element: <PracticePage /> },
-                  { path: '/stats', element: <StatsPage /> },
-                  { path: '/players/:playerId', element: <PlayerPage /> },
-                  { path: '/players/:playerId/skills/:testId', element: <SkillTestPage /> },
-                  { path: '/settings', element: <SettingsPage /> },
-                  { path: '/settings/members', element: <MembersPage /> },
-                  { path: '/settings/team', element: <TeamSetupPage /> },
-                  { path: '/settings/skills', element: <SkillsSettingsPage /> },
-                  { path: '/profile', element: <ProfilePage /> },
+                  {
+                    // a page that throws shows TabError inside the shell; the tab bar keeps working
+                    errorElement: <TabError />,
+                    children: [
+                      { index: true, element: <Navigate to="/field" replace /> },
+                      { path: '/field', element: <FieldPage /> },
+                      { path: '/lineup', element: <LineupPage /> },
+                      { path: '/lineup/order', element: <BattingOrderPage /> },
+                      { path: '/team', element: <TeamPage /> },
+                      { path: '/games', element: <GamesPage /> },
+                      { path: '/games/:gameId', element: <GamePage /> },
+                      { path: '/practices/:practiceId', element: <PracticePage /> },
+                      { path: '/stats', element: <StatsPage /> },
+                      { path: '/players/:playerId', element: <PlayerPage /> },
+                      { path: '/players/:playerId/skills/:testId', element: <SkillTestPage /> },
+                      { path: '/settings', element: <SettingsPage /> },
+                      { path: '/settings/members', element: <MembersPage /> },
+                      { path: '/settings/team', element: <TeamSetupPage /> },
+                      { path: '/settings/skills', element: <SkillsSettingsPage /> },
+                      { path: '/profile', element: <ProfilePage /> },
+                    ],
+                  },
                 ],
               },
             ],

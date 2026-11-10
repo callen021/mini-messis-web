@@ -16,7 +16,8 @@ export default defineConfig({
   projects: [
     // The app is used one-handed on phones; smoke tests run at phone width first.
     { name: 'mobile', use: { ...devices['Pixel 7'], browserName: 'chromium' } },
-    { name: 'desktop', use: { ...devices['Desktop Chrome'] } },
+    // The coach/parent flows (e2e/flows.spec.ts) run once, at phone width; desktop keeps the smoke tests.
+    { name: 'desktop', use: { ...devices['Desktop Chrome'] }, testIgnore: /flows\.spec\.ts$/ },
   ],
   webServer: {
     // Dev server so the dev-only routes (/dev/components) exist for the smoke test.

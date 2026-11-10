@@ -1857,3 +1857,117 @@ select.input {
   opacity: 0;
   cursor: pointer;
 }
+
+/* ---------- Phase 8: sync banner, loading skeletons ---------- */
+.syncbar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 16px 8px;
+  padding: 7px 12px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1.3;
+  background: var(--fill);
+  color: var(--text2);
+}
+.syncbar i {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+.syncbar.offline {
+  color: var(--orange);
+  background: color-mix(in srgb, var(--orange) 14%, transparent);
+}
+.syncbar.saving i {
+  animation: syncpulse 1s ease-in-out infinite;
+}
+@keyframes syncpulse {
+  50% {
+    opacity: 0.3;
+  }
+}
+
+.skel {
+  display: block;
+  border-radius: 6px;
+  background: linear-gradient(
+    90deg,
+    var(--fill) 0%,
+    color-mix(in srgb, var(--fill) 40%, transparent) 50%,
+    var(--fill) 100%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.4s linear infinite;
+}
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+.skelpage {
+  padding: 4px 0 0;
+  text-align: left;
+}
+.skel-title {
+  height: 30px;
+  width: 46%;
+  margin: 8px 16px 10px;
+  border-radius: 8px;
+}
+.skel-sub {
+  height: 14px;
+  width: 62%;
+  margin: 0 16px 18px;
+}
+.skel-group {
+  padding: 0;
+}
+.skel-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-height: 50px;
+  padding: 10px 16px;
+}
+.skel-row + .skel-row {
+  border-top: 1px solid var(--sep);
+}
+.skel-icon {
+  flex: none;
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+}
+.skel-lines {
+  flex: 1;
+  display: grid;
+  gap: 7px;
+}
+.skel-line {
+  height: 12px;
+}
+.skel-line.short {
+  width: 35%;
+  height: 10px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skel,
+  .syncbar.saving i {
+    animation: none;
+  }
+}
+
+/* inline links in footnotes get a finger-sized tap box (WCAG 2.5.8 / Lighthouse target-size) */
+.footer a {
+  display: inline-block;
+  padding: 8px 4px;
+  margin: -6px -2px;
+}

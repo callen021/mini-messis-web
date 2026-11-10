@@ -349,3 +349,46 @@ rule (formation `w` × per-sport 3D factor), so sports are tuned one at a time. 
 far-end rows of three overlap by about a tenth of a jersey and rows of four or five by up to a
 third. The field test therefore only requires that tuned jerseys overlap a neighbour by less than
 half their width (enough to keep names readable), while untuned sports still must not touch.
+
+### D43. Offline: paused mutations, retried network errors, last write wins
+
+Every edit is already optimistic (D24). The query client sets mutations to `networkMode: 'online'`,
+so while `navigator.onLine` is false TanStack Query holds them paused in order and sends them when
+the connection returns; a request that fails at the network level (fetch itself throws) retries up
+to three times with 1s/2s/4s backoff, while a server refusal (RLS, validation) fails at once and
+the screen's toast shows it. `SyncBanner` at the top of every tab page counts the unsent changes
+("Offline · 2 unsaved changes will send…", "Saving 1 unsaved change…") and the app warns before the
+tab closes while any remain. The queue lives in memory only: closing the tab drops it, which is
+documented rather than solved with a persisted mutation log (serialising mutation functions and
+replaying them against a changed server state is more machinery than a youth team needs). Conflicts
+are last write wins, as the spec allows for v1.
+
+### D44. Three error boundaries and page-shaped skeletons
+
+A class `ErrorBoundary` wraps the router (outermost, plain-HTML fallback with Try again / Reload),
+React Router's root `errorElement` covers routing errors, and a pathless route inside `TabLayout`
+gives every tab page its own `TabError` so the team switcher and tab bar survive a crash on one
+screen. `LoadingScreen` now renders a `SkeletonPage` (title, subtitle and a grouped list of
+shimmering rows, animation off under reduced motion) with the label kept for screen readers, so
+every screen that showed "Loading…" shows the shape of what is coming instead.
+
+### D45. GitHub Pages deploy from Actions with a bundle budget
+
+`deploy.yml` runs on push to `main`: build at `BASE_PATH=/mini-messis-web/`, fail if the
+initial JS (entry chunk plus modulepreloads) is over 250 kB gzipped (`scripts/check-bundle.mjs`),
+copy `index.html` to `404.html` (Pages serves it for unknown paths, so deep links and reloads
+work), add `.nojekyll`, upload and publish. The Supabase URL and anon key are repository
+variables, not secrets: the anon key ships in the bundle anyway and RLS is the protection. Pages
+publishing from a private repo needs a paid GitHub plan, so enabling Pages (and choosing between
+Pro and making the repo public) is a documented owner step in `docs/LAUNCH.md`; the workflow's
+Publish job fails visibly until it is done. Lighthouse is a local script (`npm run lighthouse`)
+rather than a CI gate, because scores on shared runners swing too much to block merges on.
+
+### D46. No `user-scalable=no`; double-tap zoom is stopped with `touch-action`
+
+The legacy viewport tag disabled zoom so a fast double tap on a jersey during a game never zoomed
+the page. That tag fails Lighthouse's accessibility audit (and iOS has ignored it since iOS 10
+anyway), and it kept the audit at 89 against the ≥ 95 bar. `touch-action: manipulation` on the
+document gives the same protection (no double-tap zoom, panning and pinch zoom untouched), so the
+viewport tag is now the plain `width=device-width, initial-scale=1, viewport-fit=cover`. Inline
+links inside footnotes also get an 8px tap padding for the target-size audit.

@@ -1,0 +1,63 @@
+name: Deploy to GitHub Pages
+
+# Builds the static app at /mini-messis-web/ and publishes it with GitHub Pages (source: GitHub
+# Actions). The Supabase URL and anon key come from repository *variables* (Settings → Secrets and
+# variables → Actions → Variables); the anon key is public by design, RLS does the protecting.
+# Pages must be enabled once in Settings → Pages with Source = "GitHub Actions" (see docs/LAUNCH.md).
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - name: Check the Supabase variables are set
+        run: |
+          test -n "${{ vars.VITE_SUPABASE_URL }}" || { echo "::error::Repository variable VITE_SUPABASE_URL is missing"; exit 1; }
+          test -n "${{ vars.VITE_SUPABASE_ANON_KEY }}" || { echo "::error::Repository variable VITE_SUPABASE_ANON_KEY is missing"; exit 1; }
+      - name: Build (base path /mini-messis-web/)
+        run: npm run build
+        env:
+          BASE_PATH: /mini-messis-web/
+          VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
+      - name: Bundle budget (entry JS ≤ 250 kB gzipped)
+        run: npm run size
+      - name: SPA fallback and no Jekyll
+        run: |
+          cp dist/index.html dist/404.html
+          touch dist/.nojekyll
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: dist
+
+  deploy:
+    name: Publish
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

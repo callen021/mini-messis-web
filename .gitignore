@@ -153,3 +153,6 @@ dev-dist
 playwright-report
 test-results
 .env.local
+
+# Lighthouse reports (npm run lighthouse)
+lighthouse/

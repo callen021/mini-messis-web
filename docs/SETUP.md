@@ -120,11 +120,28 @@ gh variable set VITE_SUPABASE_URL --body "<project-url>"
 gh variable set VITE_SUPABASE_ANON_KEY --body "<publishable-key>"
 ```
 
-## Deploy (Phase 8)
+## Deploy
 
-Target is GitHub Pages via GitHub Actions. The deploy job will build with
-`BASE_PATH=/mini-messis-web/`, copy `index.html` to `404.html` for the SPA fallback, and read
-the Supabase URL/anon key from repository variables. Nothing deploys yet.
+`.github/workflows/deploy.yml` publishes to GitHub Pages on every push to `main` (and from
+Actions → Run workflow). It builds with `BASE_PATH=/mini-messis-web/`, fails if the entry JS is
+over 250 kB gzipped (`npm run size`), copies `index.html` to `404.html` so deep links work on
+Pages, and reads `VITE_SUPABASE_URL` / `VITE_SUPABASE_ANON_KEY` from repository variables. Pages
+must be enabled once with Source = "GitHub Actions"; the plan/visibility requirement and the rest of
+the go-live steps are in `docs/LAUNCH.md`. Live address: https://callen021.github.io/mini-messis-web/
+
+Rollback: re-run the last good "Deploy to GitHub Pages" run, or `git revert` and push.
+
+## Quality checks
+
+| Command              | What it checks                                                          |
+| -------------------- | ----------------------------------------------------------------------- |
+| `npm run size`       | Initial JS (entry + modulepreloads) ≤ 250 kB gzipped; runs in CI/deploy |
+| `npm run lighthouse` | Builds at the Pages base path, serves it, audits the sign-in page with  |
+|                      | Lighthouse's mobile profile; reports to `lighthouse/`. Needs Chrome;    |
+|                      | set `CHROME_PATH` to Playwright's chromium if none is installed.        |
+| `npm run pwa`        | Installability on the Pages build: manifest, icons, service worker,     |
+|                      | offline reload and deep links, driven by Playwright's Chromium          |
+| `npm run e2e`        | Playwright: smoke + the coach/parent flows against local Supabase       |
 
 ## Importing a season schedule
 
