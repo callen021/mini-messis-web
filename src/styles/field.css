@@ -212,7 +212,7 @@
   left: 9%;
   width: 82%;
   font-weight: 800;
-  font-size: clamp(7px, 13.5cqw, 15px);
+  font-size: clamp(8px, 13.5cqw, 15px);
   line-height: 1.02;
   color: var(--shirt-text);
   text-align: center;

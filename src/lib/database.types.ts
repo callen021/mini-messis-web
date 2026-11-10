@@ -937,6 +937,10 @@ export type Database = {
       email_confirmed: { Args: { p_user_id: string }; Returns: boolean }
       finish_game: { Args: { p_game_id: string }; Returns: undefined }
       generate_join_code: { Args: never; Returns: string }
+      import_legacy_backup: {
+        Args: { p_data: Json; p_team_id: string }
+        Returns: Json
+      }
       is_active_member: { Args: { p_team_id: string }; Returns: boolean }
       is_coach: { Args: { p_team_id: string }; Returns: boolean }
       is_guardian_of: { Args: { p_player_id: string }; Returns: boolean }
@@ -984,12 +988,12 @@ export type Database = {
           doubles: number
           field_goals: number
           free_throws: number
+          games_played: number
           goals: number
           hits: number
           home_runs: number
           name: string
           number: string
-          games_played: number
           periods_played: number
           plate_appearances: number
           player_id: string
@@ -1021,8 +1025,10 @@ export type Database = {
         }
         Returns: Json
       }
-      restore_skill_tests: { Args: { p_team_id: string; p_tests: Json }; Returns: number }
-      import_legacy_backup: { Args: { p_team_id: string; p_data: Json }; Returns: Json }
+      restore_skill_tests: {
+        Args: { p_team_id: string; p_tests: Json }
+        Returns: number
+      }
       rotate_join_code: { Args: { p_team_id: string }; Returns: string }
       save_lineups: {
         Args: { p_game_id?: string; p_periods?: Json; p_team_id: string }
@@ -1035,7 +1041,6 @@ export type Database = {
         }
         Returns: number
       }
-      set_skill_test_order: { Args: { p_team_id: string; p_ids: string[] }; Returns: undefined }
       set_batting_order: {
         Args: { p_player_ids: string[]; p_team_id: string }
         Returns: undefined
@@ -1049,6 +1054,10 @@ export type Database = {
       }
       set_player_available: {
         Args: { p_available: boolean; p_player_id: string }
+        Returns: undefined
+      }
+      set_skill_test_order: {
+        Args: { p_ids: string[]; p_team_id: string }
         Returns: undefined
       }
       snapshot_game_players: {

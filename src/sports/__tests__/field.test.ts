@@ -1,5 +1,16 @@
 import { describe, expect, it } from 'vitest';
-import { FIELDS, STANDING, fieldFrac, fieldImage, place, proj } from '../field';
+import { SPORTS } from '../definitions';
+import {
+  FIELDS,
+  PERSP_JERSEY_SCALE,
+  STANDING,
+  fieldFrac,
+  fieldImage,
+  perspJerseyWidth,
+  place,
+  placeFixed,
+  proj,
+} from '../field';
 import { ALL_SPORTS } from '../types';
 
 describe('field geometry', () => {
@@ -63,5 +74,52 @@ describe('field geometry', () => {
     expect(STANDING.baseball).toHaveLength(0);
     expect(STANDING.basketball.map((s) => s[0])).toEqual(['hoop-far', 'hoop-near']);
     expect(STANDING.football[0]?.[0]).toBe('post');
+  });
+});
+
+describe('constant-size jerseys in the 3D view (D37)', () => {
+  it('placeFixed keeps the perspective position but ignores depth for the width', () => {
+    const F = FIELDS.soccer.persp;
+    const far = placeFixed(F, 50, 10, 20);
+    const near = placeFixed(F, 50, 90, 20);
+    expect(far.left).toBe(place(F, 50, 10, 20).left);
+    expect(far.top).toBe(place(F, 50, 10, 20).top);
+    expect(far.width).toBe('20%');
+    expect(near.width).toBe('20%');
+    expect(far.zIndex).toBeLessThan(near.zIndex);
+    // the legacy placement did shrink with depth
+    expect(parseFloat(place(F, 50, 10, 20).width)).toBeLessThan(parseFloat(place(F, 50, 90, 20).width));
+  });
+
+  it('perspJerseyWidth applies the per-sport factor to the formation width with the 9% floor', () => {
+    expect(perspJerseyWidth('soccer', { w: 23 })).toBeCloseTo(23 * PERSP_JERSEY_SCALE.soccer);
+    expect(perspJerseyWidth('baseball', { w: 16 })).toBe(16);
+    expect(perspJerseyWidth('basketball', { w: 0 })).toBe(22);
+    expect(perspJerseyWidth('lacrosse', { w: 5 })).toBeCloseTo(9 * PERSP_JERSEY_SCALE.lacrosse);
+  });
+
+  it('no two jerseys in the same row touch at a 343px stage, for every enabled sport, size and formation', () => {
+    const stageW = 343;
+    for (const key of ['soccer', 'baseball', 'basketball', 'lacrosse'] as const) {
+      const S = SPORTS[key];
+      const F = FIELDS[key].persp;
+      const scale = stageW / F.w;
+      for (const size of S.sizes) {
+        for (const f of S.formations({ size, gk: S.hasGK })) {
+          const px = (perspJerseyWidth(key, f) / 100) * stageW;
+          const pts = f.positions.map((p) => ({ x: proj(F, p.x, p.y)[0] * scale, fy: p.y, code: p.code }));
+          for (let i = 0; i < pts.length; i++)
+            for (let j = i + 1; j < pts.length; j++) {
+              const a = pts[i] as (typeof pts)[number];
+              const b = pts[j] as (typeof pts)[number];
+              if (Math.abs(a.fy - b.fy) > 4) continue;
+              expect(
+                Math.abs(a.x - b.x),
+                `${key} ${size} ${f.name} ${a.code}-${b.code}`,
+              ).toBeGreaterThanOrEqual(px);
+            }
+        }
+      }
+    }
   });
 });

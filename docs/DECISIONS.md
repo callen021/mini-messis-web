@@ -274,3 +274,13 @@ archives it (`archived_at`), so history survives for a later restore by hand.
 
 Baseball has one formation per field size ("Standard"), so the Field cards and the game detail hide
 the formation select and name whenever a sport exposes a single formation.
+
+### D37. 3D view: perspective placement, constant jersey size
+
+Jerseys in the perspective view keep their homography position but no longer shrink with depth;
+`placeFixed()` uses the formation's `w` as a constant percent of the stage, multiplied by a per-sport
+factor (`PERSP_JERSEY_SCALE`: soccer 0.84, lacrosse 0.82, baseball and basketball 1). The factors were
+chosen so that no two jerseys in the same row touch at a 343px stage (a 375px phone) for any size or
+formation; a test enforces that. Goals and hoops still scale with depth so the field reads as 3D. The
+flat view is unchanged, and the dev field page has a "Depth-scaled jerseys" switch to compare with the
+legacy look. Football's offensive line overlaps as it did in the legacy app; the sport is disabled.

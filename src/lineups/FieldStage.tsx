@@ -1,6 +1,6 @@
 import { type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
-import { type FieldView, STANDING, fieldImage, place } from '@/sports/field';
+import { type FieldView, STANDING, fieldImage, perspJerseyWidth, place, placeFixed } from '@/sports/field';
 import { STANDING_SVG } from '@/sports/jersey';
 import { type Formation, type SportKey } from '@/sports/types';
 
@@ -11,16 +11,28 @@ export interface FieldStageProps {
   /** Render the jersey for slot `i` (position already placed; return the <Jersey/>). */
   renderSlot: (slotIndex: number) => ReactNode;
   className?: string;
+  /** Legacy behaviour for comparison: shrink jerseys with depth in the 3D view. */
+  depthScale?: boolean;
 }
 
 /**
  * The field artwork with goals/hoops and one absolutely-positioned slot per formation position.
- * Pure layout: uses the sport's homography to place everything; the caller renders the jerseys.
+ * Pure layout: the sport's homography places everything; goals and hoops shrink with depth, jerseys
+ * keep one size in the 3D view (D37) unless `depthScale` asks for the legacy look.
  */
-export function FieldStage({ sport, view, formation, renderSlot, className }: FieldStageProps) {
+export function FieldStage({
+  sport,
+  view,
+  formation,
+  renderSlot,
+  className,
+  depthScale = false,
+}: FieldStageProps) {
   const F = fieldImage(sport, view);
   const base = import.meta.env.BASE_URL;
   const w = Math.max(formation.w || 22, 9);
+  const fixed = view === 'persp' && !depthScale;
+  const fixedW = perspJerseyWidth(sport, formation);
   return (
     <div className="pitchwrap">
       <div className={cn('stage', sport, view === 'flat' && 'flat', className)}>
@@ -45,7 +57,7 @@ export function FieldStage({ sport, view, formation, renderSlot, className }: Fi
           );
         })}
         {formation.positions.map((pos, i) => {
-          const p = place(F, pos.x, pos.y, w);
+          const p = fixed ? placeFixed(F, pos.x, pos.y, fixedW) : place(F, pos.x, pos.y, w);
           return (
             <div
               key={i}

@@ -37,6 +37,7 @@ export default function FieldPage() {
   const [gk, setGk] = useState(S.hasGK);
   const [fill, setFill] = useState<Fill>('sample');
   const [showAll, setShowAll] = useState(true);
+  const [depthScale, setDepthScale] = useState(false);
   const [pickedName, setPickedName] = useState<string>('');
 
   const changeSport = (k: SportKey) => {
@@ -158,6 +159,9 @@ export default function FieldPage() {
                 ]}
               />
             </Row>
+            <Row label="Depth-scaled jerseys" detail="Legacy 3D look: jerseys shrink toward the far end">
+              <Switch label="Depth-scaled jerseys" checked={depthScale} onChange={setDepthScale} />
+            </Row>
             <Row label="Show every formation" detail={showAll ? undefined : 'Pick one below'}>
               <Switch label="Show every formation" checked={showAll} onChange={setShowAll} />
             </Row>
@@ -177,9 +181,9 @@ export default function FieldPage() {
             )}
           </Group>
           <Footer>
-            Jersey tap only toasts here; the picker sheet arrives in Phase 4. Open the legacy file in another
-            tab with the same sport, size and formation to compare placement.{' '}
-            <Link to="/dev/components">Components gallery →</Link>
+            Jersey tap only toasts here. Open the legacy file in another tab with the same sport, size and
+            formation to compare placement; switch on depth-scaled jerseys to match its 3D sizing, off for the
+            current constant size. <Link to="/dev/components">Components gallery →</Link>
           </Footer>
 
           <div className="quarters" style={{ marginTop: 18 }}>
@@ -210,6 +214,7 @@ export default function FieldPage() {
                     sport={sport}
                     view={fieldView}
                     formation={f}
+                    depthScale={depthScale}
                     renderSlot={(i) => {
                       const pos = f.positions[i];
                       if (!pos) return null;

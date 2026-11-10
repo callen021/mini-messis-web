@@ -1,4 +1,4 @@
-import { type SportKey } from './types';
+import { type Formation, type SportKey } from './types';
 
 /* =====================================================================
    FIELD GEOMETRY — the rendered field images (perspective, lit, baked at build time) and the
@@ -90,6 +90,39 @@ export function place(F: FieldImage, x: number, y: number, wPctOfField: number):
     width: `${wPctOfField * fieldFrac(F, y)}%`,
     zIndex: 10 + Math.round(y),
   };
+}
+
+/**
+ * Where to put a jersey in the 3D view: perspective position, but a constant width (percent of the
+ * stage) instead of shrinking with depth. Depth still orders the z-index.
+ */
+export function placeFixed(F: FieldImage, x: number, y: number, wPctOfStage: number): Placement {
+  const [px, py] = proj(F, x, y);
+  return {
+    left: `${(px / F.w) * 100}%`,
+    top: `${(py / F.h) * 100}%`,
+    width: `${wPctOfStage}%`,
+    zIndex: 10 + Math.round(y),
+  };
+}
+
+/**
+ * Per-sport factor on the formation's `w` for constant-size jerseys in the 3D view. Chosen so that
+ * neighbours in the same row never touch at a 343px stage (375px phone): soccer is limited by the
+ * 3-3 / 1-2-3 forward line on the far end, lacrosse by the 3-3-4 attack row. Baseball and basketball
+ * have room at full size. Football's offensive line overlapped in the legacy app too; it is disabled.
+ */
+export const PERSP_JERSEY_SCALE: Readonly<Record<SportKey, number>> = {
+  soccer: 0.84,
+  lacrosse: 0.82,
+  baseball: 1,
+  basketball: 1,
+  football: 0.8,
+};
+
+/** Jersey width as a percent of the stage for the 3D view (constant across depth). */
+export function perspJerseyWidth(sport: SportKey, formation: Pick<Formation, 'w'>): number {
+  return Math.max(formation.w || 22, 9) * PERSP_JERSEY_SCALE[sport];
 }
 
 /** Goals, hoops and posts drawn as standing SVG overlays: [kind, x, y, width % of field]. */
