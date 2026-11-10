@@ -71,6 +71,13 @@ export const PlusIcon = (p: IconProps) => (
     <path d="M12 5v14M5 12h14" />
   </Svg>
 );
+/** Turn-right arrow in a diamond: the Directions link on schedule rows and detail pages. */
+export const DirectionsIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 2.5l9.5 9.5-9.5 9.5L2.5 12z" />
+    <path d="M9.5 15.5v-3.5h5M12.5 9.5l2.5 2.5-2.5 2.5" />
+  </Svg>
+);
 export const ExportIcon = (p: IconProps) => (
   <Svg {...p}>
     <path d="M12 3v12M7 8l5-5 5 5M4 15v4a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-4" />

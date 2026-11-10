@@ -3,8 +3,11 @@ import { Button } from '@/components/Button';
 import { Field, FieldGroup, TextInput, Textarea } from '@/components/Form';
 import { Segmented } from '@/components/Segmented';
 import { FormSheet } from '@/components/Sheet';
+import { useCurrentTeam } from '@/teams/TeamContext';
 import { type HomeAway, type NewGameInput } from './api';
 import { todayISO } from './format';
+import { PlaceDatalist } from './PlaceDatalist';
+import { addressFor, useTeamPlaces } from './places';
 
 export interface NewGameSheetProps {
   open: boolean;
@@ -19,14 +22,24 @@ export interface NewGameSheetProps {
 
 type HomeAwayChoice = HomeAway | 'unset';
 
-/** New game form: opponent, date, time, location, home/away, notes for parents; Start now / Save for later. */
+/** New game form: opponent, date, time, location + address, home/away, notes for parents; Start now / Save for later. */
 export function NewGameSheet({ open, onClose, liveExists, startOnly, busy, onSubmit }: NewGameSheetProps) {
+  const { teamId } = useCurrentTeam();
+  const places = useTeamPlaces(teamId, open);
   const [opponent, setOpponent] = useState('');
   const [date, setDate] = useState(todayISO());
   const [time, setTime] = useState('');
   const [location, setLocation] = useState('');
+  const [address, setAddress] = useState('');
   const [homeAway, setHomeAway] = useState<HomeAwayChoice>('unset');
   const [notes, setNotes] = useState('');
+
+  // picking a known location fills in the address last used for it (unless one was typed already)
+  const onLocation = (v: string) => {
+    setLocation(v);
+    const known = addressFor(places.data, v);
+    if (known && !address.trim()) setAddress(known);
+  };
 
   const submit = (start: boolean) => {
     onSubmit({
@@ -34,6 +47,7 @@ export function NewGameSheet({ open, onClose, liveExists, startOnly, busy, onSub
       game_date: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : todayISO(),
       start_time: time || null,
       location: location || null,
+      address: address || null,
       home_away: homeAway === 'unset' ? null : homeAway,
       parent_notes: notes || null,
       start,
@@ -71,10 +85,21 @@ export function NewGameSheet({ open, onClose, liveExists, startOnly, busy, onSub
         <Field label="Location / field (optional)">
           <TextInput
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(e) => onLocation(e.target.value)}
             maxLength={80}
             autoComplete="off"
             placeholder="Field 3, Riverside Park"
+            list="newgame-places"
+          />
+        </Field>
+        <PlaceDatalist id="newgame-places" places={places.data} />
+        <Field label="Address (optional)">
+          <TextInput
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            maxLength={200}
+            autoComplete="street-address"
+            placeholder="120 River Rd, Austin TX"
           />
         </Field>
         <FieldGroup label="Home or away">

@@ -66,8 +66,8 @@ Supabase dashboard → project → **Authentication → URL Configuration**:
   - `https://callen021.github.io/mini-messis-web/**`
   - `http://localhost:5173/**` (keep for local development)
 
-The app sends people to `…/mini-messis-web/verify` after sign-up and `…/mini-messis-web/reset`
-from the password-reset email, both covered by the wildcard. Save.
+The app sends people to `…/mini-messis-web/reset` from the password-reset email and to
+`…/mini-messis-web/` from a magic link, both covered by the wildcard. Save.
 
 ## 4. Custom SMTP through Resend
 

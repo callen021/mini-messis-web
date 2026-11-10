@@ -38,10 +38,14 @@ import {
   useUpdatePlateAppearance,
   useUpdateScoreEvent,
 } from './api';
+import { DirectionsIcon } from '@/components/icons';
+import { directionsUrl } from './directions';
 import { EditScoreSheet } from './EditScoreSheet';
-import { fmtDate, fmtTime, HOME_AWAY_LABEL, scheduleLine } from './format';
+import { fmtDate, fmtTime, HOME_AWAY_LABEL, scheduleLine, todayISO } from './format';
 import { GameBadge } from './GameBadge';
 import { downloadIcs } from './ics';
+import { PlaceDatalist } from './PlaceDatalist';
+import { addressFor, useTeamPlaces } from './places';
 import { LineScore } from './LineScore';
 import { makeNameLookup, periodTag } from './names';
 import { paResultLabel, paResultShort } from './batting';
@@ -82,6 +86,8 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const isBaseball = S.scoring.panel === 'run';
   const pas = usePlateAppearances(game.id, isBaseball);
   const notes = useCoachNotes(game.id, isStaff);
+  const places = useTeamPlaces(teamId, isStaff);
+  const directions = directionsUrl(game.address, game.location);
 
   const update = useUpdateGame(teamId, game.id);
   const start = useStartGame(teamId);
@@ -225,16 +231,20 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const patch = (p: Parameters<typeof update.mutate>[0]) => update.mutate(p, { onError });
 
   const calendar = () =>
-    downloadIcs({
-      id: game.id,
-      teamName: game.team_name_snapshot ?? team.name,
-      opponent: game.opponent,
-      date: game.game_date,
-      startTime: game.start_time,
-      location: game.location,
-      homeAway: game.home_away,
-      notes: game.parent_notes,
-    });
+    downloadIcs(
+      {
+        id: game.id,
+        teamName: game.team_name_snapshot ?? team.name,
+        opponent: game.opponent,
+        date: game.game_date,
+        startTime: game.start_time,
+        location: game.location,
+        address: game.address,
+        homeAway: game.home_away,
+        notes: game.parent_notes,
+      },
+      team.timezone,
+    );
 
   /* ---------- render ---------- */
 
@@ -242,7 +252,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
     <>
       {fmtDate(game.game_date, true)}
       {game.start_time ? ` · ${fmtTime(game.start_time)}` : ''} · {game.team_name_snapshot ?? team.name} ·{' '}
-      <GameBadge game={game} />
+      <GameBadge game={game} today={todayISO()} />
     </>
   );
 
@@ -323,9 +333,29 @@ function GameDetail({ game }: { game: GameWithScore }) {
                 placeholder="Field / park"
                 defaultValue={game.location ?? ''}
                 maxLength={80}
+                list="game-places"
                 onBlur={(e) => {
                   const v = e.target.value.trim() || null;
-                  if (v !== game.location) patch({ location: v });
+                  if (v === game.location) return;
+                  const known = v && !game.address ? addressFor(places.data, v) : null;
+                  patch(known ? { location: v, address: known } : { location: v });
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+              />
+            </Row>
+            <PlaceDatalist id="game-places" places={places.data} />
+            <Row label="Address">
+              <input
+                key={game.address ?? ''}
+                className="inline"
+                aria-label="Address"
+                placeholder="Street address"
+                defaultValue={game.address ?? ''}
+                maxLength={200}
+                autoComplete="street-address"
+                onBlur={(e) => {
+                  const v = e.target.value.trim() || null;
+                  if (v !== game.address) patch({ address: v });
                 }}
                 onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
               />
@@ -348,10 +378,22 @@ function GameDetail({ game }: { game: GameWithScore }) {
           <>
             <Row label="When" value={scheduleLine(game, true)} />
             {game.location && <Row label="Where" value={game.location} />}
+            {game.address && <Row label="Address" value={game.address} />}
             {game.home_away && <Row label="Home / away" value={HOME_AWAY_LABEL[game.home_away]} />}
           </>
         )}
-        <Row link onClick={calendar} label="Add to calendar" detail="Downloads an .ics file for this game" />
+        {directions && (
+          <a className="row link" href={directions} target="_blank" rel="noopener noreferrer">
+            <span className="icon" style={{ background: 'var(--tint)' }} aria-hidden="true">
+              <DirectionsIcon />
+            </span>
+            <span className="lbl">
+              Directions
+              <small>Opens Google Maps to {game.address ?? game.location}</small>
+            </span>
+          </a>
+        )}
+        <Row link onClick={calendar} label="Add to calendar" detail="Saves this game as a calendar event" />
       </Group>
       <Section>Note for parents</Section>
       <Group>

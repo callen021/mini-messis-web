@@ -3,7 +3,10 @@ import { Button } from '@/components/Button';
 import { Field, FieldGroup, Select, TextInput, Textarea } from '@/components/Form';
 import { Segmented } from '@/components/Segmented';
 import { FormSheet } from '@/components/Sheet';
+import { useCurrentTeam } from '@/teams/TeamContext';
 import { fmtDate, todayISO } from './format';
+import { PlaceDatalist } from './PlaceDatalist';
+import { addressFor, useTeamPlaces } from './places';
 import { type NewPracticesInput } from './practices';
 import { MAX_SERIES, WEEKDAYS, weekdayOf, weeklyDates } from './recurrence';
 
@@ -33,6 +36,9 @@ const plusDays = (iso: string, days: number): string => {
  */
 export function PracticeSheet({ open, onClose, busy, onSubmit }: PracticeSheetProps) {
   const today = todayISO();
+  const { teamId } = useCurrentTeam();
+  const places = useTeamPlaces(teamId, open);
+  const [address, setAddress] = useState('');
   const [mode, setMode] = useState<Mode>('once');
   const [date, setDate] = useState(today);
   const [weekday, setWeekday] = useState<number>(() => weekdayOf(today) ?? 1);
@@ -65,6 +71,7 @@ export function PracticeSheet({ open, onClose, busy, onSubmit }: PracticeSheetPr
       start_time: start || null,
       end_time: end || null,
       location: location || null,
+      address: address || null,
       notes: notes || null,
     });
   };
@@ -133,10 +140,25 @@ export function PracticeSheet({ open, onClose, busy, onSubmit }: PracticeSheetPr
         <Field label="Location (optional)">
           <TextInput
             value={location}
-            onChange={(e) => setLocation(e.target.value)}
+            onChange={(e) => {
+              setLocation(e.target.value);
+              const known = addressFor(places.data, e.target.value);
+              if (known && !address.trim()) setAddress(known);
+            }}
             maxLength={80}
             autoComplete="off"
             placeholder="Field 3, Riverside Park"
+            list="newpractice-places"
+          />
+        </Field>
+        <PlaceDatalist id="newpractice-places" places={places.data} />
+        <Field label="Address (optional)">
+          <TextInput
+            value={address}
+            onChange={(e) => setAddress(e.target.value)}
+            maxLength={200}
+            autoComplete="street-address"
+            placeholder="120 River Rd, Austin TX"
           />
         </Field>
         <Field label="Note for parents (optional)">

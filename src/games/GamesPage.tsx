@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { Scoreline } from '@/components/Badge';
 import { Button, Toolbar } from '@/components/Button';
-import { PlusIcon } from '@/components/icons';
+import { DirectionsIcon, PlusIcon } from '@/components/icons';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
@@ -24,40 +24,106 @@ import {
   useGames,
   useScoreEvents,
 } from './api';
-import { fmtDate, scheduleLine, todayISO } from './format';
+import { directionsUrl } from './directions';
+import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
 import { GameBadge } from './GameBadge';
+import { downloadScheduleIcs } from './ics';
 import { makeNameLookup } from './names';
 import { NewGameSheet } from './NewGameSheet';
 import { PracticeBadge } from './PracticePage';
 import { type Practice, useCreatePractices, usePractices } from './practices';
 import { PracticeSheet } from './PracticeSheet';
-import { filterSchedule, mergeSchedule, practiceLine } from './recurrence';
+import { filterSchedule, mergeSchedule } from './recurrence';
+import { scheduleEvents } from './schedule-ics';
 import { ScorePanel } from './ScorePanel';
 import { describeEvent, scoreNoun } from './scoring';
 
-/** One practice line on the schedule: quieter than a game, struck through when cancelled. */
-export function PracticeRow({ practice: p }: { practice: Practice }) {
-  const cancelled = p.status === 'cancelled';
+/** A schedule row's two detail lines: bold date and time, then the quieter place / notes. */
+function When({ date, time, end }: { date: string; time: string | null; end?: string | null }) {
+  const t = fmtTime(time);
+  const e = fmtTime(end);
   return (
-    <Row
-      to={`/practices/${p.id}`}
-      className={cancelled ? 'practice cancelled' : 'practice'}
-      label={<span className={cancelled ? 'strike' : undefined}>Practice</span>}
-      detail={
-        <>
-          {practiceLine(p, true)}
-          {p.notes && !cancelled && (
-            <>
-              <br />
-              {p.notes}
-            </>
-          )}
-        </>
-      }
-      chevron
+    <b className="when">
+      {fmtDate(date, true)}
+      {t ? ` · ${t}` : ''}
+      {t && e ? ` – ${e}` : ''}
+    </b>
+  );
+}
+
+/** Small Directions icon at the right of a row (outside the row link: links can't nest). */
+function DirectionsLink({ href, place }: { href: string | null; place: string | null }) {
+  if (!href) return null;
+  return (
+    <a
+      className="dirbtn"
+      href={href}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Directions to ${place ?? 'the field'}`}
+      title="Directions"
     >
-      <PracticeBadge practice={p} />
-    </Row>
+      <DirectionsIcon />
+    </a>
+  );
+}
+
+/** One practice line on the schedule: quieter than a game, struck through when cancelled. */
+export function PracticeRow({ practice: p, today }: { practice: Practice; today: string }) {
+  const cancelled = p.status === 'cancelled';
+  const directions = cancelled ? null : directionsUrl(p.address, p.location);
+  return (
+    <div className="rowwrap">
+      <Row
+        to={`/practices/${p.id}`}
+        className={`${cancelled ? 'practice cancelled' : 'practice'}${directions ? ' hasdir' : ''}`}
+        label={<span className={cancelled ? 'strike' : undefined}>Practice</span>}
+        detail={
+          <>
+            <When date={p.practice_date} time={p.start_time} end={p.end_time} />
+            {(p.location || (p.notes && !cancelled)) && (
+              <>
+                <br />
+                {[p.location, cancelled ? '' : p.notes].filter(Boolean).join(' · ')}
+              </>
+            )}
+          </>
+        }
+        chevron
+      >
+        <PracticeBadge practice={p} today={today} />
+      </Row>
+      <DirectionsLink href={directions} place={p.address ?? p.location} />
+    </div>
+  );
+}
+
+function GameRow({ game: g, today }: { game: GameWithScore; today: string }) {
+  const directions = directionsUrl(g.address, g.location);
+  const place = [g.location, g.home_away ? HOME_AWAY_LABEL[g.home_away] : ''].filter(Boolean).join(' · ');
+  return (
+    <div className="rowwrap">
+      <Row
+        to={`/games/${g.id}`}
+        className={directions ? 'hasdir' : undefined}
+        label={`vs ${g.opponent}`}
+        detail={
+          <>
+            <When date={g.game_date} time={g.start_time} />
+            {(place || g.parent_notes) && (
+              <>
+                <br />
+                {[place, g.parent_notes].filter(Boolean).join(' · ')}
+              </>
+            )}
+          </>
+        }
+        chevron
+      >
+        <GameBadge game={g} today={today} />
+      </Row>
+      <DirectionsLink href={directions} place={g.address ?? g.location} />
+    </div>
   );
 }
 
@@ -90,6 +156,7 @@ export function GamesPage() {
   const shown = filterSchedule(upcoming, view);
   const gameCount = upcoming.filter((i) => i.kind === 'game').length;
   const practiceCount = upcoming.length - gameCount;
+  const events = scheduleEvents(upcoming, team.name);
 
   const addFlow = async () => {
     const choice = await sheet<AddChoice>({
@@ -101,6 +168,11 @@ export function GamesPage() {
     });
     if (choice === 'game') setCreating(true);
     else if (choice === 'practice') setAddingPractice(true);
+  };
+
+  const addAll = () => {
+    downloadScheduleIcs(team.name, events, team.timezone);
+    toast(`${events.length} event${events.length === 1 ? '' : 's'} ready for your calendar`);
   };
 
   const onCreate = (input: Parameters<typeof create.mutate>[0]) => {
@@ -153,6 +225,13 @@ export function GamesPage() {
       }
     >
       {live && <LiveGameCard game={live} />}
+      {events.length > 0 && (
+        <Toolbar className={`noprint${live ? ' mt-3' : ''}`}>
+          <Button variant="tinted" onClick={addAll}>
+            Add all to calendar
+          </Button>
+        </Toolbar>
+      )}
       <Segmented<GamesView>
         wide
         label="Schedule view"
@@ -163,41 +242,23 @@ export function GamesPage() {
           { value: 'games', label: 'Games' },
           { value: 'practices', label: 'Practices' },
         ]}
-        className={live ? 'mt-3' : undefined}
+        className={live || events.length ? 'mt-3' : undefined}
       />
       <Section>Coming up</Section>
       <Group>
         {shown.map((item) =>
           item.kind === 'game' ? (
-            <Row
-              key={item.game.id}
-              to={`/games/${item.game.id}`}
-              label={`vs ${item.game.opponent}`}
-              detail={
-                <>
-                  {scheduleLine(item.game, true)}
-                  {item.game.parent_notes && (
-                    <>
-                      <br />
-                      {item.game.parent_notes}
-                    </>
-                  )}
-                </>
-              }
-              chevron
-            >
-              <GameBadge game={item.game} />
-            </Row>
+            <GameRow key={item.game.id} game={item.game} today={today} />
           ) : (
-            <PracticeRow key={item.practice.id} practice={item.practice} />
+            <PracticeRow key={item.practice.id} practice={item.practice} today={today} />
           ),
         )}
         {shown.length === 0 && <Row label={empty} />}
       </Group>
       <Footer>
         Games and practices are listed together by date. A cancelled practice stays crossed out so nobody
-        shows up to an empty field. Past games and the season record are under Stats → Season. Each game and
-        practice has an Add to calendar link.
+        shows up to an empty field. Past games and the season record are under Stats → Season. Add all to
+        calendar saves every upcoming event in one go; the arrow on a row opens directions.
       </Footer>
       {isStaff && (
         <>

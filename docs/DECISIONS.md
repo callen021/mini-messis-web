@@ -439,3 +439,23 @@ Approvals, declines and child-link confirmations are for coach, assistant and ad
 as an assistant or coach. The signed-in path keeps the join rate limit; the signed-out preview has
 no user to key it on, so the 30^8 code space is the protection there, as it already was for typed
 codes.
+
+### D50. Schedule rows say how soon; addresses, directions and one calendar file
+
+Every upcoming row gets a timing badge from a pure helper (`timingLabel`): Today, Tomorrow, This
+week (2–6 days away), otherwise Upcoming; practices keep their Practice label and get the same
+badge, cancelled ones only say Cancelled. The date-and-time line is bold and full-contrast, the
+place and note stay muted. Games and practices gain an optional street `address` (≤ 200 chars)
+next to the location name; the scheduling sheets and detail pages suggest the team's earlier
+location/address pairs (`team_places`) and fill the address in when a known location is picked.
+Directions is a Google Maps link (`https://www.google.com/maps/dir/?api=1&destination=…`) with
+the address when there is one, otherwise the location name: a button-sized row on the detail pages
+and a small arrow at the right of each schedule row (a sibling of the row link, since links cannot
+nest). "Add all to calendar" builds one .ics with every upcoming non-cancelled game and practice.
+Times are converted from the team's `timezone` setting (Settings → Team setup, default
+America/Chicago, validated against `Intl.supportedValuesOf`) to UTC stamps, which every calendar
+app reads without a VTIMEZONE block; all-day events stay dates. Delivery: desktop and Android
+download the file; on iOS (Safari and the installed home-screen app) the `download` attribute is
+ignored for blobs, so the page navigates to the blob URL, which opens Safari's calendar preview with
+"Add All". That path could not be exercised on a real iPhone from this environment and is the one
+thing in this round to try by hand.

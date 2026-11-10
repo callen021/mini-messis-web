@@ -41,6 +41,10 @@ vi.mock('../practices', async () => {
     useCreatePractices: () => ({ mutate: createPractices, isPending: false }),
   };
 });
+vi.mock('../places', () => ({
+  useTeamPlaces: () => ({ data: [], isPending: false }),
+  addressFor: () => null,
+}));
 vi.mock('@/lineups/api', async () => {
   const actual = await vi.importActual<typeof LineupsApi>('@/lineups/api');
   return {
@@ -61,6 +65,7 @@ const team: Team = {
   join_code: 'ABCD2345',
   join_code_rotated_at: '',
   join_enabled: true,
+  timezone: 'America/Chicago',
   side_size: 7,
   has_gk: true,
   periods_count: 4,
@@ -107,6 +112,7 @@ const practice = (over: Partial<Practice>): Practice => ({
   start_time: '18:30:00',
   end_time: null,
   location: null,
+  address: null,
   notes: null,
   status: 'scheduled',
   created_at: '',
@@ -187,6 +193,57 @@ describe('Schedule page', () => {
     expect(within(sheet).getByRole('button', { name: 'New practice' })).toBeInTheDocument();
     await userEvent.click(within(sheet).getByRole('button', { name: 'New game' }));
     expect(await screen.findByRole('dialog', { name: 'New game' })).toBeInTheDocument();
+  });
+
+  it('badges rows by how soon they are, bolds the date line and links directions (D50)', () => {
+    const d = new Date();
+    const iso = (offset: number) => {
+      const x = new Date(d.getFullYear(), d.getMonth(), d.getDate() + offset);
+      return [
+        x.getFullYear(),
+        String(x.getMonth() + 1).padStart(2, '0'),
+        String(x.getDate()).padStart(2, '0'),
+      ].join('-');
+    };
+    games = [
+      game({ id: 'today', opponent: 'Lions', game_date: iso(0), address: '1 Main St', location: 'Field 1' }),
+      game({ id: 'week', opponent: 'Bears', game_date: iso(4) }),
+      game({ id: 'far', opponent: 'Hawks', game_date: iso(20), location: 'Riverside Park' }),
+    ];
+    practices = [practice({ id: 'tmrw', practice_date: iso(1), location: 'Field 2' })];
+    renderPage('parent');
+    expect(screen.getByText('Today')).toBeInTheDocument();
+    expect(screen.getByText('Tomorrow')).toBeInTheDocument();
+    expect(screen.getByText('This week')).toBeInTheDocument();
+    expect(screen.getByText('Upcoming')).toBeInTheDocument();
+    expect(screen.getByText('Practice', { selector: '.badge' })).toBeInTheDocument();
+    expect(document.querySelectorAll('.when').length).toBe(4);
+    const dirs = screen.getAllByRole('link', { name: /^Directions to/ });
+    expect(dirs.map((a) => a.getAttribute('href'))).toEqual([
+      'https://www.google.com/maps/dir/?api=1&destination=1%20Main%20St',
+      'https://www.google.com/maps/dir/?api=1&destination=Field%202',
+      'https://www.google.com/maps/dir/?api=1&destination=Riverside%20Park',
+    ]);
+    expect(dirs[0]).toHaveAttribute('target', '_blank');
+  });
+
+  it('Add all to calendar builds one file with every upcoming, non-cancelled event', async () => {
+    const created: Blob[] = [];
+    const createObjectURL = vi.fn((b: Blob) => {
+      created.push(b);
+      return 'blob:x';
+    });
+    Object.defineProperty(URL, 'createObjectURL', { value: createObjectURL, configurable: true });
+    Object.defineProperty(URL, 'revokeObjectURL', { value: vi.fn(), configurable: true });
+    renderPage('parent');
+    await userEvent.click(screen.getByRole('button', { name: 'Add all to calendar' }));
+    expect(createObjectURL).toHaveBeenCalledTimes(1);
+    const text = await created[0]?.text();
+    expect(text).toContain('X-WR-CALNAME:Strikers schedule');
+    expect(text).toContain('X-WR-TIMEZONE:America/Chicago');
+    expect(text?.match(/BEGIN:VEVENT/g)).toHaveLength(2); // Tigers game + the scheduled practice; cancelled one skipped
+    expect(text).not.toContain('game-g0'); // completed games are not in the schedule
+    expect(screen.getByRole('status')).toHaveTextContent('2 events ready for your calendar');
   });
 
   it('shows an empty message per segment', async () => {

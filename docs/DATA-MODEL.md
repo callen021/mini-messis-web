@@ -274,8 +274,8 @@ can only be set from the SQL editor. Written by the user themselves and by `crea
 
 ### teams
 
-The team and its settings (sport, side size, goalkeeper, periods, colours), the owner and the join
-code. Created only by `create_team()`, which also inserts the owner's coach membership, the first
+The team and its settings (sport, side size, goalkeeper, periods, colours, `timezone` for calendar
+exports — default America/Chicago, D50), the owner, the join code and `join_enabled` (D49). Created only by `create_team()`, which also inserts the owner's coach membership, the first
 season, the template lineups and the sport's default skill tests. Trigger `teams_guard_update`:
 `owner_id` changes only inside `transfer_ownership()`; name by a coach; sport by a platform admin
 (`admin_change_sport()`); archive by the owner. RPCs: `rotate_join_code`, `transfer_ownership`,
@@ -315,7 +315,8 @@ membership until the coach adds the player and links them. Deleted by coaches or
 
 ### games
 
-Schedule and status of a game. `start_game()` copies the template lineups into the game, snapshots
+Schedule and status of a game. `address` (optional, ≤ 200 chars) feeds the Directions link and the
+calendar export; `team_places(team)` lists the location/address pairs a team has used (D50). `start_game()` copies the template lineups into the game, snapshots
 the roster into `game_players`, sets `live` (one live game per team, partial unique index).
 `finish_game()` re-snapshots, sets `done`, and copies the final lineups back as the new template.
 Schedule fields (`start_time`, `location`, `home_away`, `parent_notes`) are edited directly by

@@ -2,22 +2,41 @@ import { useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { Badge } from '@/components/Badge';
 import { Textarea } from '@/components/Form';
+import { DirectionsIcon } from '@/components/icons';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
 import { useActionSheet } from '@/components/Sheet';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
 import { useCurrentTeam } from '@/teams/TeamContext';
-import { fmtDate, fmtTime } from './format';
+import { directionsUrl } from './directions';
+import { fmtDate, fmtTime, todayISO } from './format';
 import { downloadPracticeIcs } from './ics';
+import { PlaceDatalist } from './PlaceDatalist';
+import { addressFor, useTeamPlaces } from './places';
 import { type Practice, usePractice, useUpdatePractice } from './practices';
 import { practiceLine } from './recurrence';
+import { timingLabel } from './timing';
 
-export function PracticeBadge({ practice }: { practice: Pick<Practice, 'status'> }) {
-  return practice.status === 'cancelled' ? (
-    <Badge status="cancelled">Cancelled</Badge>
-  ) : (
-    <Badge>Practice</Badge>
+/** "Practice" plus how soon it is; "Cancelled" when called off (D50). */
+export function PracticeBadge({
+  practice,
+  today,
+}: {
+  practice: Pick<Practice, 'status'> & { practice_date?: string };
+  today?: string;
+}) {
+  if (practice.status === 'cancelled') return <Badge status="cancelled">Cancelled</Badge>;
+  const when = today && practice.practice_date ? timingLabel(practice.practice_date, today) : null;
+  return (
+    <span className="badges">
+      <Badge>Practice</Badge>
+      {when && (
+        <Badge status="upcoming" className={when === 'Upcoming' ? undefined : 'soon'}>
+          {when}
+        </Badge>
+      )}
+    </span>
   );
 }
 
@@ -43,9 +62,11 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
   const toast = useToast();
   const sheet = useActionSheet();
   const update = useUpdatePractice(teamId, p.id);
+  const places = useTeamPlaces(teamId, isStaff);
   const onError = (e: unknown) => toast(errorMessage(e));
   const patch = (patch: Parameters<typeof update.mutate>[0]) => update.mutate(patch, { onError });
   const cancelled = p.status === 'cancelled';
+  const directions = directionsUrl(p.address, p.location);
 
   const cancelFlow = async () => {
     const ok = await sheet({
@@ -67,15 +88,19 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
   };
 
   const calendar = () =>
-    downloadPracticeIcs({
-      id: p.id,
-      teamName: team.name,
-      date: p.practice_date,
-      startTime: p.start_time,
-      endTime: p.end_time,
-      location: p.location,
-      notes: p.notes,
-    });
+    downloadPracticeIcs(
+      {
+        id: p.id,
+        teamName: team.name,
+        date: p.practice_date,
+        startTime: p.start_time,
+        endTime: p.end_time,
+        location: p.location,
+        address: p.address,
+        notes: p.notes,
+      },
+      team.timezone,
+    );
 
   return (
     <Page
@@ -85,7 +110,8 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
         <>
           {fmtDate(p.practice_date, true)}
           {p.start_time ? ` · ${fmtTime(p.start_time)}` : ''}
-          {p.end_time ? ` – ${fmtTime(p.end_time)}` : ''} · {team.name} · <PracticeBadge practice={p} />
+          {p.end_time ? ` – ${fmtTime(p.end_time)}` : ''} · {team.name} ·{' '}
+          <PracticeBadge practice={p} today={todayISO()} />
         </>
       }
       back={{ to: '/games', label: 'Schedule' }}
@@ -135,9 +161,29 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
                 placeholder="Field / park"
                 defaultValue={p.location ?? ''}
                 maxLength={80}
+                list="practice-places"
                 onBlur={(e) => {
                   const v = e.target.value.trim() || null;
-                  if (v !== p.location) patch({ location: v });
+                  if (v === p.location) return;
+                  const known = v && !p.address ? addressFor(places.data, v) : null;
+                  patch(known ? { location: v, address: known } : { location: v });
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+              />
+            </Row>
+            <PlaceDatalist id="practice-places" places={places.data} />
+            <Row label="Address">
+              <input
+                key={p.address ?? ''}
+                className="inline"
+                aria-label="Address"
+                placeholder="Street address"
+                defaultValue={p.address ?? ''}
+                maxLength={200}
+                autoComplete="street-address"
+                onBlur={(e) => {
+                  const v = e.target.value.trim() || null;
+                  if (v !== p.address) patch({ address: v });
                 }}
                 onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
               />
@@ -147,13 +193,25 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
           <>
             <Row label="When" value={practiceLine({ ...p, location: null })} />
             {p.location && <Row label="Where" value={p.location} />}
+            {p.address && <Row label="Address" value={p.address} />}
           </>
+        )}
+        {directions && (
+          <a className="row link" href={directions} target="_blank" rel="noopener noreferrer">
+            <span className="icon" style={{ background: 'var(--tint)' }} aria-hidden="true">
+              <DirectionsIcon />
+            </span>
+            <span className="lbl">
+              Directions
+              <small>Opens Google Maps to {p.address ?? p.location}</small>
+            </span>
+          </a>
         )}
         <Row
           link
           onClick={calendar}
           label="Add to calendar"
-          detail="Downloads an .ics file for this practice"
+          detail="Saves this practice as a calendar event"
         />
       </Group>
       <Section>Note for parents</Section>

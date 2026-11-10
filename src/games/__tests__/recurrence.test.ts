@@ -18,6 +18,7 @@ const practice = (over: Partial<Practice>): Practice => ({
   start_time: '18:30:00',
   end_time: null,
   location: null,
+  address: null,
   notes: null,
   status: 'scheduled',
   created_at: '',

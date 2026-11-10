@@ -127,6 +127,8 @@ export interface NewGameInput {
   game_date: string;
   start_time: string | null;
   location: string | null;
+  /** Street address for Directions and the calendar export (D50). */
+  address?: string | null;
   home_away: HomeAway | null;
   parent_notes: string | null;
   /** Start it right away (legacy "Start game now"). */
@@ -168,6 +170,7 @@ export function useCreateGame(teamId: string) {
         game_date: input.game_date,
         start_time: input.start_time,
         location: input.location?.trim() || null,
+        address: input.address?.trim().slice(0, 200) || null,
         home_away: input.home_away,
         parent_notes: input.parent_notes?.trim() || null,
       };
@@ -180,7 +183,7 @@ export function useCreateGame(teamId: string) {
 }
 
 export type GamePatch = Partial<
-  Pick<Game, 'opponent' | 'game_date' | 'start_time' | 'location' | 'home_away' | 'parent_notes'>
+  Pick<Game, 'opponent' | 'game_date' | 'start_time' | 'location' | 'address' | 'home_away' | 'parent_notes'>
 >;
 
 /** Edit schedule fields; optimistic on the detail query. */

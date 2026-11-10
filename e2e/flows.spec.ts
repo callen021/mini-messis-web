@@ -108,7 +108,7 @@ test.describe('coach and parent flows', () => {
     await sheet.getByRole('button', { name: 'Save for later' }).click();
     await expect(sheet).toBeHidden();
     await expect(coach.getByText('vs Tigers')).toBeVisible();
-    await expect(coach.getByText('Upcoming')).toBeVisible();
+    await expect(coach.getByText('Today')).toBeVisible();
   });
 
   test('coach reads the join code from Members', async () => {
@@ -176,7 +176,7 @@ test.describe('coach and parent flows', () => {
     await parent.goto('/games');
     await expect(parent.getByRole('heading', { level: 1, name: 'Schedule' })).toBeVisible();
     await expect(parent.getByText('vs Tigers')).toBeVisible();
-    await expect(parent.getByRole('button', { name: 'Add' })).toHaveCount(0);
+    await expect(parent.getByRole('button', { name: 'Add', exact: true })).toHaveCount(0);
   });
 
   test('coach starts the game; the parent sees it go live', async () => {

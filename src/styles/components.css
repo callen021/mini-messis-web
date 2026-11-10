@@ -2000,3 +2000,65 @@ select.input {
   text-decoration: underline;
   cursor: pointer;
 }
+
+/* schedule rows (D50): bold date line, timing badges, directions arrow */
+.row .lbl .when {
+  display: block;
+  color: var(--text);
+  font-weight: 600;
+  font-size: 14px;
+}
+.row .lbl small .when {
+  margin-bottom: 1px;
+}
+.badges {
+  display: inline-flex;
+  gap: 4px;
+  align-items: center;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.badge.soon {
+  background: var(--tint-soft);
+  color: var(--tint);
+}
+.rowwrap {
+  position: relative;
+}
+.rowwrap + .rowwrap::before {
+  content: '';
+  position: absolute;
+  left: 16px;
+  right: 0;
+  top: 0;
+  border-top: 0.5px solid var(--sep);
+}
+.row.hasdir {
+  padding-right: 68px;
+}
+.row.hasdir .chev {
+  position: absolute;
+  right: 16px;
+}
+.dirbtn {
+  position: absolute;
+  right: 34px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--tint);
+  background: var(--tint-soft);
+}
+.dirbtn svg {
+  width: 18px;
+  height: 18px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}

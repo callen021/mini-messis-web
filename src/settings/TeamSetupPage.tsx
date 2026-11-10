@@ -16,7 +16,19 @@ import { fixPeriods, resizePeriods } from '@/sports/lineup';
 import { type Team, usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 
-type Setup = Pick<Team, 'name' | 'side_size' | 'has_gk' | 'periods_count' | 'colors'>;
+type Setup = Pick<Team, 'name' | 'side_size' | 'has_gk' | 'periods_count' | 'colors' | 'timezone'>;
+
+/** IANA zones the browser knows, US ones first so the common picks are at the top (D50). */
+function timezoneOptions(current: string): string[] {
+  const all: string[] =
+    typeof Intl.supportedValuesOf === 'function'
+      ? Intl.supportedValuesOf('timeZone')
+      : ['America/Chicago', 'America/New_York', 'America/Denver', 'America/Los_Angeles', 'UTC'];
+  const us = all.filter((z) => z.startsWith('America/'));
+  const rest = all.filter((z) => !z.startsWith('America/'));
+  const list = [...us, ...rest];
+  return list.includes(current) ? list : [current, ...list];
+}
 
 /**
  * Update the team row, then keep the template (and a live game) consistent with the new shape:
@@ -173,6 +185,20 @@ export function TeamSetupPage() {
               if (n !== undefined) patch({ periods_count: n });
             }}
           />
+        </Row>
+        <Row label="Timezone" detail="Calendar exports use the field's local time">
+          <select
+            className="inline"
+            aria-label="Timezone"
+            value={team.timezone}
+            onChange={(e) => patch({ timezone: e.target.value }, 'Timezone saved')}
+          >
+            {timezoneOptions(team.timezone).map((z) => (
+              <option key={z} value={z}>
+                {z.replace(/_/g, ' ')}
+              </option>
+            ))}
+          </select>
         </Row>
         <Row
           label="Formations"

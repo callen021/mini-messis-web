@@ -65,14 +65,14 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "created_at": string,"finished_at": string | null,"game_date": string,"home_away": Database["public"]['Enums']["home_away"] | null,"id": string,"location": string | null,"opponent": string,"parent_notes": string | null,"season_id": string,"start_time": string | null,"started_at": string | null,"status": Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot": string | null,"updated_at": string,"updated_by": string | null
+                    "address": string | null,"created_at": string,"finished_at": string | null,"game_date": string,"home_away": Database["public"]['Enums']["home_away"] | null,"id": string,"location": string | null,"opponent": string,"parent_notes": string | null,"season_id": string,"start_time": string | null,"started_at": string | null,"status": Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot": string | null,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id": string,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id": string,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id"?: string,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id"?: string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id"?: string,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id"?: string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -235,14 +235,14 @@ isOneToOne: false
                   ]
                 },"practices": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"end_time": string | null,"id": string,"location": string | null,"notes": string | null,"practice_date": string,"season_id": string,"start_time": string | null,"status": Database["public"]['Enums']["practice_status"],"team_id": string,"updated_at": string,"updated_by": string | null
+                    "address": string | null,"created_at": string,"created_by": string | null,"end_time": string | null,"id": string,"location": string | null,"notes": string | null,"practice_date": string,"season_id": string,"start_time": string | null,"status": Database["public"]['Enums']["practice_status"],"team_id": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"end_time"?: string | null,"id"?: string,"location"?: string | null,"notes"?: string | null,"practice_date": string,"season_id": string,"start_time"?: string | null,"status"?: Database["public"]['Enums']["practice_status"],"team_id": string,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"created_at"?: string,"created_by"?: string | null,"end_time"?: string | null,"id"?: string,"location"?: string | null,"notes"?: string | null,"practice_date": string,"season_id": string,"start_time"?: string | null,"status"?: Database["public"]['Enums']["practice_status"],"team_id": string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"end_time"?: string | null,"id"?: string,"location"?: string | null,"notes"?: string | null,"practice_date"?: string,"season_id"?: string,"start_time"?: string | null,"status"?: Database["public"]['Enums']["practice_status"],"team_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"created_at"?: string,"created_by"?: string | null,"end_time"?: string | null,"id"?: string,"location"?: string | null,"notes"?: string | null,"practice_date"?: string,"season_id"?: string,"start_time"?: string | null,"status"?: Database["public"]['Enums']["practice_status"],"team_id"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -405,14 +405,14 @@ isOneToOne: false
                   ]
                 },"teams": {
                   Row: {
-                    "archived_at": string | null,"colors": NonNullable<Json>,"created_at": string,"has_gk": boolean,"id": string,"join_code": string,"join_code_rotated_at": string,"join_enabled": boolean,"last_batter_player_id": string | null,"name": string,"owner_id": string,"periods_count": number,"side_size": number,"sport": Database["public"]['Enums']["sport"],"updated_at": string,"updated_by": string | null
+                    "archived_at": string | null,"colors": NonNullable<Json>,"created_at": string,"has_gk": boolean,"id": string,"join_code": string,"join_code_rotated_at": string,"join_enabled": boolean,"last_batter_player_id": string | null,"name": string,"owner_id": string,"periods_count": number,"side_size": number,"sport": Database["public"]['Enums']["sport"],"timezone": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code": string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name": string,"owner_id": string,"periods_count": number,"side_size": number,"sport": Database["public"]['Enums']["sport"],"updated_at"?: string,"updated_by"?: string | null
+                    "archived_at"?: string | null,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code": string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name": string,"owner_id": string,"periods_count": number,"side_size": number,"sport": Database["public"]['Enums']["sport"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "archived_at"?: string | null,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code"?: string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name"?: string,"owner_id"?: string,"periods_count"?: number,"side_size"?: number,"sport"?: Database["public"]['Enums']["sport"],"updated_at"?: string,"updated_by"?: string | null
+                    "archived_at"?: string | null,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code"?: string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name"?: string,"owner_id"?: string,"periods_count"?: number,"side_size"?: number,"sport"?: Database["public"]['Enums']["sport"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -630,6 +630,11 @@ isOneToOne: false
                            },
 "team_of_skill_test":
 { Args: { "p_test_id": string }; Returns: string
+                           },
+"team_places":
+{ Args: { "p_team_id": string }; Returns: {
+              "address": string,"last_used": string,"location": string,"uses": number
+            }[]
                            },
 "transfer_ownership":
 { Args: { "p_team_id": string,"p_user_id": string }; Returns: undefined

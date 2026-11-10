@@ -53,6 +53,8 @@ export interface NewPracticesInput {
   start_time: string | null;
   end_time: string | null;
   location: string | null;
+  /** Street address for Directions and the calendar export (D50). */
+  address?: string | null;
   notes: string | null;
 }
 
@@ -81,6 +83,7 @@ export function useCreatePractices(teamId: string) {
         start_time: input.start_time,
         end_time: input.end_time,
         location: input.location?.trim().slice(0, 80) || null,
+        address: input.address?.trim().slice(0, 200) || null,
         notes: input.notes?.trim().slice(0, 500) || null,
       }));
       fail((await supabase.from('practices').insert(rows)).error);
@@ -91,7 +94,7 @@ export function useCreatePractices(teamId: string) {
 }
 
 export type PracticePatch = Partial<
-  Pick<Practice, 'practice_date' | 'start_time' | 'end_time' | 'location' | 'notes' | 'status'>
+  Pick<Practice, 'practice_date' | 'start_time' | 'end_time' | 'location' | 'address' | 'notes' | 'status'>
 >;
 
 /** Edit or cancel/restore one practice; optimistic on the detail query. There is no delete (D40). */
