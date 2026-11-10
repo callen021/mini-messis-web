@@ -124,7 +124,7 @@ export function useAdminChangeSport(teamId: string) {
           p_side_size: d.side_size,
           p_has_gk: d.has_gk,
           p_periods_count: d.periods_count,
-          p_colors: d.colors as Json,
+          p_colors: d.colors as NonNullable<Json>,
           p_template: d.template as unknown as Json,
         })
       ).error,

@@ -205,7 +205,9 @@ export function TeamSetupPage() {
                   type="color"
                   aria-label={`${name} color`}
                   value={c}
-                  onChange={(e) => patch({ colors: { ...colors, [g]: e.target.value } as unknown as Json })}
+                  onChange={(e) =>
+                    patch({ colors: { ...colors, [g]: e.target.value } as unknown as NonNullable<Json> })
+                  }
                 />
               </span>
             </Row>
