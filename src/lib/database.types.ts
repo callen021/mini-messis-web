@@ -973,6 +973,32 @@ export type Database = {
         }[]
       }
       normalize_join_code: { Args: { p_code: string }; Returns: string }
+      player_season_stats: {
+        Args: { p_game_id?: string; p_season_id?: string; p_team_id: string }
+        Returns: {
+          assists: number
+          at_bats: number
+          doubles: number
+          field_goals: number
+          free_throws: number
+          goals: number
+          hits: number
+          home_runs: number
+          name: string
+          number: string
+          periods_played: number
+          plate_appearances: number
+          player_id: string
+          points: number
+          rbi: number
+          removed: boolean
+          runs: number
+          strikeouts: number
+          three_pointers: number
+          triples: number
+          walks: number
+        }[]
+      }
       record_join_attempt: {
         Args: { p_code: string; p_uid: string }
         Returns: undefined
@@ -990,32 +1016,6 @@ export type Database = {
           p_unlisted_child_name?: string
         }
         Returns: Json
-      }
-      player_season_stats: {
-        Args: { p_game_id?: string; p_season_id?: string; p_team_id: string }
-        Returns: {
-          player_id: string
-          name: string
-          number: string | null
-          removed: boolean
-          periods_played: number
-          goals: number
-          assists: number
-          points: number
-          field_goals: number
-          three_pointers: number
-          free_throws: number
-          runs: number
-          plate_appearances: number
-          at_bats: number
-          hits: number
-          doubles: number
-          triples: number
-          home_runs: number
-          rbi: number
-          walks: number
-          strikeouts: number
-        }[]
       }
       rotate_join_code: { Args: { p_team_id: string }; Returns: string }
       save_lineups: {
