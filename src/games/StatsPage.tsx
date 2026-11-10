@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { LoadingScreen } from '@/auth/guards';
+import { LoadingScreen, useIsStaff } from '@/auth/guards';
+import { pinFirst } from '@/lib/pin';
+import { useMyChildren } from '@/lineups/api';
 import { Scoreline } from '@/components/Badge';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
@@ -27,6 +29,8 @@ export function StatsPage() {
   const setView = useUIStore((s) => s.setStatsView);
   const games = useGames(teamId);
   const players = usePlayers(teamId);
+  const isStaff = useIsStaff();
+  const children = useMyChildren();
   const [allResults, setAllResults] = useState(false);
 
   const all = games.data ?? [];
@@ -50,11 +54,14 @@ export function StatsPage() {
   const rec = teamRecord(list);
   const unit = S.scoring.unitPlural;
   const cols = S.scoring.columns;
-  const rows = sortRows(
+  const sorted = sortRows(
     stats.data ?? [],
     cols.map((c) => c.key),
     S.scoring.hot,
   );
+  // a parent's own children lead the table (D54); staff see the plain ranking
+  const mine = children.data ?? new Set<string>();
+  const rows = isStaff ? sorted : pinFirst(sorted, (r) => mine.has(r.player_id));
   const sub =
     view === 'season'
       ? `${season.length} game${season.length === 1 ? '' : 's'} this season${live ? ' incl. the game in progress' : ''}`
@@ -129,7 +136,10 @@ export function StatsPage() {
               ))}
             </div>
             {rows.map((r) => (
-              <div key={r.player_id} className={cn('prow', r.removed && 'out')}>
+              <div
+                key={r.player_id}
+                className={cn('prow', r.removed && 'out', !isStaff && mine.has(r.player_id) && 'mine')}
+              >
                 <div className="pname">
                   {r.removed ? (
                     <>

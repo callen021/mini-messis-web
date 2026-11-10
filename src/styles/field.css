@@ -306,11 +306,28 @@
   overflow: hidden;
 }
 
-/* parent view: own child highlighted */
-.shirt.highlight {
-  outline: 3px solid #fff;
-  outline-offset: 3px;
-  border-radius: 12px;
+/* parent view: own child gets a gold star and a gold name (D54) */
+.shirt.highlight .name {
+  color: #ffd54a;
+  --halo: rgba(0, 0, 0, 0.75);
+}
+.shirt .starbadge {
+  position: absolute;
+  top: -4%;
+  left: 2%;
+  width: 24%;
+  height: 24%;
+  max-width: 20px;
+  max-height: 20px;
+  border-radius: 50%;
+  background: #ffd54a;
+  color: #4a3600;
+  font-size: clamp(8px, 14cqw, 13px);
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  box-shadow: 0 0 0 1.5px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
 }
 .shirt > span:first-child {
   display: block;

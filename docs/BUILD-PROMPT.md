@@ -48,7 +48,7 @@ Three roles, scoped **per team** (one user can be a coach on one team and a pare
 | Link additional children on the same team | ✅ | ✅ | ✅ (pending coach approval) |
 | Player details (birthdate, shirt size) and contacts — D52 | ✅ | ✅ | ✅ **own linked children only**; never another child's |
 
-Parents are **read-only on everything team-related**; their only writes are to their own profile/preferences and to join/link requests. Parents see *all* kids' positions and playing time, not just their own child — the only parent-specific touch is that their own child's jersey/row is highlighted and shown first in the stats list.
+Parents are **read-only on everything team-related**; their only writes are to their own profile/preferences and to join/link requests. Parents see *all* kids' positions and playing time, not just their own child — the only parent-specific touch is that their own child's jersey/row is highlighted and shown first in the stats list. (D54: the jersey carries a gold star badge and a gold name instead of an outline; the child leads every list a parent sees — rotation, roster, stats table, skills table — and the Auto-fill dot is hidden from parents.)
 
 Realtime: when a coach changes a live game's lineup or score, every signed-in viewer of that team sees it within a couple of seconds (Supabase Realtime on `games`, `score_events`, `plate_appearances`, `lineup_slots`).
 

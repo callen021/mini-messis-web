@@ -117,7 +117,7 @@ export function PeriodCard({
               name={player?.first_name ?? ''}
               number={player?.jersey_number ?? undefined}
               code={pos.code}
-              auto={period.auto.includes(i)}
+              auto={canEdit && period.auto.includes(i)}
               highlighted={!!pid && highlight.has(pid)}
               label={`${S.periodName(0)} ${periodIndex + 1}, ${roleLabel}: ${player ? playerName(player) : 'open'}`}
               onClick={canEdit ? () => setPicking(i) : undefined}

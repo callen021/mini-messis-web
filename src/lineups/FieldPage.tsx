@@ -336,7 +336,7 @@ export function FieldPage() {
             <>
               <Footer className="noprint" style={{ marginTop: 14 }}>
                 {highlight.size
-                  ? 'Your child’s jersey is outlined. Lineups update live while the coach edits them.'
+                  ? 'Your child’s jersey has a gold star and name. Lineups update live while the coach edits them.'
                   : 'Lineups update live while the coach edits them.'}
               </Footer>
               <Toolbar className="noprint mt-3">

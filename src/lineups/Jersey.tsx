@@ -72,6 +72,11 @@ export const Jersey = memo(function Jersey({
       {number && <span className="num">{number}</span>}
       <span className="code">{code}</span>
       {auto && !open && <span className="autobadge" title="Picked by Auto-fill" />}
+      {highlighted && !open && (
+        <span className="starbadge" title="Your child" aria-hidden="true">
+          ★
+        </span>
+      )}
     </button>
   );
 });

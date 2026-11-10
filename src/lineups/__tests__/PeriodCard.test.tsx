@@ -109,6 +109,9 @@ describe('PeriodCard', () => {
     const nolan = screen.getByRole('button', { name: 'Quarter 1, STRIKER: Nolan' });
     expect(nolan).toBeDisabled();
     expect(nolan).toHaveClass('highlight');
+    // D54: a gold star marks the parent's child; the auto-fill dot is for staff only
+    expect(nolan.querySelector('.starbadge')).not.toBeNull();
+    expect(document.querySelector('.shirt .autobadge')).toBeNull();
     expect(screen.queryByRole('button', { name: 'Auto-fill' })).not.toBeInTheDocument();
   });
 

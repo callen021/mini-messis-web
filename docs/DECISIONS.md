@@ -497,3 +497,14 @@ sparklines (`SkillsBests`, now shared with the player page); and the Details sec
 editable. Coaches never see this tab. Five tabs is the limit at phone width, so when a parent's
 sport has a Lineup tab (baseball) it is folded into the Field tab as a "Diamond | Batting order"
 segment for parents only; `tabsFor()` in the tab layout is where that rule lives and is unit tested.
+
+### D54. A parent's own child: gold star, first in every list, no auto-fill dot
+
+The white outline around a parent's child on the field was easy to miss on a bright pitch and
+looked like a selection state. The jersey now carries a small gold star badge at the shoulder and
+the name is printed in gold (`.shirt.highlight`, no outline), which reads at a glance in both
+field views and in print. The same child leads every list a parent sees: rotation and roster
+already did this, the stats table and the skills table now do too, through one helper
+(`pinFirst`) that keeps the normal order for the rest. The Auto-fill dot is a coaching note
+("I did not pick this by hand"), so it is only drawn for staff, on jerseys and on rotation chips
+alike, and the Position key explains it to them; parents never see it.
