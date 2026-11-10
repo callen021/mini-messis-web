@@ -14,7 +14,7 @@ export const FIELD_VIEWS: readonly FieldView[] = ['persp', 'flat'];
  * profile loads. `sport` only drives the tint; the real current team comes from the server.
  */
 export type TeamView = 'rotation' | 'roster';
-export type StatsView = 'game' | 'season';
+export type StatsView = 'game' | 'season' | 'skills';
 
 export interface UIState {
   theme: Theme;

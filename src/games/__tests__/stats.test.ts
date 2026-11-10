@@ -16,6 +16,7 @@ const row = (over: Partial<PlayerStatRow>): PlayerStatRow => ({
   name: 'P',
   number: null,
   removed: false,
+  games_played: 0,
   periods_played: 0,
   goals: 0,
   assists: 0,

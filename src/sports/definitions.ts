@@ -30,6 +30,12 @@ const GOAL_SCORING: ScoringRules = {
     PERIODS,
   ],
   hot: 'goals',
+  profile: [
+    { key: 'goals', label: 'Goals', title: 'Goals' },
+    { key: 'assists', label: 'Assists', title: 'Assists' },
+    { key: 'periods_played', label: 'Periods', title: 'Periods played' },
+    { key: 'games_played', label: 'Games', title: 'Games played' },
+  ],
 };
 
 const BASKETBALL_SCORING: ScoringRules = {
@@ -49,6 +55,12 @@ const BASKETBALL_SCORING: ScoringRules = {
     PERIODS,
   ],
   hot: 'points',
+  profile: [
+    { key: 'points', label: 'Points', title: 'Points' },
+    { key: 'field_goals', label: 'Field goals', title: 'Field goals' },
+    { key: 'three_pointers', label: 'Threes', title: 'Three-pointers' },
+    { key: 'free_throws', label: 'Free throws', title: 'Free throws' },
+  ],
 };
 
 const BASEBALL_SCORING: ScoringRules = {
@@ -70,6 +82,12 @@ const BASEBALL_SCORING: ScoringRules = {
     { key: 'periods_played', label: 'INN', title: 'Innings in the field' },
   ],
   hot: 'hits',
+  profile: [
+    { key: 'hits', label: 'Hits', title: 'Hits' },
+    { key: 'runs', label: 'Runs', title: 'Runs' },
+    { key: 'home_runs', label: 'Home runs', title: 'Home runs' },
+    { key: 'avg', label: 'Avg', title: 'Batting average' },
+  ],
 };
 
 /** Football is disabled; rules exist so the type is total. */
@@ -86,6 +104,11 @@ const FOOTBALL_SCORING: ScoringRules = {
   unitPlural: 'Points',
   columns: [{ key: 'points', label: 'PTS', title: 'Points' }, PERIODS],
   hot: 'points',
+  profile: [
+    { key: 'points', label: 'Points', title: 'Points' },
+    { key: 'periods_played', label: 'Periods', title: 'Periods played' },
+    { key: 'games_played', label: 'Games', title: 'Games played' },
+  ],
 };
 
 /** Sport definitions, ported 1:1 from the legacy `SPORTS` object. Rules live here, never in the database. */

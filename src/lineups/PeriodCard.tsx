@@ -78,7 +78,7 @@ export function PeriodCard({
           <OpenPill open={openCount} />
         </div>
         <div className="qright">
-          {canEdit ? (
+          {forms.length <= 1 ? null : canEdit ? (
             <div className="sel">
               <select
                 aria-label={`Formation for ${S.periodName(0)} ${periodIndex + 1}`}

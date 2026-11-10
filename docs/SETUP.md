@@ -125,3 +125,16 @@ gh variable set VITE_SUPABASE_ANON_KEY --body "<publishable-key>"
 Target is GitHub Pages via GitHub Actions. The deploy job will build with
 `BASE_PATH=/mini-messis-web/`, copy `index.html` to `404.html` for the SPA fallback, and read
 the Supabase URL/anon key from repository variables. Nothing deploys yet.
+
+## Importing a season schedule
+
+`scripts/import-schedule.mjs` adds upcoming games to one of your teams from a CSV
+(`date,time,home_away,opponent,club,location,game_number`; see `data/strikers-schedule.csv`):
+
+```bash
+node scripts/import-schedule.mjs you@example.com "Strikers" data/strikers-schedule.csv
+```
+
+It signs in with your app login (the password is typed at the prompt, never stored), uses the anon key
+from `.env.local`, and only inserts games you are allowed to create (coach or assistant on that team).
+Re-running skips games that already exist for the same opponent and date.

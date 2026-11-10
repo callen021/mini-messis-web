@@ -239,3 +239,38 @@ template is untouched.
 shows an Upcoming section with those fields (parents read it), the detail page edits them inline,
 and "Add to calendar" builds an RFC 5545 file in the browser (floating local time, 90-minute
 default length, all-day when no start time). No server component is involved.
+
+### D32. Skills: defaults live in the sport definition, teams own their copies
+
+`DEFAULT_SKILL_TESTS` (src/skills/defaults.ts) holds the per-sport sets; `create_team` seeds them and
+`restore_skill_tests` re-adds missing or hidden ones by `key` without overwriting edits. A team test
+whose key matches a default shows DRAFT (non-soccer sets) or nothing; other keys show CUSTOM. "Add
+from library" inserts another sport's default as the team's own row. `skill_tests.attempts` was
+added so the metric lock covers it, as the spec lists.
+
+### D33. Personal bests are computed in the client from the raw result rows
+
+Results are fetched per team (`skill_results` for the roster's player ids; RLS trims parents to
+their children) and best/latest/trend/sparkline are pure functions over that list. Two-sided tests
+use the right side for the headline numbers, as in the prototype. No aggregate view is exposed to
+the database layer, which keeps the parent-only-own-child rule enforceable by RLS alone.
+
+### D34. Legacy import is normalised in the client, loaded atomically by SQL
+
+The old `mini-messis-coach-v5` file is parsed by `normalizeLegacyBackup` with the same rules as the
+legacy `normalize()` (status fallback, quarter clamp, 40-char names, duplicate games dropped, one live
+game), then mapped onto roles/codes with the sports engine, which SQL cannot do. `import_legacy_backup`
+wipes the team's players, lineups and games when `replace` is true and inserts the payload in one
+transaction. "Load example team" reuses the same path with the sport's sample roster.
+
+### D35. Team setup changes re-shape plans client-side through `save_lineups`
+
+Changing players on the field, goalkeeper or period count updates the team row, then resizes and
+remaps the template and any live game with the engine (`resizePeriods` + `fixPeriods`, the legacy
+`tidy()`), saving each through `save_lineups`. Completed games keep their lineups. Deleting a team
+archives it (`archived_at`), so history survives for a later restore by hand.
+
+### D36. Baseball shows no formation picker
+
+Baseball has one formation per field size ("Standard"), so the Field cards and the game detail hide
+the formation select and name whenever a sport exposes a single formation.

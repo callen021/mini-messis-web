@@ -662,6 +662,7 @@ export type Database = {
       }
       skill_tests: {
         Row: {
+          attempts: number
           created_at: string
           has_sides: boolean
           higher_is_better: boolean
@@ -678,6 +679,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          attempts?: number
           created_at?: string
           has_sides?: boolean
           higher_is_better?: boolean
@@ -694,6 +696,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          attempts?: number
           created_at?: string
           has_sides?: boolean
           higher_is_better?: boolean
@@ -986,6 +989,7 @@ export type Database = {
           home_runs: number
           name: string
           number: string
+          games_played: number
           periods_played: number
           plate_appearances: number
           player_id: string
@@ -1017,6 +1021,8 @@ export type Database = {
         }
         Returns: Json
       }
+      restore_skill_tests: { Args: { p_team_id: string; p_tests: Json }; Returns: number }
+      import_legacy_backup: { Args: { p_team_id: string; p_data: Json }; Returns: Json }
       rotate_join_code: { Args: { p_team_id: string }; Returns: string }
       save_lineups: {
         Args: { p_game_id?: string; p_periods?: Json; p_team_id: string }
@@ -1029,6 +1035,7 @@ export type Database = {
         }
         Returns: number
       }
+      set_skill_test_order: { Args: { p_team_id: string; p_ids: string[] }; Returns: undefined }
       set_batting_order: {
         Args: { p_player_ids: string[]; p_team_id: string }
         Returns: undefined

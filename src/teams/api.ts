@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type Enums, type Json, type Tables } from '@/lib/database.types';
 import { qk } from '@/lib/query-keys';
 import { supabase } from '@/lib/supabase';
+import { defaultsPayload } from '@/skills/defaults';
 import { SPORTS, defaultFormation } from '@/sports/definitions';
 import { type SportKey } from '@/sports/types';
 
@@ -172,7 +173,7 @@ export function useCreateTeam() {
           p_periods_count: d.periods_count,
           p_colors: d.colors as Json,
           p_template: d.template as unknown as Json,
-          p_skill_tests: [] as Json,
+          p_skill_tests: defaultsPayload(sport) as unknown as Json,
         }),
       );
     },

@@ -471,7 +471,8 @@ function GameDetail({ game }: { game: GameWithScore }) {
             label={
               <>
                 <b>
-                  {shortPeriod(S, periods.length, qi)} · {q.formation}
+                  {shortPeriod(S, periods.length, qi)}
+                  {forms.length > 1 ? ` · ${q.formation}` : ''}
                 </b>
                 <div className="lulist">
                   {q.slots.map((id, i) => (

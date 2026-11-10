@@ -20,11 +20,14 @@ import { GamesPage } from '@/games/GamesPage';
 import { LineupPage } from '@/games/LineupPage';
 import { StatsPage } from '@/games/StatsPage';
 import { FieldPage } from '@/lineups/FieldPage';
+import { PlayerPage } from '@/skills/PlayerPage';
+import { SkillsSettingsPage } from '@/skills/SkillsSettingsPage';
+import { SkillTestPage } from '@/skills/SkillTestPage';
+import { TeamSetupPage } from '@/settings/TeamSetupPage';
 import { TeamPage } from '@/roster/TeamPage';
 import { AuthLayout } from './layouts/AuthLayout';
 import { TabLayout } from './layouts/TabLayout';
 import { NotFound } from './pages/NotFound';
-import { Placeholder } from './pages/Placeholder';
 import { RouteError } from './pages/RouteError';
 
 const base = import.meta.env.BASE_URL.replace(/\/+$/, '');
@@ -111,9 +114,12 @@ export const routes: RouteObject[] = [
                   { path: '/games', element: <GamesPage /> },
                   { path: '/games/:gameId', element: <GamePage /> },
                   { path: '/stats', element: <StatsPage /> },
-                  { path: '/players/:playerId', element: <Placeholder title="Player" phase={6} /> },
+                  { path: '/players/:playerId', element: <PlayerPage /> },
+                  { path: '/players/:playerId/skills/:testId', element: <SkillTestPage /> },
                   { path: '/settings', element: <SettingsPage /> },
                   { path: '/settings/members', element: <MembersPage /> },
+                  { path: '/settings/team', element: <TeamSetupPage /> },
+                  { path: '/settings/skills', element: <SkillsSettingsPage /> },
                   { path: '/profile', element: <ProfilePage /> },
                 ],
               },

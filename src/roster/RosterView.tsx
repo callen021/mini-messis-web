@@ -1,4 +1,5 @@
 import { type FormEvent, useState } from 'react';
+import { Link } from 'react-router';
 import { Badge } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { Field, TextInput } from '@/components/Form';
@@ -104,15 +105,21 @@ export function RosterView({
         onChange={(on) => toggle(p, on)}
       />
       <button type="button" className="rm" aria-label={`Remove ${p.first_name}`} onClick={() => remove(p)} />
+      <Link to={`/players/${p.id}`} className="plink chev-link" aria-label={`Open ${p.first_name}`}>
+        <span className="chev" aria-hidden="true" />
+      </Link>
     </div>
   );
 
   const readRow = (p: Player, isOut: boolean) => (
     <div key={p.id} className={`prow${isOut ? ' out' : ''}${highlight.has(p.id) ? ' mine' : ''}`}>
       <div className="num">{p.jersey_number || '–'}</div>
-      <div className="pname">{p.first_name}</div>
+      <Link to={`/players/${p.id}`} className="pname plink">
+        {p.first_name}
+      </Link>
       {highlight.has(p.id) && <Badge status="live">Mine</Badge>}
       {isOut && <Badge>Out</Badge>}
+      <span className="chev" aria-hidden="true" />
     </div>
   );
 

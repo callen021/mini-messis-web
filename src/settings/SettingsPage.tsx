@@ -6,6 +6,8 @@ import { Segmented } from '@/components/Segmented';
 import { useActionSheet } from '@/components/Sheet';
 import { type FieldView, type Theme, useUIStore } from '@/lib/ui-store';
 import { SPORTS } from '@/sports/definitions';
+import { useSkillTests } from '@/skills/api';
+import { DataSection } from './DataSection';
 import { signOut } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 
@@ -18,6 +20,12 @@ export function SettingsPage() {
   const fieldView = useUIStore((s) => s.fieldView);
   const setFieldView = useUIStore((s) => s.setFieldView);
   const S = SPORTS[team.sport];
+  const tests = useSkillTests(team.id);
+  const shownTests = (tests.data ?? []).filter((t) => t.is_active).length;
+  const hiddenTests = (tests.data ?? []).length - shownTests;
+  const skillsSummary = tests.data
+    ? `${shownTests} shown${hiddenTests ? ` · ${hiddenTests} hidden` : ''}`
+    : 'Tests on player pages and the Stats tab';
 
   const confirmSignOut = async () => {
     const ok = await sheet({
@@ -46,10 +54,14 @@ export function SettingsPage() {
         </RoleGate>
         <RoleGate allow={STAFF_ROLES}>
           <Row
+            to="/settings/team"
             label="Team setup"
-            detail="Players on the field, periods, jersey colors · Phase 7"
-            value="Soon"
+            detail={`Players ${S.unit}, ${S.periodName(team.periods_count).toLowerCase()}s, jersey colors`}
+            chevron
           />
+        </RoleGate>
+        <RoleGate allow={STAFF_ROLES}>
+          <Row to="/settings/skills" label="Skills tests" detail={skillsSummary} chevron />
         </RoleGate>
       </Group>
       <Section>Appearance</Section>
@@ -86,6 +98,7 @@ export function SettingsPage() {
         <Row to="/create-team" label="Create a new team" link chevron />
         <Row onClick={confirmSignOut} label="Sign out" destructive />
       </Group>
+      <DataSection />
       <Section>Install</Section>
       <Group>
         <div

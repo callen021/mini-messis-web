@@ -89,6 +89,7 @@ export interface StatColumn {
 }
 
 export type StatKey =
+  | 'games_played'
   | 'periods_played'
   | 'goals'
   | 'assists'
@@ -120,6 +121,8 @@ export interface ScoringRules {
   columns: readonly StatColumn[];
   /** The column highlighted in the tint when non-zero (legacy: goals). */
   hot: StatKey;
+  /** Four season tiles on the player page. */
+  profile: readonly StatColumn[];
 }
 
 /** Slot assignment for one period of a plan: player ids by slot index ('' = open). */

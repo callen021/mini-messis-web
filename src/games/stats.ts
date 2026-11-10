@@ -48,6 +48,7 @@ export interface PlayerStatRow {
   name: string;
   number: string | null;
   removed: boolean;
+  games_played: number;
   periods_played: number;
   goals: number;
   assists: number;
@@ -70,7 +71,7 @@ export interface PlayerStatRow {
 /** Numeric value of a column (AVG is derived). */
 export function statValue(row: PlayerStatRow, key: StatKey): number {
   if (key === 'avg') return row.at_bats ? row.hits / row.at_bats : 0;
-  return row[key];
+  return row[key] ?? 0;
 }
 
 /** Display text: ".333" for averages, plain integers otherwise. */
@@ -79,7 +80,7 @@ export function formatStat(row: PlayerStatRow, key: StatKey): string {
     if (!row.at_bats) return '–';
     return (row.hits / row.at_bats).toFixed(3).replace(/^0/, '');
   }
-  return String(row[key]);
+  return String(row[key] ?? 0);
 }
 
 /** True when the row has nothing to show (hidden for removed players, as in the legacy app). */
