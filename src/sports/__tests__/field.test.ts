@@ -2,10 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { SPORTS } from '../definitions';
 import {
   FIELDS,
+  JERSEY_W,
   PERSP_JERSEY_SCALE,
   STANDING,
   fieldFrac,
   fieldImage,
+  jerseyWidth,
   perspJerseyWidth,
   place,
   placeFixed,
@@ -93,18 +95,47 @@ describe('constant-size jerseys in the 3D view (D37)', () => {
   });
 
   it('perspJerseyWidth applies the per-sport factor to the formation width with the 9% floor', () => {
+    // without positions there is no widest row, so even a tuned sport falls back to the formula
     expect(perspJerseyWidth('soccer', { w: 23 })).toBeCloseTo(23 * PERSP_JERSEY_SCALE.soccer);
     expect(perspJerseyWidth('baseball', { w: 16 })).toBe(16);
     expect(perspJerseyWidth('basketball', { w: 0 })).toBe(22);
     expect(perspJerseyWidth('lacrosse', { w: 5 })).toBeCloseTo(9 * PERSP_JERSEY_SCALE.lacrosse);
   });
 
-  it('no two jerseys in the same row touch at a 343px stage, for every enabled sport, size and formation', () => {
+  it('a tuned sport takes its width from JERSEY_W by widest row, in both views', () => {
+    const soccer = SPORTS.soccer.formations({ size: 7, gk: true });
+    const f = soccer.find((x) => x.name === '2-3-1') as (typeof soccer)[number];
+    const table = JERSEY_W.soccer as NonNullable<(typeof JERSEY_W)['soccer']>;
+    expect(jerseyWidth('soccer', f, 'persp')).toBe(table[3]);
+    expect(jerseyWidth('soccer', f, 'flat')).toBe(table[3]);
+    expect(perspJerseyWidth('soccer', f)).toBe(table[3]);
+    // rows wider than 5 clamp to the 5 entry
+    expect(
+      jerseyWidth(
+        'soccer',
+        {
+          w: 20,
+          positions: Array.from({ length: 7 }, (_, i) => ({ x: i * 12, y: 50, role: 'mid', code: 'M' })),
+        },
+        'persp',
+      ),
+    ).toBe(table[5]);
+    // an untuned sport is unchanged
+    expect(JERSEY_W.baseball).toBeUndefined();
+    const [std] = SPORTS.baseball.formations({ size: 9, gk: false });
+    expect(jerseyWidth('baseball', std as NonNullable<typeof std>, 'flat')).toBe(16);
+  });
+
+  it('jerseys in the same row fit at a 343px stage: untuned sports never touch, tuned sports overlap by at most half', () => {
+    // An untuned sport keeps the D37 rule (formation width × factor leaves a gap). A sport in
+    // JERSEY_W was sized by eye on the dev field page and may let far-end neighbours overlap a
+    // little; the guard here only catches a typo that would hide names (more than half a jersey).
     const stageW = 343;
     for (const key of ['soccer', 'baseball', 'basketball', 'lacrosse'] as const) {
       const S = SPORTS[key];
       const F = FIELDS[key].persp;
       const scale = stageW / F.w;
+      const tuned = !!JERSEY_W[key];
       for (const size of S.sizes) {
         for (const f of S.formations({ size, gk: S.hasGK })) {
           const px = (perspJerseyWidth(key, f) / 100) * stageW;
@@ -117,9 +148,18 @@ describe('constant-size jerseys in the 3D view (D37)', () => {
               expect(
                 Math.abs(a.x - b.x),
                 `${key} ${size} ${f.name} ${a.code}-${b.code}`,
-              ).toBeGreaterThanOrEqual(px);
+              ).toBeGreaterThanOrEqual(tuned ? px / 2 : px);
             }
         }
+      }
+    }
+  });
+
+  it('every tuned width sits inside the tuner range', () => {
+    for (const table of Object.values(JERSEY_W)) {
+      for (const w of Object.values(table)) {
+        expect(w).toBeGreaterThanOrEqual(10);
+        expect(w).toBeLessThanOrEqual(40);
       }
     }
   });

@@ -75,8 +75,8 @@ export function tunerSnippet(table: TunerTable): string {
     (s) => `  ${s}: { ${ROW_COUNTS.map((n) => `${n}: ${table[s][n]}`).join(', ')} },`,
   );
   return [
-    '/** 3D jersey width (% of stage) by widest-row player count. */',
-    'export const PERSP_JERSEY_W: Readonly<Record<SportKey, RowWidths>> = {',
+    '/** Tuned jersey width (% of field flat / % of stage 3D) by widest-row player count. */',
+    'export const JERSEY_W: Readonly<Partial<Record<SportKey, RowWidths>>> = {',
     ...lines,
     '};',
   ].join('\n');

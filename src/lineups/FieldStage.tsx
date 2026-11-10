@@ -1,6 +1,13 @@
 import { type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
-import { type FieldView, STANDING, fieldImage, perspJerseyWidth, place, placeFixed } from '@/sports/field';
+import {
+  type FieldView,
+  STANDING,
+  fieldImage,
+  jerseyWidth as widthFor,
+  place,
+  placeFixed,
+} from '@/sports/field';
 import { STANDING_SVG } from '@/sports/jersey';
 import { type Formation, type SportKey } from '@/sports/types';
 
@@ -36,9 +43,9 @@ export function FieldStage({
 }: FieldStageProps) {
   const F = fieldImage(sport, view);
   const base = import.meta.env.BASE_URL;
-  const w = Math.max(jerseyWidth ?? (formation.w || 22), 9);
+  const w = Math.max(jerseyWidth ?? widthFor(sport, formation, 'flat'), 9);
   const fixed = view === 'persp' && !depthScale;
-  const fixedW = jerseyWidth ?? perspJerseyWidth(sport, formation);
+  const fixedW = jerseyWidth ?? widthFor(sport, formation, 'persp');
   return (
     <div className="pitchwrap">
       <div className={cn('stage', sport, view === 'flat' && 'flat', className)}>

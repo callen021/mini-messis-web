@@ -1,7 +1,7 @@
 import { render } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import { SPORTS, formationByName } from '@/sports/definitions';
-import { FIELDS, STANDING, fieldFrac, perspJerseyWidth } from '@/sports/field';
+import { FIELDS, JERSEY_W, STANDING, fieldFrac, jerseyWidth, perspJerseyWidth } from '@/sports/field';
 import { FieldStage } from '../FieldStage';
 
 const S = SPORTS.soccer;
@@ -56,13 +56,23 @@ describe('FieldStage', () => {
     expect(slotWidths(flat.container)[0]).toBeCloseTo(30 * fieldFrac(FIELDS.soccer.flat, 50), 5);
   });
 
-  it('flat view is unchanged: widths come from the formation and the affine field fraction', () => {
+  it('flat view: the tuned width (soccer) or the formation width, times the affine field fraction', () => {
     const { container } = render(
       <FieldStage sport="soccer" view="flat" formation={f33} renderSlot={() => null} />,
     );
     const widths = slotWidths(container);
     expect(new Set(widths).size).toBe(1);
-    expect(widths[0]).toBeCloseTo(Math.max(f33.w, 9) * fieldFrac(FIELDS.soccer.flat, 50), 5);
+    expect(JERSEY_W.soccer).toBeDefined();
+    expect(widths[0]).toBeCloseTo(jerseyWidth('soccer', f33, 'flat') * fieldFrac(FIELDS.soccer.flat, 50), 5);
     expect(container.querySelectorAll('.standing')).toHaveLength(2);
+
+    // an untuned sport still uses the formation's w
+    const [std] = SPORTS.baseball.formations({ size: 9, gk: false });
+    const f = std as NonNullable<typeof std>;
+    const bb = render(<FieldStage sport="baseball" view="flat" formation={f} renderSlot={() => null} />);
+    expect(slotWidths(bb.container)[0]).toBeCloseTo(
+      Math.max(f.w, 9) * fieldFrac(FIELDS.baseball.flat, 50),
+      5,
+    );
   });
 });

@@ -40,7 +40,7 @@ describe('jersey tuner model (dev-only)', () => {
 
   it('the snippet is a TypeScript constant with one line per sport', () => {
     const snippet = tunerSnippet(defaultTuner());
-    expect(snippet).toContain('export const PERSP_JERSEY_W');
+    expect(snippet).toContain('export const JERSEY_W');
     expect(snippet).toContain('  soccer: { 1: 28, 2: 28, 3: 28, 4: 22, 5: 17 },');
     expect(snippet.trim().endsWith('};')).toBe(true);
   });

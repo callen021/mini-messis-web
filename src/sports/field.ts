@@ -120,9 +120,41 @@ export const PERSP_JERSEY_SCALE: Readonly<Record<SportKey, number>> = {
   football: 0.8,
 };
 
+/** Jersey width by the player count of the formation's widest row (rows wider than 5 use the 5 value). */
+export type RowWidths = Readonly<Record<1 | 2 | 3 | 4 | 5, number>>;
+
+/**
+ * Tuned jersey width per sport: percent of the field in the top-down view and of the stage in 3D,
+ * by widest-row player count. Produced by the dev field page's jersey tuner (/dev/field) and
+ * pasted here once a sport looks right. A sport without an entry keeps the formation's `w` (and
+ * the per-sport 3D factor above) until it has been tuned.
+ */
+export const JERSEY_W: Readonly<Partial<Record<SportKey, RowWidths>>> = {
+  soccer: { 1: 22.5, 2: 22.5, 3: 22.5, 4: 22.5, 5: 22.5 },
+};
+
+type FormationShape = Pick<Formation, 'w'> & Partial<Pick<Formation, 'positions'>>;
+
+/**
+ * Jersey width for a view: the tuned table when the sport has one (and the formation's positions
+ * are known), otherwise the formation's `w` with the 9% floor, scaled by the sport factor in 3D.
+ */
+export function jerseyWidth(sport: SportKey, formation: FormationShape, view: FieldView): number {
+  const table = JERSEY_W[sport];
+  if (table && formation.positions) {
+    const n = Math.min(
+      5,
+      Math.max(1, widestRow(formation as Pick<Formation, 'positions'>)),
+    ) as keyof RowWidths;
+    return table[n];
+  }
+  const w = Math.max(formation.w || 22, 9);
+  return view === 'persp' ? w * PERSP_JERSEY_SCALE[sport] : w;
+}
+
 /** Jersey width as a percent of the stage for the 3D view (constant across depth). */
-export function perspJerseyWidth(sport: SportKey, formation: Pick<Formation, 'w'>): number {
-  return Math.max(formation.w || 22, 9) * PERSP_JERSEY_SCALE[sport];
+export function perspJerseyWidth(sport: SportKey, formation: FormationShape): number {
+  return jerseyWidth(sport, formation, 'persp');
 }
 
 /**
