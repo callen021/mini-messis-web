@@ -45,9 +45,13 @@ export function PendingPage() {
     };
   }, [user, qc]);
 
-  if (memberships.isPending || pending.isPending) return <LoadingScreen />;
-  if (memberships.data && memberships.data.length > 0) return <Navigate to="/" replace />;
   const list = pending.data ?? [];
+  // Right after "Request to join" the cached list is still empty while it refetches; wait for it
+  // rather than bouncing to /welcome and back.
+  if (memberships.isPending || pending.isPending || (pending.isFetching && !list.length)) {
+    return <LoadingScreen />;
+  }
+  if (memberships.data && memberships.data.length > 0) return <Navigate to="/" replace />;
   if (!list.length) return <Navigate to="/welcome" replace />;
 
   return (
