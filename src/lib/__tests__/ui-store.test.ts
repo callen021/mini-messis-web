@@ -10,6 +10,7 @@ describe('ui-store', () => {
       sport: 'soccer',
       teamView: 'rotation',
       statsView: 'season',
+      gamesView: 'schedule',
     });
   });
 
@@ -32,6 +33,7 @@ describe('ui-store', () => {
       sport: 'lacrosse',
       teamView: 'rotation',
       statsView: 'season',
+      gamesView: 'schedule',
     });
     expect(parsed.version).toBe(1);
   });

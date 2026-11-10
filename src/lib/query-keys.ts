@@ -11,6 +11,8 @@ export const qk = {
     ['team', teamId, 'lineups', gameId ?? 'template'] as const,
   games: (teamId: string) => ['team', teamId, 'games'] as const,
   liveGame: (teamId: string) => ['team', teamId, 'live-game'] as const,
+  practices: (teamId: string) => ['team', teamId, 'practices'] as const,
+  practice: (practiceId: string) => ['practice', practiceId] as const,
   /** Per-player stats; `scope` is 'season' or a game id. */
   stats: (teamId: string, scope: string) => ['team', teamId, 'stats', scope] as const,
   guardians: (userId: string) => ['guardians', userId] as const,

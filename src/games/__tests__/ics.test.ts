@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { buildIcs } from '../ics';
+import { buildIcs, buildPracticeIcs } from '../ics';
 
 describe('ics export', () => {
   const base = {
@@ -35,5 +35,38 @@ describe('ics export', () => {
   it('folds long lines at 75 octets', () => {
     const ics = buildIcs({ ...base, startTime: null, notes: 'x'.repeat(200) });
     for (const line of ics.split('\r\n')) expect(line.length).toBeLessThanOrEqual(75);
+  });
+  it('a practice is "<team> practice" with its own end time', () => {
+    const ics = buildPracticeIcs(
+      {
+        id: 'p1',
+        teamName: 'Striker',
+        date: '2026-11-11',
+        startTime: '18:30:00',
+        endTime: '19:45:00',
+        location: null,
+        notes: 'Bring water',
+      },
+      new Date(Date.UTC(2026, 0, 1)),
+    );
+    expect(ics).toContain('UID:practice-p1@mini-messis');
+    expect(ics).toContain('SUMMARY:Striker practice');
+    expect(ics).toContain('DTSTART:20261111T183000');
+    expect(ics).toContain('DTEND:20261111T194500');
+    expect(ics).toContain('DESCRIPTION:Bring water');
+    expect(ics).not.toContain('LOCATION');
+  });
+
+  it('a practice without an end time lasts an hour; an end before the start is ignored', () => {
+    const base = {
+      id: 'p1',
+      teamName: 'Striker',
+      date: '2026-12-09',
+      startTime: '20:30:00',
+      location: null,
+      notes: null,
+    };
+    expect(buildPracticeIcs({ ...base, endTime: null })).toContain('DTEND:20261209T213000');
+    expect(buildPracticeIcs({ ...base, endTime: '20:00:00' })).toContain('DTEND:20261209T213000');
   });
 });

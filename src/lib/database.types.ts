@@ -447,6 +447,69 @@ export type Database = {
           },
         ]
       }
+      practices: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          end_time: string | null
+          id: string
+          location: string | null
+          notes: string | null
+          practice_date: string
+          season_id: string
+          start_time: string | null
+          status: Database["public"]["Enums"]["practice_status"]
+          team_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          practice_date: string
+          season_id: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["practice_status"]
+          team_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          end_time?: string | null
+          id?: string
+          location?: string | null
+          notes?: string | null
+          practice_date?: string
+          season_id?: string
+          start_time?: string | null
+          status?: Database["public"]["Enums"]["practice_status"]
+          team_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practices_season_id_fkey"
+            columns: ["season_id"]
+            isOneToOne: false
+            referencedRelation: "seasons"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practices_team_id_fkey"
+            columns: ["team_id"]
+            isOneToOne: false
+            referencedRelation: "teams"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           created_at: string
@@ -1152,6 +1215,7 @@ export type Database = {
         | "sacrifice"
         | "fielders_choice"
         | "reached_on_error"
+      practice_status: "scheduled" | "cancelled"
       score_side: "us" | "them"
       skill_metric: "count" | "time_seconds" | "distance" | "made_of_attempted"
       sport: "soccer" | "baseball" | "basketball" | "lacrosse" | "football"
@@ -1304,6 +1368,7 @@ export const Constants = {
         "fielders_choice",
         "reached_on_error",
       ],
+      practice_status: ["scheduled", "cancelled"],
       score_side: ["us", "them"],
       skill_metric: ["count", "time_seconds", "distance", "made_of_attempted"],
       sport: ["soccer", "baseball", "basketball", "lacrosse", "football"],

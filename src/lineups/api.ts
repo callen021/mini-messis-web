@@ -188,6 +188,11 @@ export function useTeamRealtime(teamId: string) {
       )
       .on(
         'postgres_changes',
+        { event: '*', schema: 'public', table: 'practices', filter: `team_id=eq.${teamId}` },
+        invalidate([qk.practices(teamId), ['practice']]),
+      )
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'score_events' },
         invalidate([['game'], qk.games(teamId), qk.liveGame(teamId), ['team', teamId, 'stats']]),
       )

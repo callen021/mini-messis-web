@@ -138,3 +138,10 @@ node scripts/import-schedule.mjs you@example.com "Strikers" data/strikers-schedu
 It signs in with your app login (the password is typed at the prompt, never stored), uses the anon key
 from `.env.local`, and only inserts games you are allowed to create (coach or assistant on that team).
 Re-running skips games that already exist for the same opponent and date.
+
+## Seeding practices from the SQL editor
+
+`scripts/strikers-practices-2026.sql` adds the Strikers' winter practice dates. Paste it into the
+Supabase SQL editor and run it: it finds the active team named "Striker"/"Strikers", uses (or creates)
+the current season, and inserts only the dates that are not already there for the same start time, so
+it is safe to re-run. Location and notes are left blank to fill in from the app (Games → Schedule).

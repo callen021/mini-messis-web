@@ -1065,6 +1065,49 @@ select.input {
   background: var(--fill);
   color: var(--text);
 }
+.badge.st-cancelled {
+  background: rgba(255, 59, 48, 0.12);
+  color: var(--red);
+}
+/* practices sit quieter than games on the schedule */
+.row.practice .lbl {
+  color: var(--text2);
+}
+.row.cancelled .lbl .strike {
+  text-decoration: line-through;
+  color: var(--text3);
+}
+/* checkbox list (repeat-practice dates) */
+.checkrow {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 12px;
+  padding: 8px 0;
+  font-size: 15px;
+  text-align: left;
+  color: var(--text);
+}
+.form .checkrow input[type='checkbox'] {
+  appearance: auto;
+  -webkit-appearance: checkbox;
+  width: 22px;
+  height: 22px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  accent-color: var(--tint);
+  flex: none;
+}
+.checkrow > span {
+  flex: 1;
+  text-align: left;
+}
+.checkrow.off {
+  color: var(--text3);
+  text-decoration: line-through;
+}
 .openpill {
   display: inline-flex;
   align-items: center;

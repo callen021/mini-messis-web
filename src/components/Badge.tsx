@@ -1,7 +1,7 @@
 import { type ReactNode } from 'react';
 import { cn } from '@/lib/cn';
 
-export type GameStatus = 'upcoming' | 'live' | 'done';
+export type GameStatus = 'upcoming' | 'live' | 'done' | 'cancelled';
 
 /** Small rounded status label; `status` picks the legacy color (live = tint, upcoming = blue). */
 export function Badge({

@@ -307,3 +307,20 @@ the team id in session storage, which `RequireTeam` turns into a coach context. 
 sport is admin-only (`admin_change_sport`): the team shape, template lineups, any live game's lineups
 and the skill tests reset for the new sport (tests with results are hidden, not deleted); players,
 games and members stay. Coaches have no sport control in Settings.
+
+### D40. Practices live beside games; they are cancelled, never deleted
+
+Practices get their own table (`practices`: date, start, optional end, location, a note parents can
+read, `scheduled|cancelled`) with the games policies: active members read, coach/assistant insert and
+update, and only a platform admin can delete a row. A coach "cancels" instead, and the row stays on
+the schedule struck through with a Cancelled badge, so a parent who saw it earlier learns it was
+called off rather than finding it gone. Audit columns (`created_by`, `updated_by`) are stamped by
+trigger; `team_id` and `season_id` cannot be moved after insert. The Games tab is split into
+**Schedule** (upcoming games and practices from today on, merged by date then start time, practices
+drawn quieter with a Practice badge, plus a Past practices group) and **Results** (season tiles and
+completed games, unchanged). A repeating practice is expanded on the client (weekday between two
+dates, capped at 60 weeks, with a checkbox per date to skip) and inserted as independent rows: there
+is no series object, so editing or cancelling one never touches the others. Start time is nullable
+like a game's (an all-day .ics event); the .ics for a practice ends at `end_time` or an hour after the
+start. `scripts/strikers-practices-2026.sql` seeds the Strikers' winter dates idempotently from the
+SQL editor, matching the team by name and skipping existing (date, start time) pairs.

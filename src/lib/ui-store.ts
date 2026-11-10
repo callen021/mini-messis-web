@@ -15,6 +15,7 @@ export const FIELD_VIEWS: readonly FieldView[] = ['persp', 'flat'];
  */
 export type TeamView = 'rotation' | 'roster';
 export type StatsView = 'game' | 'season' | 'skills';
+export type GamesView = 'schedule' | 'results';
 
 export interface UIState {
   theme: Theme;
@@ -26,6 +27,9 @@ export interface UIState {
   /** Stats tab segment. */
   statsView: StatsView;
   setStatsView: (statsView: StatsView) => void;
+  /** Games tab segment. */
+  gamesView: GamesView;
+  setGamesView: (gamesView: GamesView) => void;
   setTheme: (theme: Theme) => void;
   setFieldView: (fieldView: FieldView) => void;
   setSport: (sport: SportKey) => void;
@@ -43,6 +47,8 @@ export const useUIStore = create<UIState>()(
       setTeamView: (teamView) => set({ teamView }),
       statsView: 'season',
       setStatsView: (statsView) => set({ statsView }),
+      gamesView: 'schedule',
+      setGamesView: (gamesView) => set({ gamesView }),
       setTheme: (theme) => set({ theme }),
       setFieldView: (fieldView) => set({ fieldView }),
       setSport: (sport) => set({ sport }),
@@ -56,6 +62,7 @@ export const useUIStore = create<UIState>()(
         sport: s.sport,
         teamView: s.teamView,
         statsView: s.statsView,
+        gamesView: s.gamesView,
       }),
     },
   ),

@@ -95,6 +95,7 @@ Read the legacy code for exact behavior; this is the checklist.
   - Baseball: `run` = 1, with the player who crossed the plate and the inning; opponent runs per inning. The game detail shows a line score (runs per inning per side). Runs are *separate* from the batting log below — a home run is one plate-appearance event (against the batter) and one or more run events (against each runner who scored); keep them independent so a missed one can be fixed without touching the other.
 - **Baseball batting log (`plate_appearances`):** during a game the coach taps the batter (the Lineup screen's "batted" tap already identifies them) and picks the result: single, double, triple, home run, walk, hit by pitch, strikeout, other out, sacrifice, fielder's choice, reached on error; optional RBI count. Editable/deletable like score events. Keep the tap-when-batted flow as fast as it is today — result entry must be optional (a plain "batted" with no result is still allowed) so a coach who's busy isn't forced to log stats.
 - **New for this build (coach asked):** full schedule fields — date, start time, location/field name, home/away, optional notes visible to parents (e.g. "wear white"), and an "Upcoming" section parents can read at a glance. Optional: add-to-calendar (.ics) link per game.
+- **Practices (added after Phase 7):** a `practices` table (date, start, optional end, location, note for parents, status scheduled|cancelled) with the same access as games. The Games tab is two segments: **Schedule** — upcoming games and practices merged by date and time, practices visually quieter with a "Practice" label, cancelled ones struck through with "Cancelled", plus a "Past practices" group — and **Results** — the season tiles and completed games as before. Coaches add a single practice or a weekly repeat (weekday, time, first and last date, a checkbox per generated date to skip holidays), edit any field, and cancel/restore. Nothing hard-deletes a practice a parent may have seen (only a platform admin can delete a row). Each practice has an add-to-calendar (.ics) link. Parents are read-only.
 
 **Stats** — segmented Current game | Season, derived only from saved games, `score_events` and `plate_appearances`; removed players stay in history flagged as removed; scoped by season. Team tiles: played, W-L-T, scored, allowed, diff. Per-player columns depend on the sport (define the column set in the sport definition):
 - Soccer / lacrosse: G, A, periods played.
@@ -168,6 +169,11 @@ games               id PK, team_id → teams, season_id → seasons, opponent, g
 
 game_coach_notes    game_id → games PK, notes text, updated_at, updated_by — coach/assistant only (see RLS)
 
+practices           id PK, team_id → teams, season_id → seasons, practice_date date, start_time time (nullable),
+                    end_time time (nullable, after start), location text, notes text (parents see it),
+                    status (enum: scheduled|cancelled), created_at, created_by, updated_at, updated_by
+                    — never hard-deleted by coaches: cancel instead
+
 game_players        game_id → games, player_id → players, name_snapshot, number_snapshot, available bool
                     — PK (game_id, player_id); written on start and on finish
 
@@ -215,7 +221,7 @@ Views / functions (SQL, security definer only where a multi-row atomic operation
 
 RLS, in words (write the policies, then tests for them):
 - `profiles`: a user reads/writes only their own row.
-- `teams`, `seasons`, `players`, `games`, `game_players`, `lineups`, `lineup_slots`, `score_events`, `plate_appearances`: **read** if the user has an `active` membership on the team; **write** if that membership's role is `coach` or `assistant`; team delete/`owner_id` change only by the owner. `coach_notes` must not be readable by parents — put it in a separate `game_coach_notes` table (game_id PK, notes) with coach/assistant-only read, rather than relying on column-level tricks.
+- `teams`, `seasons`, `players`, `games`, `practices`, `game_players`, `lineups`, `lineup_slots`, `score_events`, `plate_appearances`: **read** if the user has an `active` membership on the team; **write** if that membership's role is `coach` or `assistant`; team delete/`owner_id` change only by the owner. `coach_notes` must not be readable by parents — put it in a separate `game_coach_notes` table (game_id PK, notes) with coach/assistant-only read, rather than relying on column-level tricks.
 - `team_members`: a user reads their own rows; coaches read all rows for their teams; only coaches update/delete; inserts only via `request_join`/`create_team`.
 - `player_guardians`: user reads own; coaches read/approve for their team.
 - `skill_tests`: read by any active member; write by coach/assistant.
@@ -231,7 +237,8 @@ src/
   teams/          create, join, members (approve/manage), switcher, settings
   roster/         roster screen + hooks
   lineups/        Field screen, period card, jersey, player picker sheet, rotation grid, auto-fill actions
-  games/          games list, game detail, new-game sheet, goal panel, schedule fields, ics
+  games/          games list (Schedule | Results), game detail, new-game sheet, goal panel, schedule fields, ics,
+                  practices (hooks, weekly recurrence, new-practice sheet, practice detail)
   stats/          stats screen + hooks
   players/        player profile page, skills test list editor, result entry sheet, history
   batting/        lineup + edit-order screens (baseball)
@@ -248,7 +255,7 @@ docs/
 legacy/index.html
 ```
 
-Routes (all under the tab layout once a team is selected): `/field`, `/team` (rotation|roster), `/games`, `/games/:id`, `/stats` (segments: game | season | skills), `/players/:id`, `/players/:id/skills/:testId`, `/settings/skills`, `/lineup` and `/lineup/edit` (baseball), `/settings`, `/settings/members`, `/settings/team`, `/profile`; plus `/signin`, `/signup`, `/verify`, `/reset`, `/welcome`, `/join`, `/create-team`, `/pending`. Tabs per sport: soccer/lacrosse/basketball: Field, Team, Games, Stats; baseball: Field, Lineup, Team, Games, Stats (the Lineup tab is where in-game batting happens; Settings stays behind the gear button). The legacy `TABS` map only showed Games/Stats for soccer and lacrosse — every sport gets them now.
+Routes (all under the tab layout once a team is selected): `/field`, `/team` (rotation|roster), `/games` (segments: schedule | results), `/games/:id`, `/practices/:id`, `/stats` (segments: game | season | skills), `/players/:id`, `/players/:id/skills/:testId`, `/settings/skills`, `/lineup` and `/lineup/edit` (baseball), `/settings`, `/settings/members`, `/settings/team`, `/profile`; plus `/signin`, `/signup`, `/verify`, `/reset`, `/welcome`, `/join`, `/create-team`, `/pending`. Tabs per sport: soccer/lacrosse/basketball: Field, Team, Games, Stats; baseball: Field, Lineup, Team, Games, Stats (the Lineup tab is where in-game batting happens; Settings stays behind the gear button). The legacy `TABS` map only showed Games/Stats for soccer and lacrosse — every sport gets them now.
 
 Parents get the same tabs but every edit control is hidden (not merely disabled) and the pages render the read-only variant; the Field page jersey tap does nothing for a parent except highlight the player.
 

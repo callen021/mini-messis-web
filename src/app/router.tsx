@@ -19,6 +19,7 @@ import { WelcomePage } from '@/teams/pages/WelcomePage';
 import { RequireTeam } from '@/teams/TeamContext';
 import { BattingOrderPage } from '@/games/BattingOrderPage';
 import { GamePage } from '@/games/GamePage';
+import { PracticePage } from '@/games/PracticePage';
 import { GamesPage } from '@/games/GamesPage';
 import { LineupPage } from '@/games/LineupPage';
 import { StatsPage } from '@/games/StatsPage';
@@ -124,6 +125,7 @@ export const routes: RouteObject[] = [
                   { path: '/team', element: <TeamPage /> },
                   { path: '/games', element: <GamesPage /> },
                   { path: '/games/:gameId', element: <GamePage /> },
+                  { path: '/practices/:practiceId', element: <PracticePage /> },
                   { path: '/stats', element: <StatsPage /> },
                   { path: '/players/:playerId', element: <PlayerPage /> },
                   { path: '/players/:playerId/skills/:testId', element: <SkillTestPage /> },
