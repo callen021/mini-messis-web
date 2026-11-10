@@ -11,6 +11,7 @@ import { usePlayerStats } from '@/games/api';
 import { formatStat } from '@/games/stats';
 import { errorMessage } from '@/lib/supabase';
 import { useMyChildren } from '@/lineups/api';
+import { DetailsSection } from '@/players/DetailsSection';
 import { textColor } from '@/sports/colors';
 import { SPORTS } from '@/sports/definitions';
 import { usePlayers, useTeamMembers } from '@/teams/api';
@@ -121,6 +122,7 @@ export function PlayerPage() {
           </Group>
         </>
       )}
+      {canSee && <DetailsSection playerId={playerId} playerName={player.first_name} canEdit={canSee} />}
       <Section>
         Skills
         {canSee && total > 0 ? (

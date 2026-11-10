@@ -471,3 +471,16 @@ the current plan, in field order, each once, with its group colour; staff also s
 picker, parents get a toast with the full name (the chip's accessible label carries it too). The
 totals column has a header named by the sport's period (Qtrs, Halves, Inn) and each total reads
 "3 of 4" rather than a bare number, with the same colour thresholds as before.
+
+### D52. Player details and contacts are private to the player's own people
+
+Two new tables, `player_details` (birthdate, shirt size as an enum from youth XS to adult XL)
+and `player_contacts` (name, relationship, email, phone, optional link to an app account), each
+with a single RLS policy for every operation: `can_see_player_private(player)`, true for staff of
+the player's team (coach, assistant, admin through `is_staff`) and for an approved guardian of
+that player. A pending guardian, another parent on the same team and a non-member all read zero
+rows and cannot insert, which pgTAP 10 checks row by row. The player page shows a Details section
+to exactly those people, editable by both staff and the child's own guardians (a parent keeps their
+own child's size and contacts current; the coach can fix anything). Contacts are plain rows rather
+than links to accounts because most emergency contacts are not app users; "This is me" sets the
+optional `user_id` when they are.

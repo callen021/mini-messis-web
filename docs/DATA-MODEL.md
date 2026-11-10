@@ -253,6 +253,8 @@ write = coach or assistant**, with these exceptions:
 - `game_coach_notes`: staff only, in every direction; parents cannot read it.
 - `skill_results`: staff read and write; a parent reads only children they are an approved guardian of.
 - `practices`: members read, staff insert and update, **only a platform admin deletes** (coaches cancel).
+- `player_details` / `player_contacts`: staff or an approved guardian of that player, read and
+  write; nothing for anyone else (D52).
 - `join_attempts`: no policies at all; only the definer functions touch it.
 - `lookup_invite(code)` is callable by `anon`: it returns the team name, sport, roster first names
   and whether the invite is on, so the invite link can show the child picker before an account
@@ -364,6 +366,14 @@ attempts and sides are locked, and it cannot be deleted (hide it with `is_active
 Append-only history of recorded results (`value`, optional `attempts` and `side`). Staff write
 directly; `recorded_by` never changes (`skill_results_stamp`). Personal bests are computed in the
 client.
+
+### player_details and player_contacts
+
+Private data for one player (D52): `player_details` (one row per player: `birthdate`,
+`shirt_size` youth XS → adult XL) and `player_contacts` (name, relationship, email, phone, an
+optional `user_id` link to an app account). One policy each: `can_see_player_private(player)` =
+staff of the player's team (admins included) **or an approved guardian of that player**, for every
+operation. Another parent on the same team reads nothing and cannot insert; pgTAP 10 proves it.
 
 ### join_attempts
 
