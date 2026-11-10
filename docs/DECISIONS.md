@@ -459,3 +459,15 @@ download the file; on iOS (Safari and the installed home-screen app) the `downlo
 ignored for blobs, so the page navigates to the blob URL, which opens Safari's calendar preview with
 "Add All". That path could not be exercised on a real iPhone from this environment and is the one
 thing in this round to try by hand.
+
+### D51. Position key and "3 of 4" totals on the rotation grid
+
+Parents did not know what LFB or RCM meant. `src/sports/positions.ts` holds a full name for every
+code the formation generators produce (a test walks every sport × size × goalkeeper setting and
+fails on a nameless code); a generated fallback code such as DEF7 takes the role's label. The
+rotation grid shows a **Position key** under the players listing only the codes used anywhere in
+the current plan, in field order, each once, with its group colour; staff also see
+"dot = picked by Auto-fill" there. A chip is a button for everyone now: staff get the position
+picker, parents get a toast with the full name (the chip's accessible label carries it too). The
+totals column has a header named by the sport's period (Qtrs, Halves, Inn) and each total reads
+"3 of 4" rather than a bare number, with the same colour thresholds as before.

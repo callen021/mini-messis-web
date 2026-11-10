@@ -78,7 +78,7 @@ Read the legacy code for exact behavior; this is the checklist.
 - Editable team name in the large title.
 
 **Team screen** — segmented Rotation | Roster.
-- Rotation grid: one row per active player with active/out switch, name+number, one chip per period showing the position code (colored by group, dotted corner if auto) that opens a position picker including "* Sitting out" and "code · occupant" for taken spots (swap semantics), total column, "Out this game" list, balance meter, Auto-fill open spots.
+- Rotation grid: one row per active player with active/out switch, name+number, one chip per period showing the position code (colored by group, dotted corner if auto) that opens a position picker including "* Sitting out" and "code · occupant" for taken spots (swap semantics), total column, "Out this game" list, balance meter, Auto-fill open spots. (Parent-feedback round, D51: a Position key under the grid lists only the codes in the current plan with full names; tapping a chip as a parent names the position; the totals column has a header — Qtrs / Halves / Inn — and reads "3 of 4".)
 - Roster: jersey number, name, active/out switch, remove (with confirmation that explains lineup/history effects), "Everyone's back", Add player. Removing a player keeps their name on past games (snapshot).
 
 **Lineup / Edit order (baseball only)**

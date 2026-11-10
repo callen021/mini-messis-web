@@ -114,13 +114,15 @@ describe('RotationView', () => {
     ];
   });
 
-  it('renders a chip per period with codes, auto marks, totals and the balance meter', () => {
+  it('renders a chip per period with codes, auto marks, "n of N" totals and the balance meter', () => {
     renderView();
-    expect(screen.getByRole('button', { name: 'Nolan, Quarter 1: LW' })).toHaveClass('on');
-    expect(screen.getByRole('button', { name: 'Teddy, Quarter 1: ST' })).toHaveClass('auto');
+    expect(screen.getByRole('button', { name: 'Nolan, Quarter 1: Left wing' })).toHaveClass('on');
+    expect(screen.getByRole('button', { name: 'Teddy, Quarter 1: Striker' })).toHaveClass('auto');
     expect(screen.getByRole('button', { name: 'Jack, Quarter 2: sitting out' })).toHaveClass('empty');
-    expect(screen.getByLabelText('2 quarters')).toHaveClass('good'); // Nolan: 2 of 4
-    expect(screen.getAllByLabelText('1 quarters')[0]).toHaveClass('low'); // under half
+    expect(screen.getByLabelText('2 of 4 quarters')).toHaveClass('good'); // Nolan: 2 of 4
+    expect(screen.getByLabelText('2 of 4 quarters')).toHaveTextContent('2 of 4');
+    expect(screen.getAllByLabelText('1 of 4 quarters')[0]).toHaveClass('low'); // under half
+    expect(document.querySelector('.rothead .total')).toHaveTextContent('Qtrs');
     expect(screen.getByText(/Range/)).toHaveTextContent('1–2');
     expect(screen.getByText('Playing time is reasonably balanced.')).toBeInTheDocument();
     expect(screen.getByText('Out this game')).toBeInTheDocument();
@@ -129,7 +131,7 @@ describe('RotationView', () => {
 
   it('tapping a chip opens the position picker; choosing a taken spot swaps and saves', async () => {
     renderView();
-    await userEvent.click(screen.getByRole('button', { name: 'Jack, Quarter 1: GK' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Jack, Quarter 1: Goalkeeper' }));
     const dialog = await screen.findByRole('dialog', { name: 'Jack · Quarter 1' });
     expect(within(dialog).getByRole('button', { name: '* Sitting out' })).toBeInTheDocument();
     expect(within(dialog).getByRole('button', { name: 'LW · Nolan' })).toBeInTheDocument();
@@ -142,7 +144,7 @@ describe('RotationView', () => {
 
   it('"Sitting out" clears the player from that period', async () => {
     renderView();
-    await userEvent.click(screen.getByRole('button', { name: 'Nolan, Quarter 2: LW' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Nolan, Quarter 2: Left wing' }));
     const dialog = await screen.findByRole('dialog');
     await userEvent.click(within(dialog).getByRole('button', { name: '* Sitting out' }));
     const next = saveMutate.mock.calls[0]?.[0] as Period[];
@@ -163,12 +165,29 @@ describe('RotationView', () => {
     expect(setAvailableMutate).toHaveBeenCalledWith({ id: 'p2', available: false }, expect.anything());
   });
 
-  it('parents get no switches, buttons or toolbar, and their child is listed first', () => {
+  it('parents get no switches or toolbar, their child is listed first, and a chip tap names the position', async () => {
     renderView(false, new Set(['p3']));
     expect(screen.queryByRole('switch')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Auto-fill open spots' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Quarter 1/ })).not.toBeInTheDocument();
-    const names = Array.from(document.querySelectorAll('.prow .pname')).map((el) => el.textContent ?? '');
+    const names = Array.from(document.querySelectorAll('.prow:not(.rothead) .pname')).map(
+      (el) => el.textContent ?? '',
+    );
     expect(names[0]?.startsWith('Jack')).toBe(true);
+    await userEvent.click(screen.getByRole('button', { name: 'Nolan, Quarter 1: Left wing' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('LW · Left wing');
+    // the auto-fill dot is for staff; parents do not see it (D53)
+    expect(screen.getByRole('button', { name: 'Teddy, Quarter 1: Striker' })).not.toHaveClass('auto');
+  });
+
+  it('lists only the codes in the plan in the Position key, with the auto-fill note for staff', () => {
+    renderView();
+    expect(screen.getByText('Position key')).toBeInTheDocument();
+    const key = document.querySelector('.poskey') as HTMLElement;
+    expect(key).toHaveTextContent('Left wing');
+    expect(key).toHaveTextContent('Goalkeeper');
+    expect(key).toHaveTextContent('Sweeper');
+    expect(key).not.toHaveTextContent('Center back'); // not in a 3-3
+    expect(key).toHaveTextContent('dot = picked by Auto-fill');
   });
 });

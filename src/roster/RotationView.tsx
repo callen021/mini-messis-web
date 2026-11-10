@@ -8,6 +8,7 @@ import { playerName, toEnginePlayers, useCurrentPlan, useFormations, useSavePlan
 import { toEnginePeriods } from '@/lineups/convert';
 import { textColor } from '@/sports/colors';
 import { SPORTS, chipLabel } from '@/sports/definitions';
+import { periodsHeader, positionName, usedPositions } from '@/sports/positions';
 import {
   autoFillAll,
   balance,
@@ -49,6 +50,7 @@ export function RotationView({
   );
   const c = counts(periods, enginePlayers);
   const N = periods.length;
+  const key = useMemo(() => usedPositions(S, periods, formationFor), [S, periods, formationFor]);
   const noun = S.periodName(N).toLowerCase();
   const colors = (team.colors ?? {}) as Record<string, string>;
   const active = players.filter((p) => p.is_available);
@@ -125,40 +127,39 @@ export function RotationView({
               const pos = i < 0 ? undefined : f.positions[i];
               const code = pos?.code ?? '';
               const col = pos ? (colors[S.group(pos.role)] ?? '#888') : undefined;
-              const cls = `qchip${code ? ' on' : ' empty'}${code && q.auto.includes(i) ? ' auto' : ''}`;
-              const label = `${p.first_name}, ${S.periodName(N)} ${qi + 1}: ${code || 'sitting out'}`;
+              const full = pos ? positionName(S, pos.code, pos.role) : '';
+              const cls = `qchip${code ? ' on' : ' empty'}${code && q.auto.includes(i) && canEdit ? ' auto' : ''}`;
+              const label = `${p.first_name}, ${S.periodName(N)} ${qi + 1}: ${code ? full : 'sitting out'}`;
               return (
                 <div key={qi} className="qcell">
                   <span className="qlab">{chipLabel(S, N, qi)}</span>
-                  {canEdit ? (
-                    <button
-                      type="button"
-                      className={cls}
-                      style={col ? { background: col, color: textColor(col) } : undefined}
-                      aria-label={label}
-                      onClick={() => setPicking({ player: p, periodIndex: qi })}
-                    >
-                      {code || '–'}
-                    </button>
-                  ) : (
-                    <span
-                      className={cls}
-                      style={
-                        col
-                          ? { background: col, color: textColor(col), cursor: 'default' }
-                          : { cursor: 'default' }
-                      }
-                      aria-label={label}
-                    >
-                      {code || '–'}
-                    </span>
-                  )}
+                  <button
+                    type="button"
+                    className={cls}
+                    style={col ? { background: col, color: textColor(col) } : undefined}
+                    aria-label={label}
+                    title={full || undefined}
+                    onClick={() =>
+                      canEdit
+                        ? setPicking({ player: p, periodIndex: qi })
+                        : toast(
+                            code
+                              ? `${code} · ${full}`
+                              : `${p.first_name} sits out ${S.periodName(N).toLowerCase()} ${qi + 1}`,
+                          )
+                    }
+                  >
+                    {code || '–'}
+                  </button>
                 </div>
               );
             })}
           </div>
-          <div className={`total ${totalLevel(c[p.id] ?? 0, N)}`} aria-label={`${c[p.id] ?? 0} ${noun}s`}>
-            {c[p.id] ?? 0}
+          <div
+            className={`total ${totalLevel(c[p.id] ?? 0, N)}`}
+            aria-label={`${c[p.id] ?? 0} of ${N} ${noun}s`}
+          >
+            {c[p.id] ?? 0} <small>of {N}</small>
           </div>
         </>
       )}
@@ -180,9 +181,46 @@ export function RotationView({
       )}
       <Section>Playing time</Section>
       <Group>
+        <div className="prow rothead" aria-hidden="true">
+          <span className="pname">Player</span>
+          <span className="qchips" />
+          <span className="total hd">{periodsHeader(S, N)}</span>
+        </div>
         {ordered.map((p) => row(p, false))}
         {!active.length && <div className="prow">Add players on the Roster view.</div>}
       </Group>
+      {key.length > 0 && (
+        <>
+          <Section>Position key</Section>
+          <Group>
+            <dl className="poskey">
+              {key.map((k) => {
+                const col = colors[S.group(k.role)] ?? '#888';
+                return (
+                  <div key={k.code}>
+                    <dt>
+                      <span className="qchip on" style={{ background: col, color: textColor(col) }}>
+                        {k.code}
+                      </span>
+                    </dt>
+                    <dd>{k.name}</dd>
+                  </div>
+                );
+              })}
+              {canEdit && (
+                <div>
+                  <dt>
+                    <span className="qchip on auto" style={{ background: 'var(--text3)', color: '#fff' }}>
+                      ·
+                    </span>
+                  </dt>
+                  <dd>dot = picked by Auto-fill</dd>
+                </div>
+              )}
+            </dl>
+          </Group>
+        </>
+      )}
       {outs.length > 0 && (
         <>
           <Section>Out this game</Section>
