@@ -2,6 +2,9 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { AuthRoot } from '@/auth/AuthProvider';
 import { PublicOnly, RequireAuth } from '@/auth/guards';
+import { AdminLayout } from '@/admin/AdminLayout';
+import { AdminPage } from '@/admin/AdminPage';
+import { AdminTeamPage } from '@/admin/AdminTeamPage';
 import { ResetPage } from '@/auth/pages/ResetPage';
 import { SignInPage } from '@/auth/pages/SignInPage';
 import { SignUpPage } from '@/auth/pages/SignUpPage';
@@ -97,6 +100,14 @@ export const routes: RouteObject[] = [
               { path: '/join', element: <JoinPage /> },
               { path: '/create-team', element: <CreateTeamPage /> },
               { path: '/pending', element: <PendingPage /> },
+            ],
+          },
+          // platform admin console (no team context)
+          {
+            element: <AdminLayout />,
+            children: [
+              { path: '/admin', element: <AdminPage /> },
+              { path: '/admin/teams/:teamId', element: <AdminTeamPage /> },
             ],
           },
           // signed in with a team

@@ -1,5 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import { Navigate, Outlet } from 'react-router';
+import { useActAs } from '@/admin/actAs';
 import { useAuth } from '@/auth/AuthProvider';
 import { LoadingScreen } from '@/auth/guards';
 import { useUIStore } from '@/lib/ui-store';
@@ -9,6 +10,7 @@ import {
   type MemberRole,
   type Team,
   useActiveMemberships,
+  useTeam,
   usePendingRequests,
   useProfile,
   useUpdateProfile,
@@ -22,6 +24,8 @@ export interface TeamContextValue {
   isOwner: boolean;
   memberships: ActiveMembership[];
   switchTeam: (teamId: string) => void;
+  /** A platform admin is acting as this team's coach without being a member. */
+  adminActing: boolean;
 }
 
 const TeamContext = createContext<TeamContextValue | null>(null);
@@ -55,6 +59,10 @@ export function RequireTeam() {
   const updateProfile = useUpdateProfile(userId);
   const setSport = useUIStore((s) => s.setSport);
   const [picked, setPicked] = useState<string | null>(readLastTeam);
+  const isAdmin = profile.data?.is_platform_admin ?? false;
+  const actAsId = useActAs((s) => s.teamId);
+  const setActAs = useActAs((s) => s.setTeamId);
+  const adminTeam = useTeam(isAdmin && actAsId ? actAsId : undefined);
 
   const list = useMemo(() => memberships.data ?? [], [memberships.data]);
   const current = useMemo(() => {
@@ -63,23 +71,46 @@ export function RequireTeam() {
     return list.find((m) => m.team.id === wanted) ?? list[0] ?? null;
   }, [list, picked, profile.data?.last_team_id]);
 
+  const acting =
+    isAdmin && !!actAsId && !!adminTeam.data && !adminTeam.data.archived_at ? adminTeam.data : null;
+
   // keep the sport tint in step with the team
   useEffect(() => {
-    if (current) setSport(current.team.sport);
-  }, [current, setSport]);
+    const sport = acting?.sport ?? current?.team.sport;
+    if (sport) setSport(sport);
+  }, [acting, current, setSport]);
 
   const switchTeam = useCallback(
     (teamId: string) => {
+      setActAs(null);
       setPicked(teamId);
       writeLastTeam(teamId);
       if (profile.data && profile.data.last_team_id !== teamId)
         updateProfile.mutate({ last_team_id: teamId });
     },
-    [profile.data, updateProfile],
+    [profile.data, updateProfile, setActAs],
   );
 
   if (memberships.isPending || (pending.isPending && !list.length)) return <LoadingScreen />;
+  if (isAdmin && actAsId && adminTeam.isPending) return <LoadingScreen label="Opening team…" />;
   if (memberships.isError) return <LoadingScreen label="Couldn’t load your teams. Pull to retry." />;
+  if (acting) {
+    const value: TeamContextValue = {
+      teamId: acting.id,
+      team: acting,
+      sport: acting.sport,
+      role: 'coach',
+      isOwner: true,
+      memberships: list,
+      switchTeam,
+      adminActing: true,
+    };
+    return (
+      <TeamContext.Provider value={value}>
+        <Outlet />
+      </TeamContext.Provider>
+    );
+  }
   if (!current) {
     return <Navigate to={pending.data && pending.data.length > 0 ? '/pending' : '/welcome'} replace />;
   }
@@ -92,6 +123,7 @@ export function RequireTeam() {
     isOwner: current.team.owner_id === userId,
     memberships: list,
     switchTeam,
+    adminActing: false,
   };
   return (
     <TeamContext.Provider value={value}>

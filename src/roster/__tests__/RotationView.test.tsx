@@ -55,6 +55,7 @@ const ctx: TeamContextValue = {
   isOwner: true,
   memberships: [],
   switchTeam: () => undefined,
+  adminActing: false,
 };
 const mk = (id: string, first_name: string, n: string, is_available = true): Player => ({
   id,

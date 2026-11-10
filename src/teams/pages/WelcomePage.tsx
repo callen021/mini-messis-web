@@ -1,4 +1,5 @@
 import { Navigate } from 'react-router';
+import { useIsPlatformAdmin } from '@/admin/useIsPlatformAdmin';
 import { useAuth } from '@/auth/AuthProvider';
 import { LoadingScreen } from '@/auth/guards';
 import { Footer, Group, Row } from '@/components/List';
@@ -8,6 +9,7 @@ import { signOut, useActiveMemberships, usePendingRequests } from '../api';
 /** First run: no team yet. */
 export function WelcomePage() {
   const { user } = useAuth();
+  const isAdmin = useIsPlatformAdmin() === true;
   const memberships = useActiveMemberships(user?.id);
   const pending = usePendingRequests(user?.id);
   if (memberships.isPending) return <LoadingScreen />;
@@ -44,6 +46,7 @@ export function WelcomePage() {
         </Group>
       )}
       <Group style={{ marginTop: 12 }}>
+        {isAdmin && <Row to="/admin" label="Admin console" detail="Every team and user" link chevron />}
         <Row onClick={() => void signOut()} label="Sign out" destructive />
       </Group>
       <Footer>Signed in as {user?.email}.</Footer>

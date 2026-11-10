@@ -294,3 +294,16 @@ wording. The default sets are duplicated in SQL (`default_skill_tests(sport)`, k
 set for every team with zero tests, `create_team` falls back to it when given an empty list, and
 `restore_skill_tests` with no payload seeds a team that has none. Restore defaults is therefore the
 only way to bring built-ins back and Add a custom test the only way to add something new.
+
+### D39. Platform admin is a profile flag that acts as a coach everywhere
+
+`profiles.is_platform_admin` (default false) can only be changed in the SQL editor: a trigger refuses
+any change made with a JWT, and no RPC or UI sets it. `member_role_on()` returns `coach` for an admin
+and `is_owner()` is true for them, so every existing policy and RPC admits them without changing the
+coach/assistant/parent rules for anyone else; pgTAP proves a non-admin gains nothing. The console at
+`/admin` (visible only to admins) lists teams and users through two admin-only RPCs, and a team page
+renames, resets the code, manages members and requests, archives, and "opens as coach" by storing
+the team id in session storage, which `RequireTeam` turns into a coach context. Changing a team's
+sport is admin-only (`admin_change_sport`): the team shape, template lineups, any live game's lineups
+and the skill tests reset for the new sport (tests with results are hidden, not deleted); players,
+games and members stay. Coaches have no sport control in Settings.

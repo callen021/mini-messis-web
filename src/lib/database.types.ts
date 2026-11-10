@@ -453,6 +453,7 @@ export type Database = {
           display_name: string
           field_view: Database["public"]["Enums"]["field_view"]
           id: string
+          is_platform_admin: boolean
           last_team_id: string | null
           theme: Database["public"]["Enums"]["theme"]
           updated_at: string
@@ -462,6 +463,7 @@ export type Database = {
           display_name?: string
           field_view?: Database["public"]["Enums"]["field_view"]
           id: string
+          is_platform_admin?: boolean
           last_team_id?: string | null
           theme?: Database["public"]["Enums"]["theme"]
           updated_at?: string
@@ -471,6 +473,7 @@ export type Database = {
           display_name?: string
           field_view?: Database["public"]["Enums"]["field_view"]
           id?: string
+          is_platform_admin?: boolean
           last_team_id?: string | null
           theme?: Database["public"]["Enums"]["theme"]
           updated_at?: string
@@ -899,6 +902,52 @@ export type Database = {
       }
     }
     Functions: {
+      admin_list_teams: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          id: string
+          name: string
+          sport: Database["public"]["Enums"]["sport"]
+          owner_id: string
+          owner_name: string
+          owner_email: string
+          coaches: number
+          assistants: number
+          parents: number
+          pending: number
+          players: number
+          created_at: string
+          archived_at: string | null
+        }[]
+      }
+      admin_list_users: {
+        Args: Record<PropertyKey, never>
+        Returns: {
+          user_id: string
+          display_name: string
+          email: string
+          created_at: string
+          is_platform_admin: boolean
+          teams: Json
+        }[]
+      }
+      admin_add_member: {
+        Args: { p_team_id: string; p_email: string; p_role: Database["public"]["Enums"]["member_role"] }
+        Returns: string
+      }
+      admin_change_sport: {
+        Args: {
+          p_team_id: string
+          p_sport: Database["public"]["Enums"]["sport"]
+          p_side_size: number
+          p_has_gk: boolean
+          p_periods_count: number
+          p_colors: Json
+          p_template: Json
+        }
+        Returns: undefined
+      }
+      is_platform_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
       approve_guardian_link: {
         Args: { p_approve?: boolean; p_link_id: string }
         Returns: undefined

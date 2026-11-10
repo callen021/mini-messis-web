@@ -1,3 +1,4 @@
+import { useIsPlatformAdmin } from '@/admin/useIsPlatformAdmin';
 import { useAuth } from '@/auth/AuthProvider';
 import { STAFF_ROLES, RoleGate } from '@/auth/guards';
 import { Footer, Group, Row, Section } from '@/components/List';
@@ -14,6 +15,7 @@ import { useCurrentTeam } from '@/teams/TeamContext';
 export function SettingsPage() {
   const { team, role } = useCurrentTeam();
   const { user } = useAuth();
+  const isAdmin = useIsPlatformAdmin() === true;
   const sheet = useActionSheet();
   const theme = useUIStore((s) => s.theme);
   const setTheme = useUIStore((s) => s.setTheme);
@@ -98,6 +100,14 @@ export function SettingsPage() {
         <Row to="/create-team" label="Create a new team" link chevron />
         <Row onClick={confirmSignOut} label="Sign out" destructive />
       </Group>
+      {isAdmin && (
+        <>
+          <Section>Platform</Section>
+          <Group>
+            <Row to="/admin" label="Admin console" detail="Every team and user" chevron />
+          </Group>
+        </>
+      )}
       <DataSection />
       <Section>Install</Section>
       <Group>
