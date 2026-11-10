@@ -1,5 +1,7 @@
 import { type FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { Navigate, useNavigate } from 'react-router';
+import { useIsPlatformAdmin } from '@/admin/useIsPlatformAdmin';
+import { LoadingScreen } from '@/auth/guards';
 import { useAuth } from '@/auth/AuthProvider';
 import { Button } from '@/components/Button';
 import { CheckIcon } from '@/components/icons';
@@ -15,6 +17,7 @@ export function CreateTeamPage() {
   const navigate = useNavigate();
   const toast = useToast();
   const { user } = useAuth();
+  const isAdmin = useIsPlatformAdmin();
   const memberships = useActiveMemberships(user?.id);
   const create = useCreateTeam();
   const [name, setName] = useState('');
@@ -22,6 +25,10 @@ export function CreateTeamPage() {
   const [error, setError] = useState('');
   const S = SPORTS[sport];
   const hasTeams = (memberships.data?.length ?? 0) > 0;
+
+  if (isAdmin === undefined) return <LoadingScreen />;
+  // Team creation is platform-admin only (D48); everyone else gets their team from an invite.
+  if (!isAdmin) return <Navigate to={hasTeams ? '/settings' : '/welcome'} replace />;
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -44,7 +51,7 @@ export function CreateTeamPage() {
   return (
     <Page
       title="Create a team"
-      sub="You'll be the coach and owner. Parents and assistants join with the team's code."
+      sub="You'll be its coach and owner to start; hand it to the coach from the admin console. Parents join with the invite link."
       back={hasTeams ? { to: '/settings', label: 'Settings' } : { to: '/welcome', label: 'Back' }}
     >
       <form onSubmit={submit} noValidate>

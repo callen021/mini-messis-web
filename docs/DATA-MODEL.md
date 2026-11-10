@@ -243,7 +243,7 @@ RLS in `0300_rls.sql` (and `1000_practices.sql`) follows one rule: **read = acti
 write = coach or assistant**, with these exceptions:
 
 - `profiles`: own row only (names of other members come through `list_team_members()`).
-- `teams`: insert only through `create_team()`; delete only by the owner.
+- `teams`: insert only by a platform admin (`create_team()` checks it and an insert policy backs it up, D48); delete only by the owner.
 - `team_members`: a member sees their own row, a coach sees all; insert only through
   `create_team()` / `request_join()`; update and delete by coaches.
 - `player_guardians` and `unlisted_child_requests`: own rows or coach; writes by coaches

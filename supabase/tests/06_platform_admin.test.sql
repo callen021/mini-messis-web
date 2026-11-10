@@ -32,18 +32,27 @@ grant all on ctx to authenticated;
 -- the flag is set in the SQL editor (no JWT); the app can never set it
 update public.profiles set is_platform_admin = true where id = 'f3000000-0000-0000-0000-000000000003';
 
+-- team creation is admin-only (D48): the flag is on only for the create call
+update public.profiles set is_platform_admin = true where id = 'f3000000-0000-0000-0000-000000000001';
 select pg_temp.login('f3000000-0000-0000-0000-000000000001');
 insert into ctx select 'a', public.create_team('Team A', 'soccer', 3, true, 1, '{}'::jsonb,
   '[{"formation_name":"1-1","slots":[{"position_role":"ST","position_code":"ST"},{"position_role":"DEF","position_code":"SW"},{"position_role":"GK","position_code":"GK"}]}]'::jsonb);
+select pg_temp.logout();
+update public.profiles set is_platform_admin = false where id = 'f3000000-0000-0000-0000-000000000001';
+select pg_temp.login('f3000000-0000-0000-0000-000000000001');
 insert into public.players (team_id, first_name) values ((select v from ctx where k = 'a'), 'Ava');
 select throws_ok($$update public.profiles set is_platform_admin = true where id = 'f3000000-0000-0000-0000-000000000001'$$,
   '42501', null, 'a user cannot make themselves a platform admin');
 select is(public.is_platform_admin(), false, 'coach A is not an admin');
 select pg_temp.logout();
 
+update public.profiles set is_platform_admin = true where id = 'f3000000-0000-0000-0000-000000000002';
 select pg_temp.login('f3000000-0000-0000-0000-000000000002');
 insert into ctx select 'b', public.create_team('Team B', 'baseball', 6, false, 1, '{}'::jsonb,
   '[{"formation_name":"6","slots":[{"position_role":"P","position_code":"P"}]}]'::jsonb);
+select pg_temp.logout();
+update public.profiles set is_platform_admin = false where id = 'f3000000-0000-0000-0000-000000000002';
+select pg_temp.login('f3000000-0000-0000-0000-000000000002');
 select is((select count(*)::int from public.teams), 1, 'coach B sees only their own team');
 select is((select count(*)::int from public.admin_list_teams()), 0, 'admin_list_teams returns nothing for a coach');
 select is((select count(*)::int from public.admin_list_users()), 0, 'admin_list_users returns nothing for a coach');

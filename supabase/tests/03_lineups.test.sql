@@ -27,10 +27,15 @@ select pg_temp.mk_user('f0000000-0000-0000-0000-000000000002', 'parent-l@test.co
 create temp table ctx (k text primary key, v uuid);
 grant all on ctx to authenticated;
 
+-- team creation is admin-only (D48)
+update public.profiles set is_platform_admin = true where id = 'f0000000-0000-0000-0000-000000000001';
 select pg_temp.login('f0000000-0000-0000-0000-000000000001');
 insert into ctx select 'team', public.create_team('Lineup FC', 'soccer', 3, true, 2, '{}'::jsonb,
   '[{"formation_name":"1-1","slots":[{"position_role":"ST","position_code":"ST"},{"position_role":"DEF","position_code":"SW"},{"position_role":"GK","position_code":"GK"}]},
     {"formation_name":"1-1","slots":[{"position_role":"ST","position_code":"ST"},{"position_role":"DEF","position_code":"SW"},{"position_role":"GK","position_code":"GK"}]}]'::jsonb);
+select pg_temp.logout();
+update public.profiles set is_platform_admin = false where id = 'f0000000-0000-0000-0000-000000000001';
+select pg_temp.login('f0000000-0000-0000-0000-000000000001');
 insert into public.players (id, team_id, first_name) values
   ('e2000000-0000-0000-0000-000000000001', (select v from ctx where k = 'team'), 'Ava'),
   ('e2000000-0000-0000-0000-000000000002', (select v from ctx where k = 'team'), 'Ben');

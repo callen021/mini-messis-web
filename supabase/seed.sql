@@ -30,6 +30,10 @@ select pg_temp.seed_user('11111111-1111-1111-1111-111111111111', 'coach@example.
 select pg_temp.seed_user('22222222-2222-2222-2222-222222222222', 'parent@example.com', 'Nolan''s Dad');
 select pg_temp.seed_user('33333333-3333-3333-3333-333333333333', 'assistant@example.com', 'Assistant Alex');
 
+-- The demo coach is a platform admin: team creation is admin-only (D48), and the Playwright
+-- flows sign in as this account to create their team.
+update public.profiles set is_platform_admin = true where id = '11111111-1111-1111-1111-111111111111';
+
 -- Run the rest as the coach so SECURITY DEFINER functions see auth.uid().
 select set_config('request.jwt.claims', '{"sub":"11111111-1111-1111-1111-111111111111","role":"authenticated"}', false);
 

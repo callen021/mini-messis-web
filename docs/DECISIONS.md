@@ -407,3 +407,16 @@ many attempts"; duplicate account, unconfirmed email, weak password and network 
 their own line; anything unknown falls back to the raw message so nothing is hidden. The sign-in
 screen's "Create an account" is a full-width secondary button under the form rather than a
 footnote link, since for parents it is the second most common tap on that screen.
+
+### D48. Only a platform admin creates teams
+
+Parents and coaches never create teams themselves: `create_team()` refuses anyone without the
+admin flag (42501) and an explicit insert policy on `teams` refuses a direct insert too, with
+pgTAP covering both and the signed-out case. The admin who creates a team becomes its owner and
+coach, then hands it over from the admin console (add the coach by email, transfer ownership). The
+"I'm a coach" entry on the welcome page and the "Create a new team" items in the team switcher,
+Settings and the pending screen are gone for everyone else; a signed-in user with no team sees
+"Ask your coach for an invite link" and a box to paste a code. Locally and in CI the seeded demo
+coach carries the flag so the Playwright coach flow can still create its team; the pgTAP suites
+flag a creator only around the `create_team` call so the rest of each suite keeps exercising
+plain coach permissions.

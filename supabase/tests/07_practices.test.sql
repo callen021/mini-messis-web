@@ -34,12 +34,15 @@ grant all on ctx to authenticated;
 grant all on txt to authenticated;
 
 -- team, roster, members
+-- team creation is admin-only (D48)
+update public.profiles set is_platform_admin = true where id = 'f4000000-0000-0000-0000-000000000001';
 select pg_temp.login('f4000000-0000-0000-0000-000000000001');
 insert into ctx select 'team', public.create_team('Strikers', 'soccer', 3, true, 1, '{}'::jsonb,
   '[{"formation_name":"1-1","slots":[{"position_role":"ST","position_code":"ST"},{"position_role":"DEF","position_code":"SW"},{"position_role":"GK","position_code":"GK"}]}]'::jsonb);
 insert into txt select 'code', join_code from public.teams where id = (select v from ctx where k = 'team');
 insert into ctx select 'season', id from public.seasons where team_id = (select v from ctx where k = 'team') and is_current;
 select pg_temp.logout();
+update public.profiles set is_platform_admin = false where id = 'f4000000-0000-0000-0000-000000000001';
 
 select pg_temp.login('f4000000-0000-0000-0000-000000000002');
 select public.request_join((select v from txt where k = 'code'), 'assistant');

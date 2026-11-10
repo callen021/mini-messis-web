@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router';
 import { useActAs } from '@/admin/actAs';
+import { useIsPlatformAdmin } from '@/admin/useIsPlatformAdmin';
 import { Badge } from '@/components/Badge';
 import { useActionSheet } from '@/components/Sheet';
 import { SPORTS } from '@/sports/definitions';
@@ -11,6 +12,7 @@ const ROLE_LABEL = { coach: 'Coach', assistant: 'Assistant', parent: 'Parent' } 
 export function TeamSwitcher() {
   const { team, role, memberships, switchTeam, adminActing } = useCurrentTeam();
   const setActAs = useActAs((s) => s.setTeamId);
+  const isAdmin = useIsPlatformAdmin() === true;
   const sheet = useActionSheet();
   const navigate = useNavigate();
   const S = SPORTS[team.sport];
@@ -26,7 +28,7 @@ export function TeamSwitcher() {
         })),
         ...(adminActing ? [{ label: 'Back to the admin console', value: '__admin' }] : []),
         { label: 'Join a team with a code', value: '__join' },
-        { label: 'Create a new team', value: '__create' },
+        ...(isAdmin ? [{ label: 'Create a new team', value: '__create' }] : []),
       ],
     });
     if (!choice) return;

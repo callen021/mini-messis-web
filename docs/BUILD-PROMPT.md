@@ -27,7 +27,8 @@ Three roles, scoped **per team** (one user can be a coach on one team and a pare
 
 | Capability | Coach | Assistant coach | Parent |
 |---|---|---|---|
-| Create team, delete team, change sport, rename team, transfer ownership | ✅ (owner only for delete/transfer) | ❌ | ❌ |
+| Create team | ❌ **platform admin only** (D48; the admin creates it and hands it over) | ❌ | ❌ |
+| Delete team, change sport, rename team, transfer ownership | ✅ (owner only for delete/transfer; sport change is admin-only, D39) | ❌ | ❌ |
 | Approve/remove members, change member roles, generate/rotate join code | ✅ | ❌ | ❌ |
 | Team setup: players-on-field, goalkeeper on/off, number of periods, jersey colors | ✅ | ✅ | ❌ |
 | Roster: add/edit/remove players, jersey numbers, mark player active/out for a game | ✅ | ✅ | ❌ |
@@ -53,8 +54,8 @@ Realtime: when a coach changes a live game's lineup or score, every signed-in vi
 ## 3. Onboarding and membership flows
 
 1. **Sign up / sign in:** email + password via Supabase Auth, plus magic-link as an alternative. Email verification required. "Forgot password" flow. Session persists (PWA relaunch should not require re-login). (Raw Supabase Auth errors are mapped to plain messages with a follow-up button, e.g. no account → Create an account with the email carried across — D47.)
-2. **First run (no teams):** choose "I'm a coach — create a team" or "I'm a parent — I have a join code".
-3. **Create team:** name, sport (soccer, baseball, basketball, lacrosse — football exists in code but is disabled, exactly as `ENABLED_SPORTS` does today), defaults applied from the sport definition. Team gets a join code and a current season.
+2. **First run (no teams):** "Ask your coach for an invite link" plus a box to paste a code; only a platform admin sees "Create a team" (D48).
+3. **Create team:** name, sport (soccer, baseball, basketball, lacrosse — football exists in code but is disabled, exactly as `ENABLED_SPORTS` does today), defaults applied from the sport definition. Team gets a join code and a current season. (Platform admin only — D48. The admin becomes owner and coach, then adds the real coach by email from the admin console and transfers ownership.)
 4. **Join by code:** user enters the code → sees the team name and sport → chooses role requested (`parent` or `assistant`) → if parent, picks one or more children from the roster (first names + numbers; if the child isn't listed, a free-text "my child's name" field is stored on the request) → request goes to `pending`. User sees "Waiting for the coach to approve" and nothing else about the team.
 5. **Approval:** coach's Team → Members screen lists pending requests with the requested role and child links; coach can approve as requested, change the role, change the child link, or decline. Approved parents get access immediately (Realtime or poll on the pending screen).
 6. **Member management:** coach can remove a member, change role, rotate the join code (old code stops working), and promote an assistant to coach. Owner can transfer ownership.

@@ -97,7 +97,6 @@ export function SettingsPage() {
       <Group>
         <Row to="/profile" label="Profile" detail={user?.email ?? ''} chevron />
         <Row to="/join" label="Join another team" link chevron />
-        <Row to="/create-team" label="Create a new team" link chevron />
         <Row onClick={confirmSignOut} label="Sign out" destructive />
       </Group>
       {isAdmin && (
@@ -105,6 +104,7 @@ export function SettingsPage() {
           <Section>Platform</Section>
           <Group>
             <Row to="/admin" label="Admin console" detail="Every team and user" chevron />
+            <Row to="/create-team" label="Create a new team" detail="Platform admins only" link chevron />
           </Group>
         </>
       )}

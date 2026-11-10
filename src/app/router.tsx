@@ -100,6 +100,7 @@ export const routes: RouteObject[] = [
             children: [
               { path: '/welcome', element: <WelcomePage /> },
               { path: '/join', element: <JoinPage /> },
+              { path: '/join/:code', element: <JoinPage /> },
               { path: '/create-team', element: <CreateTeamPage /> },
               { path: '/pending', element: <PendingPage /> },
             ],

@@ -1,6 +1,7 @@
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect } from 'react';
 import { Navigate, useLocation } from 'react-router';
+import { useIsPlatformAdmin } from '@/admin/useIsPlatformAdmin';
 import { useAuth } from '@/auth/AuthProvider';
 import { LoadingScreen } from '@/auth/guards';
 import { Badge } from '@/components/Badge';
@@ -15,6 +16,7 @@ const ROLE = { parent: 'Parent', assistant: 'Assistant coach', coach: 'Coach' } 
 /** "Waiting for the coach to approve" — flips into the app the moment a membership goes active. */
 export function PendingPage() {
   const { user } = useAuth();
+  const isAdmin = useIsPlatformAdmin() === true;
   const location = useLocation();
   const qc = useQueryClient();
   const memberships = useActiveMemberships(user?.id);
@@ -79,7 +81,7 @@ export function PendingPage() {
       </Footer>
       <Group style={{ marginTop: 18 }}>
         <Row to="/join" label="Use another code" link chevron />
-        <Row to="/create-team" label="Create my own team" link chevron />
+        {isAdmin && <Row to="/create-team" label="Create a team" link chevron />}
         <Row onClick={() => void signOut()} label="Sign out" destructive />
       </Group>
     </Page>

@@ -27,10 +27,15 @@ select pg_temp.mk_user('f2000000-0000-0000-0000-000000000002', 'parent-s@test.co
 create temp table ctx (k text primary key, v uuid);
 grant all on ctx to authenticated;
 
+-- team creation is admin-only (D48)
+update public.profiles set is_platform_admin = true where id = 'f2000000-0000-0000-0000-000000000001';
 select pg_temp.login('f2000000-0000-0000-0000-000000000001');
 insert into ctx select 'team', public.create_team('Skills FC', 'soccer', 3, true, 1, '{}'::jsonb,
   '[{"formation_name":"1-1","slots":[{"position_role":"ST","position_code":"ST"},{"position_role":"DEF","position_code":"SW"},{"position_role":"GK","position_code":"GK"}]}]'::jsonb,
   '[{"key":"juggling","name":"Juggling","metric":"count"},{"key":"passing","name":"Passing accuracy","metric":"made_of_attempted","has_sides":true,"attempts":5},{"key":"sprint","name":"Sprint speed","metric":"time_seconds","higher_is_better":false}]'::jsonb);
+select pg_temp.logout();
+update public.profiles set is_platform_admin = false where id = 'f2000000-0000-0000-0000-000000000001';
+select pg_temp.login('f2000000-0000-0000-0000-000000000001');
 
 select is((select count(*)::int from public.skill_tests where team_id = (select v from ctx where k = 'team')), 3, 'create_team seeds the default tests');
 select is((select attempts from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'passing'), 5, 'attempts stored');
@@ -60,8 +65,14 @@ select is((select is_active from public.skill_tests where id = (select v from ct
 select is((select name from public.skill_tests where id = (select v from ctx where k = 'juggling')), 'Juggles', 'restore does not overwrite edits');
 
 -- defaults seeded server-side: empty list on create_team, restore with no payload, sport sets
+select pg_temp.logout();
+update public.profiles set is_platform_admin = true where id = 'f2000000-0000-0000-0000-000000000001';
+select pg_temp.login('f2000000-0000-0000-0000-000000000001');
 insert into ctx select 'team2', public.create_team('Backfill FC', 'baseball', 6, false, 1, '{}'::jsonb,
   '[{"formation_name":"6","slots":[{"position_role":"P","position_code":"P"}]}]'::jsonb, '[]'::jsonb);
+select pg_temp.logout();
+update public.profiles set is_platform_admin = false where id = 'f2000000-0000-0000-0000-000000000001';
+select pg_temp.login('f2000000-0000-0000-0000-000000000001');
 select is((select count(*)::int from public.skill_tests where team_id = (select v from ctx where k = 'team2')), 6, 'create_team with an empty list seeds the sport defaults');
 select is((select attempts from public.skill_tests where team_id = (select v from ctx where k = 'team2') and key = 'throwacc'), 10, 'seeded attempts come from the SQL defaults');
 delete from public.skill_tests where team_id = (select v from ctx where k = 'team2');

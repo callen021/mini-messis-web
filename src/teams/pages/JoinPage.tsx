@@ -1,5 +1,5 @@
-import { type FormEvent, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { type FormEvent, useEffect, useState } from 'react';
+import { useNavigate, useParams } from 'react-router';
 import { useAuth } from '@/auth/AuthProvider';
 import { Button } from '@/components/Button';
 import { Segmented } from '@/components/Segmented';
@@ -18,14 +18,33 @@ export function JoinPage() {
   const { user } = useAuth();
   const memberships = useActiveMemberships(user?.id);
   const request = useRequestJoin();
-  const [code, setCode] = useState('');
+  const params = useParams<{ code?: string }>();
+  const initial = normalizeCode(params.code ?? '');
+  const [code, setCode] = useState(initial);
   const [preview, setPreview] = useState<JoinPreview | null>(null);
-  const [looking, setLooking] = useState(false);
+  // /join/<code> (typed on the welcome page or from a link) is looked up as soon as the page opens.
+  const [looking, setLooking] = useState(() => isCompleteCode(initial));
   const [role, setRole] = useState<'parent' | 'assistant'>('parent');
   const [children, setChildren] = useState<Set<string>>(new Set());
   const [unlisted, setUnlisted] = useState('');
   const [error, setError] = useState('');
   const hasTeams = (memberships.data?.length ?? 0) > 0;
+
+  useEffect(() => {
+    if (!isCompleteCode(initial)) return;
+    let active = true;
+    lookupJoinCode(initial)
+      .then((p) => {
+        if (!active) return;
+        if (!p) setError('That code didn’t match a team. Check it with the coach.');
+        else setPreview(p);
+      })
+      .catch((err: unknown) => active && setError(errorMessage(err)))
+      .finally(() => active && setLooking(false));
+    return () => {
+      active = false;
+    };
+  }, [initial]);
 
   const lookup = async (e: FormEvent) => {
     e.preventDefault();

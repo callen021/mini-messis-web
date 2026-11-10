@@ -28,10 +28,15 @@ create temp table ctx (k text primary key, v uuid);
 grant all on ctx to authenticated;
 
 -- a baseball team so every stat column gets exercised
+-- team creation is admin-only (D48)
+update public.profiles set is_platform_admin = true where id = 'f1000000-0000-0000-0000-000000000001';
 select pg_temp.login('f1000000-0000-0000-0000-000000000001');
 insert into ctx select 'team', public.create_team('Sluggers', 'baseball', 6, false, 2, '{}'::jsonb,
   '[{"formation_name":"6","slots":[{"position_role":"P","position_code":"P"},{"position_role":"C","position_code":"C"},{"position_role":"1B","position_code":"1B"},{"position_role":"SS","position_code":"SS"},{"position_role":"LF","position_code":"LF"},{"position_role":"RF","position_code":"RF"}]},
     {"formation_name":"6","slots":[{"position_role":"P","position_code":"P"},{"position_role":"C","position_code":"C"},{"position_role":"1B","position_code":"1B"},{"position_role":"SS","position_code":"SS"},{"position_role":"LF","position_code":"LF"},{"position_role":"RF","position_code":"RF"}]}]'::jsonb);
+select pg_temp.logout();
+update public.profiles set is_platform_admin = false where id = 'f1000000-0000-0000-0000-000000000001';
+select pg_temp.login('f1000000-0000-0000-0000-000000000001');
 insert into public.players (id, team_id, first_name, jersey_number) values
   ('e3000000-0000-0000-0000-000000000001', (select v from ctx where k = 'team'), 'Ava', '1'),
   ('e3000000-0000-0000-0000-000000000002', (select v from ctx where k = 'team'), 'Ben', '2'),

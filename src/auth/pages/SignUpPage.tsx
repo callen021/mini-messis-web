@@ -36,7 +36,7 @@ export function SignUpPage() {
   };
 
   return (
-    <Page title="Create account" sub="Coaches create a team; parents join with a code from the coach">
+    <Page title="Create account" sub="Parents join with the coach's invite link or code">
       <Group>
         <form className="form" onSubmit={submit} noValidate>
           <Field label="Your name">

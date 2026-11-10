@@ -127,7 +127,7 @@ from public.profiles p join auth.users u on u.id = p.id
 where p.is_platform_admin;
 ```
 
-Reload the app: Settings shows an **Admin console** row at the bottom.
+Reload the app: Settings shows an **Admin console** row at the bottom. Creating teams is admin-only, so this is also what lets you create a team for another coach (admin console → Create a team, then add them by email and transfer ownership).
 
 ## 7. Run the launch cleanup
 

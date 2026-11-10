@@ -39,10 +39,13 @@ create temp table txt (k text primary key, v text);
 grant all on ctx, txt to authenticated;
 
 -- ---------- team A, created by coach A ----------
+-- team creation is admin-only (D48): flag the creator just for this call
+update public.profiles set is_platform_admin = true where id = 'a0000000-0000-0000-0000-000000000001';
 select pg_temp.login('a0000000-0000-0000-0000-000000000001');
 insert into ctx select 'team_a', public.create_team('Team A', 'soccer', 3, true, 1, '{}'::jsonb,
   '[{"formation_name":"1-1","slots":[{"position_role":"ST","position_code":"ST"},{"position_role":"DEF","position_code":"SW"},{"position_role":"GK","position_code":"GK"}]}]'::jsonb);
 select pg_temp.logout();
+update public.profiles set is_platform_admin = false where id = 'a0000000-0000-0000-0000-000000000001';
 insert into txt select 'code_a', join_code from public.teams where name = 'Team A';
 
 -- players X and Y on team A (as postgres, bypassing RLS for setup)
@@ -57,10 +60,12 @@ insert into public.skill_results (player_id, skill_test_id, value) values
   ('e0000000-0000-0000-0000-00000000000b', 'f0000000-0000-0000-0000-000000000001', 9);
 
 -- ---------- team B, created by coach B ----------
+update public.profiles set is_platform_admin = true where id = 'b0000000-0000-0000-0000-000000000001';
 select pg_temp.login('b0000000-0000-0000-0000-000000000001');
 insert into ctx select 'team_b', public.create_team('Team B', 'basketball', 3, false, 2, '{}'::jsonb,
   '[{"formation_name":"1-2","slots":[]},{"formation_name":"1-2","slots":[]}]'::jsonb);
 select pg_temp.logout();
+update public.profiles set is_platform_admin = false where id = 'b0000000-0000-0000-0000-000000000001';
 insert into public.players (id, team_id, first_name) values
   ('e0000000-0000-0000-0000-0000000000b1', (select v from ctx where k = 'team_b'), 'B Kid');
 

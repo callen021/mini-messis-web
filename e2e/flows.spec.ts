@@ -14,6 +14,8 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL ?? '';
 const LOCAL = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?/.test(SUPABASE_URL);
 const PASSWORD = 'playwright-pass-1';
 const PLAYERS = ['Ava', 'Ben', 'Cal', 'Dee', 'Eli', 'Fay', 'Gus', 'Hal'];
+/** The demo coach from supabase/seed.sql, a platform admin (team creation is admin-only, D48). */
+const ADMIN_COACH = { email: 'coach@example.com', password: 'password123' };
 
 test.describe('coach and parent flows', () => {
   test.skip(!LOCAL, 'needs VITE_SUPABASE_URL pointing at a local Supabase (npx supabase start)');
@@ -25,7 +27,6 @@ test.describe('coach and parent flows', () => {
   let coach: Page;
   let parent: Page;
   const run = Date.now().toString(36);
-  const coachEmail = `coach-${run}@example.com`;
   const parentEmail = `parent-${run}@example.com`;
   const teamName = `Strikers ${run}`;
   let joinCode = '';
@@ -39,13 +40,28 @@ test.describe('coach and parent flows', () => {
     await parentCtx?.close();
   });
 
-  test('coach signs up and lands on the welcome page', async () => {
-    await signUp(coach, 'Coach Casey', coachEmail);
-    await expect(coach.getByRole('heading', { level: 1, name: 'Welcome' })).toBeVisible();
+  test('a new sign-up without a team is told to ask the coach for an invite link', async () => {
+    const [ctx, page] = await fresh(coach.context().browser() as Browser);
+    await signUp(page, 'Wandering Wes', `wes-${run}@example.com`);
+    await expect(page.getByRole('heading', { level: 1, name: 'Welcome' })).toBeVisible();
+    await expect(page.getByText('Ask your coach for an invite link')).toBeVisible();
+    await expect(page.getByRole('link', { name: /Create a team/ })).toHaveCount(0);
+    await page.goto('/create-team');
+    await expect(page).toHaveURL(/\/welcome$/);
+    await ctx.close();
+  });
+
+  test('the coach (a platform admin, seeded locally) signs in', async () => {
+    await coach.goto('/signin');
+    await coach.getByLabel('Email').fill(ADMIN_COACH.email);
+    await coach.getByLabel('Password').fill(ADMIN_COACH.password);
+    await coach.getByRole('button', { name: 'Sign in' }).click();
+    await expect(coach).toHaveURL(/\/field$/, { timeout: 20_000 });
   });
 
   test('coach creates a soccer team and gets the Field', async () => {
-    await coach.getByRole('link', { name: "I'm a coach" }).click();
+    // Team creation is platform-admin only (D48): the seeded coach is one.
+    await coach.goto('/create-team');
     await expect(coach.getByRole('heading', { level: 1, name: 'Create a team' })).toBeVisible();
     await coach.getByLabel('Team name').fill(teamName);
     await coach.getByRole('button', { name: /^Soccer/ }).click();
@@ -105,10 +121,10 @@ test.describe('coach and parent flows', () => {
 
   test('parent signs up, joins by code and waits for approval', async () => {
     await signUp(parent, 'Parent Pat', parentEmail);
-    await parent.getByRole('link', { name: "I'm a parent or assistant" }).click();
-    await expect(parent.getByRole('heading', { level: 1, name: 'Join a team' })).toBeVisible();
+    // the welcome page's code box opens /join/<code>, which looks the code up by itself
     await parent.getByLabel('Join code').fill(joinCode);
-    await parent.getByRole('button', { name: 'Find team' }).click();
+    await parent.getByRole('button', { name: 'Join team' }).click();
+    await expect(parent).toHaveURL(new RegExp(`/join/${joinCode}$`));
     await expect(parent.getByRole('heading', { level: 1 })).toContainText(teamName);
     await parent.getByRole('switch', { name: 'Ava is my child' }).click();
     await parent.getByRole('button', { name: 'Request to join' }).click();

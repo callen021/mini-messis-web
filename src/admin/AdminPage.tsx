@@ -66,6 +66,15 @@ export function AdminPage() {
             })}
             {teamRows.length === 0 && <Row label="No teams yet." />}
           </Group>
+          <Group style={{ marginTop: 12 }}>
+            <Row
+              to="/create-team"
+              label="Create a team"
+              detail="Only platform admins can create teams"
+              link
+              chevron
+            />
+          </Group>
         </>
       ) : (
         <>
