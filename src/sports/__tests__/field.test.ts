@@ -10,6 +10,7 @@ import {
   place,
   placeFixed,
   proj,
+  widestRow,
 } from '../field';
 import { ALL_SPORTS } from '../types';
 
@@ -121,5 +122,23 @@ describe('constant-size jerseys in the 3D view (D37)', () => {
         }
       }
     }
+  });
+});
+
+describe('widestRow', () => {
+  it('counts the densest row of generated soccer and lacrosse shapes (the goalkeeper is a row of one)', () => {
+    const soccer = SPORTS.soccer.formations({ size: 7, gk: true });
+    expect(widestRow(soccer.find((f) => f.name === '3-3') as (typeof soccer)[number])).toBe(3);
+    expect(widestRow(soccer.find((f) => f.name === '2-3-1') as (typeof soccer)[number])).toBe(3);
+    const lax = SPORTS.lacrosse.formations({ size: 10, gk: true });
+    expect(widestRow(lax.find((f) => f.name === '3-3-3') as (typeof lax)[number])).toBe(3);
+  });
+
+  it('clusters hand-placed positions by y: baseball infield corners and middle infield are separate rows', () => {
+    const [std] = SPORTS.baseball.formations({ size: 9, gk: false });
+    expect(widestRow(std as NonNullable<typeof std>)).toBe(2);
+    const bk = SPORTS.basketball.formations({ size: 5, gk: false });
+    expect(widestRow(bk.find((f) => f.name === '1-3-1') as (typeof bk)[number])).toBe(3);
+    expect(widestRow({ positions: [] })).toBe(0);
   });
 });

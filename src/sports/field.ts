@@ -125,6 +125,24 @@ export function perspJerseyWidth(sport: SportKey, formation: Pick<Formation, 'w'
   return Math.max(formation.w || 22, 9) * PERSP_JERSEY_SCALE[sport];
 }
 
+/**
+ * Players in the widest row of a formation: positions whose field-y values sit within `tol` of
+ * their neighbour count as one row. Baseball's infield corners (y 56) and middle infield (y 43)
+ * are separate rows; soccer's generated rows share an exact y.
+ */
+export function widestRow(formation: Pick<Formation, 'positions'>, tol = 5): number {
+  const ys = formation.positions.map((p) => p.y).sort((a, b) => a - b);
+  let best = 0;
+  let run = 0;
+  let prev = Number.NEGATIVE_INFINITY;
+  for (const y of ys) {
+    run = y - prev <= tol ? run + 1 : 1;
+    prev = y;
+    if (run > best) best = run;
+  }
+  return best;
+}
+
 /** Goals, hoops and posts drawn as standing SVG overlays: [kind, x, y, width % of field]. */
 export type StandingKind = 'goal-far' | 'goal-near' | 'post' | 'hoop-far' | 'hoop-near';
 export type Standing = readonly [StandingKind, number, number, number];

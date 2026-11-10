@@ -13,6 +13,11 @@ export interface FieldStageProps {
   className?: string;
   /** Legacy behaviour for comparison: shrink jerseys with depth in the 3D view. */
   depthScale?: boolean;
+  /**
+   * Dev tuner: jersey width as a percent of the field (flat) or stage (3D), replacing the
+   * formation's `w` and the per-sport 3D factor for every slot.
+   */
+  jerseyWidth?: number;
 }
 
 /**
@@ -27,12 +32,13 @@ export function FieldStage({
   renderSlot,
   className,
   depthScale = false,
+  jerseyWidth,
 }: FieldStageProps) {
   const F = fieldImage(sport, view);
   const base = import.meta.env.BASE_URL;
-  const w = Math.max(formation.w || 22, 9);
+  const w = Math.max(jerseyWidth ?? (formation.w || 22), 9);
   const fixed = view === 'persp' && !depthScale;
-  const fixedW = perspJerseyWidth(sport, formation);
+  const fixedW = jerseyWidth ?? perspJerseyWidth(sport, formation);
   return (
     <div className="pitchwrap">
       <div className={cn('stage', sport, view === 'flat' && 'flat', className)}>

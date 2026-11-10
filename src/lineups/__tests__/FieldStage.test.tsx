@@ -45,6 +45,17 @@ describe('FieldStage', () => {
     expect(widths[0]).toBeLessThan(widths[gkIdx] as number);
   });
 
+  it('jerseyWidth (dev tuner) replaces the formation width in both views', () => {
+    const persp = render(
+      <FieldStage sport="soccer" view="persp" formation={f33} jerseyWidth={25.5} renderSlot={() => null} />,
+    );
+    expect(new Set(slotWidths(persp.container))).toEqual(new Set([25.5]));
+    const flat = render(
+      <FieldStage sport="soccer" view="flat" formation={f33} jerseyWidth={30} renderSlot={() => null} />,
+    );
+    expect(slotWidths(flat.container)[0]).toBeCloseTo(30 * fieldFrac(FIELDS.soccer.flat, 50), 5);
+  });
+
   it('flat view is unchanged: widths come from the formation and the affine field fraction', () => {
     const { container } = render(
       <FieldStage sport="soccer" view="flat" formation={f33} renderSlot={() => null} />,

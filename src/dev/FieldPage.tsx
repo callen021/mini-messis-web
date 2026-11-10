@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Footer, Group, Page, Row, Segmented, Select, Stepper, Switch, Tabbar } from '@/components';
 import { OpenPill } from '@/components/Badge';
@@ -8,9 +8,11 @@ import { useUIStore } from '@/lib/ui-store';
 import { FieldStage } from '@/lineups/FieldStage';
 import { Jersey, JerseyDefs } from '@/lineups/Jersey';
 import { ALL_SPORTS, SPORTS, defaultFormation, shortPeriod } from '@/sports/definitions';
-import { type FieldView } from '@/sports/field';
+import { type FieldView, widestRow } from '@/sports/field';
 import { autoFillAll, counts, emptyPeriod, samplePlan } from '@/sports/lineup';
 import { type EnginePlayer, type SportKey } from '@/sports/types';
+import { JerseyTuner } from './JerseyTuner';
+import { type TunerTable, loadTuner, saveTuner, tunerWidth } from './tunerModel';
 
 const TABS = [
   { to: '/dev/field', label: 'Field', icon: <FieldIcon /> },
@@ -39,6 +41,9 @@ export default function FieldPage() {
   const [showAll, setShowAll] = useState(true);
   const [depthScale, setDepthScale] = useState(false);
   const [pickedName, setPickedName] = useState<string>('');
+  const [tunerOn, setTunerOn] = useState(true);
+  const [tuner, setTuner] = useState<TunerTable>(loadTuner);
+  useEffect(() => saveTuner(tuner), [tuner]);
 
   const changeSport = (k: SportKey) => {
     setSport(k);
@@ -162,6 +167,9 @@ export default function FieldPage() {
             <Row label="Depth-scaled jerseys" detail="Legacy 3D look: jerseys shrink toward the far end">
               <Switch label="Depth-scaled jerseys" checked={depthScale} onChange={setDepthScale} />
             </Row>
+            <Row label="Jersey tuner" detail="Override every card's jersey width from the table below">
+              <Switch label="Jersey tuner" checked={tunerOn} onChange={setTunerOn} />
+            </Row>
             <Row label="Show every formation" detail={showAll ? undefined : 'Pick one below'}>
               <Switch label="Show every formation" checked={showAll} onChange={setShowAll} />
             </Row>
@@ -186,11 +194,23 @@ export default function FieldPage() {
             current constant size. <Link to="/dev/components">Components gallery →</Link>
           </Footer>
 
+          {tunerOn && (
+            <JerseyTuner
+              sport={sport}
+              table={tuner}
+              onChange={setTuner}
+              inUse={shown.map((f) => widestRow(f))}
+              onCopied={() => toast('Snippet copied')}
+            />
+          )}
+
           <div className="quarters" style={{ marginTop: 18 }}>
             {shown.map((f, idx) => {
               const q = plans[idx] ?? emptyPeriod(f);
               const c = counts([q], players);
               const openN = q.slots.filter((s) => !s).length;
+              const rowN = widestRow(f);
+              const tunedW = tunerOn ? tunerWidth(tuner, sport, rowN) : undefined;
               return (
                 <article key={f.name} className="qcard">
                   <div className="qhead">
@@ -215,6 +235,7 @@ export default function FieldPage() {
                     view={fieldView}
                     formation={f}
                     depthScale={depthScale}
+                    jerseyWidth={tunedW}
                     renderSlot={(i) => {
                       const pos = f.positions[i];
                       if (!pos) return null;
@@ -240,6 +261,10 @@ export default function FieldPage() {
                       );
                     }}
                   />
+                  <div className="footer" style={{ margin: 0, padding: '10px 16px 0', fontSize: 12 }}>
+                    Widest row {rowN} ·{' '}
+                    {tunedW !== undefined ? `jersey ${tunedW}% (tuner)` : `jersey w ${f.w}% (formation)`}
+                  </div>
                   <div className="bench">
                     {openN > 0 && <span className="opencount">{openN} open</span>}
                     <strong>Sitting out · {players.length - (f.positions.length - openN)}</strong>
