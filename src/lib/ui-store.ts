@@ -15,7 +15,8 @@ export const FIELD_VIEWS: readonly FieldView[] = ['persp', 'flat'];
  */
 export type TeamView = 'rotation' | 'roster';
 export type StatsView = 'game' | 'season' | 'skills';
-export type GamesView = 'schedule' | 'results';
+/** Schedule tab segment: everything coming up, or just games / just practices. */
+export type GamesView = 'all' | 'games' | 'practices';
 
 export interface UIState {
   theme: Theme;
@@ -27,7 +28,7 @@ export interface UIState {
   /** Stats tab segment. */
   statsView: StatsView;
   setStatsView: (statsView: StatsView) => void;
-  /** Games tab segment. */
+  /** Schedule tab segment. */
   gamesView: GamesView;
   setGamesView: (gamesView: GamesView) => void;
   setTheme: (theme: Theme) => void;
@@ -47,7 +48,7 @@ export const useUIStore = create<UIState>()(
       setTeamView: (teamView) => set({ teamView }),
       statsView: 'season',
       setStatsView: (statsView) => set({ statsView }),
-      gamesView: 'schedule',
+      gamesView: 'all',
       setGamesView: (gamesView) => set({ gamesView }),
       setTheme: (theme) => set({ theme }),
       setFieldView: (fieldView) => set({ fieldView }),
@@ -55,7 +56,13 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: UI_STORAGE_KEY,
-      version: 1,
+      version: 2,
+      // v1 remembered the old Games tab segments (schedule | results); both land on All.
+      migrate: (persisted, version) => {
+        const s = (persisted ?? {}) as Partial<UIState>;
+        if (version < 2) s.gamesView = 'all';
+        return s as UIState;
+      },
       partialize: (s) => ({
         theme: s.theme,
         fieldView: s.fieldView,

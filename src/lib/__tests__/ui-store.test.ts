@@ -10,7 +10,7 @@ describe('ui-store', () => {
       sport: 'soccer',
       teamView: 'rotation',
       statsView: 'season',
-      gamesView: 'schedule',
+      gamesView: 'all',
     });
   });
 
@@ -33,8 +33,18 @@ describe('ui-store', () => {
       sport: 'lacrosse',
       teamView: 'rotation',
       statsView: 'season',
-      gamesView: 'schedule',
+      gamesView: 'all',
     });
-    expect(parsed.version).toBe(1);
+    expect(parsed.version).toBe(2);
+  });
+
+  it('migrates the v1 Games segments (schedule | results) to All', async () => {
+    localStorage.setItem(
+      UI_STORAGE_KEY,
+      JSON.stringify({ state: { theme: 'dark', gamesView: 'results' }, version: 1 }),
+    );
+    await useUIStore.persist.rehydrate();
+    expect(useUIStore.getState().gamesView).toBe('all');
+    expect(useUIStore.getState().theme).toBe('dark');
   });
 });

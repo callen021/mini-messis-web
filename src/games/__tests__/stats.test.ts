@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { type ScoreEvent } from '../api';
 import {
+  completedGames,
   formatStat,
   gameResult,
   isEmptyRow,
@@ -35,6 +36,20 @@ const row = (over: Partial<PlayerStatRow>): PlayerStatRow => ({
   walks: 0,
   strikeouts: 0,
   ...over,
+});
+
+describe('completedGames', () => {
+  it('keeps only finished games, newest first, ties broken by creation time', () => {
+    const list = [
+      { id: 'a', status: 'done', game_date: '2026-10-01', created_at: '1' },
+      { id: 'live', status: 'live', game_date: '2026-11-09', created_at: '5' },
+      { id: 'b', status: 'done', game_date: '2026-10-20', created_at: '2' },
+      { id: 'up', status: 'upcoming', game_date: '2026-11-20', created_at: '6' },
+      { id: 'c', status: 'done', game_date: '2026-10-20', created_at: '3' },
+    ];
+    expect(completedGames(list).map((g) => g.id)).toEqual(['c', 'b', 'a']);
+    expect(completedGames([])).toEqual([]);
+  });
 });
 
 describe('team record', () => {

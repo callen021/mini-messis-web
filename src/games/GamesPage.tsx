@@ -1,13 +1,13 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
-import { Badge, Scoreline } from '@/components/Badge';
+import { Scoreline } from '@/components/Badge';
 import { Button, Toolbar } from '@/components/Button';
+import { PlusIcon } from '@/components/icons';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
 import { useActionSheet } from '@/components/Sheet';
-import { Tile, Tiles } from '@/components/Tile';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
 import { type GamesView, useUIStore } from '@/lib/ui-store';
@@ -25,26 +25,18 @@ import {
   useScoreEvents,
 } from './api';
 import { fmtDate, scheduleLine, todayISO } from './format';
+import { GameBadge } from './GameBadge';
 import { makeNameLookup } from './names';
 import { NewGameSheet } from './NewGameSheet';
 import { PracticeBadge } from './PracticePage';
 import { type Practice, useCreatePractices, usePractices } from './practices';
 import { PracticeSheet } from './PracticeSheet';
-import { mergeSchedule, pastPractices, practiceLine } from './recurrence';
+import { filterSchedule, mergeSchedule, practiceLine } from './recurrence';
 import { ScorePanel } from './ScorePanel';
 import { describeEvent, scoreNoun } from './scoring';
-import { gameResult, teamRecord } from './stats';
-
-/** Win / Loss / Draw / In progress / Upcoming badge. */
-export function GameBadge({ game }: { game: GameWithScore }) {
-  if (game.status === 'live') return <Badge status="live">In progress</Badge>;
-  if (game.status === 'upcoming') return <Badge status="upcoming">Upcoming</Badge>;
-  const r = gameResult(game);
-  return <Badge status="done">{r === 'W' ? 'Win' : r === 'L' ? 'Loss' : 'Draw'}</Badge>;
-}
 
 /** One practice line on the schedule: quieter than a game, struck through when cancelled. */
-export function PracticeRow({ practice: p, past }: { practice: Practice; past?: boolean }) {
+export function PracticeRow({ practice: p }: { practice: Practice }) {
   const cancelled = p.status === 'cancelled';
   return (
     <Row
@@ -53,7 +45,7 @@ export function PracticeRow({ practice: p, past }: { practice: Practice; past?: 
       label={<span className={cancelled ? 'strike' : undefined}>Practice</span>}
       detail={
         <>
-          {practiceLine(p, !past)}
+          {practiceLine(p, true)}
           {p.notes && !cancelled && (
             <>
               <br />
@@ -69,11 +61,17 @@ export function PracticeRow({ practice: p, past }: { practice: Practice; past?: 
   );
 }
 
+type AddChoice = 'game' | 'practice';
+
+/**
+ * The Schedule tab (/games): what is coming up, games and practices merged by date, with the live
+ * game pinned on top. Completed games live under Stats → Season.
+ */
 export function GamesPage() {
-  const { teamId, team, sport } = useCurrentTeam();
-  const S = SPORTS[sport];
+  const { teamId, team } = useCurrentTeam();
   const isStaff = useIsStaff();
   const toast = useToast();
+  const sheet = useActionSheet();
   const navigate = useNavigate();
   const view = useUIStore((s) => s.gamesView);
   const setView = useUIStore((s) => s.setGamesView);
@@ -88,12 +86,22 @@ export function GamesPage() {
   const list = games.data ?? [];
   const live = list.find((g) => g.status === 'live') ?? null;
   const today = todayISO();
-  const schedule = mergeSchedule(list, practices.data ?? [], today);
-  const earlier = pastPractices(practices.data ?? [], today);
-  const season = list.filter((g) => g.status !== 'upcoming');
-  const done = season.filter((g) => g.status === 'done');
-  const rec = teamRecord(done);
-  const unit = S.scoring.unitPlural;
+  const upcoming = mergeSchedule(list, practices.data ?? [], today);
+  const shown = filterSchedule(upcoming, view);
+  const gameCount = upcoming.filter((i) => i.kind === 'game').length;
+  const practiceCount = upcoming.length - gameCount;
+
+  const addFlow = async () => {
+    const choice = await sheet<AddChoice>({
+      title: 'Add to the schedule',
+      actions: [
+        { label: live ? 'Schedule another game' : 'New game', value: 'game' },
+        { label: 'New practice', value: 'practice' },
+      ],
+    });
+    if (choice === 'game') setCreating(true);
+    else if (choice === 'practice') setAddingPractice(true);
+  };
 
   const onCreate = (input: Parameters<typeof create.mutate>[0]) => {
     create.mutate(input, {
@@ -101,7 +109,7 @@ export function GamesPage() {
         setCreating(false);
         toast(input.start ? `Game on · vs ${g.opponent}` : 'Game scheduled');
         if (input.start) void navigate(`/games/${g.id}`);
-        else setView('schedule');
+        else if (view === 'practices') setView('all');
       },
       onError: (e) => toast(errorMessage(e)),
     });
@@ -111,136 +119,86 @@ export function GamesPage() {
       onSuccess: (n) => {
         setAddingPractice(false);
         toast(n === 1 ? 'Practice added' : `${n} practices added`);
-        setView('schedule');
+        if (view === 'games') setView('all');
       },
       onError: (e) => toast(errorMessage(e)),
     });
   };
 
+  const counts = [
+    gameCount ? `${gameCount} game${gameCount === 1 ? '' : 's'}` : '',
+    practiceCount ? `${practiceCount} practice${practiceCount === 1 ? '' : 's'}` : '',
+  ]
+    .filter(Boolean)
+    .join(' · ');
+  const empty =
+    view === 'games'
+      ? 'No upcoming games.'
+      : view === 'practices'
+        ? 'No upcoming practices.'
+        : isStaff
+          ? 'Nothing scheduled. Tap + to add a game or a practice.'
+          : 'Nothing scheduled yet. The coach adds games and practices here.';
+
   return (
     <Page
-      title="Games"
-      sub={
-        done.length
-          ? `${team.name} · ${rec.w}-${rec.l}-${rec.d} this season`
-          : `${team.name} · no completed games yet`
+      title="Schedule"
+      sub={counts ? `${team.name} · ${counts} coming up` : `${team.name} · nothing coming up`}
+      action={
+        isStaff ? (
+          <button type="button" className="hbtn noprint" aria-label="Add" onClick={() => void addFlow()}>
+            <PlusIcon />
+          </button>
+        ) : undefined
       }
     >
       {live && <LiveGameCard game={live} />}
-      {isStaff && (
-        <Toolbar className="mt-3">
-          <Button onClick={() => setCreating(true)}>{live ? 'Schedule another game' : 'New game'}</Button>
-          <Button variant="gray" onClick={() => setAddingPractice(true)}>
-            New practice
-          </Button>
-        </Toolbar>
-      )}
       <Segmented<GamesView>
         wide
-        label="Games view"
+        label="Schedule view"
         value={view}
         onChange={setView}
         options={[
-          { value: 'schedule', label: 'Schedule' },
-          { value: 'results', label: 'Results' },
+          { value: 'all', label: 'All' },
+          { value: 'games', label: 'Games' },
+          { value: 'practices', label: 'Practices' },
         ]}
+        className={live ? 'mt-3' : undefined}
       />
-      {view === 'schedule' ? (
-        <>
-          <Section>Coming up</Section>
-          <Group>
-            {schedule.map((item) =>
-              item.kind === 'game' ? (
-                <Row
-                  key={item.game.id}
-                  to={`/games/${item.game.id}`}
-                  label={`vs ${item.game.opponent}`}
-                  detail={
+      <Section>Coming up</Section>
+      <Group>
+        {shown.map((item) =>
+          item.kind === 'game' ? (
+            <Row
+              key={item.game.id}
+              to={`/games/${item.game.id}`}
+              label={`vs ${item.game.opponent}`}
+              detail={
+                <>
+                  {scheduleLine(item.game, true)}
+                  {item.game.parent_notes && (
                     <>
-                      {scheduleLine(item.game, true)}
-                      {item.game.parent_notes && (
-                        <>
-                          <br />
-                          {item.game.parent_notes}
-                        </>
-                      )}
+                      <br />
+                      {item.game.parent_notes}
                     </>
-                  }
-                  chevron
-                >
-                  <GameBadge game={item.game} />
-                </Row>
-              ) : (
-                <PracticeRow key={item.practice.id} practice={item.practice} />
-              ),
-            )}
-            {schedule.length === 0 && (
-              <Row
-                label={
-                  isStaff
-                    ? 'Nothing scheduled. Add a game or a practice above.'
-                    : 'Nothing scheduled yet. The coach adds games and practices here.'
-                }
-              />
-            )}
-          </Group>
-          {earlier.length > 0 && (
-            <>
-              <Section>Past practices</Section>
-              <Group>
-                {earlier.map((p) => (
-                  <PracticeRow key={p.id} practice={p} past />
-                ))}
-              </Group>
-            </>
-          )}
-          <Footer>
-            Games and practices are listed together by date. A cancelled practice stays crossed out so nobody
-            shows up to an empty field. Each game and practice has an Add to calendar link.
-          </Footer>
-        </>
-      ) : (
-        <>
-          <Tiles>
-            <Tile label="Played" value={rec.gp} />
-            <Tile label="Wins" value={rec.w} />
-            <Tile label="Losses" value={rec.l} />
-            <Tile label="Draws" value={rec.d} />
-            <Tile label={`${unit} for`} value={rec.gf} />
-            <Tile label="Against" value={rec.ga} />
-          </Tiles>
-          <Section>Season</Section>
-          <Group>
-            {season.map((g) => (
-              <Row
-                key={g.id}
-                to={`/games/${g.id}`}
-                className="gamerow"
-                label={`vs ${g.opponent}`}
-                detail={`${fmtDate(g.game_date)}${g.status === 'live' ? ' · in progress' : ''}`}
-                chevron
-              >
-                <Scoreline us={g.us} them={g.them} />
-                <GameBadge game={g} />
-              </Row>
-            ))}
-            {season.length === 0 && (
-              <Row
-                label={
-                  isStaff
-                    ? 'No games played yet. Tap New game when you’re ready to play.'
-                    : 'No games played yet. Results appear here after the first game.'
-                }
-              />
-            )}
-          </Group>
-          <Footer>
-            Record is counted from completed games only. Each game keeps its own copy of the{' '}
-            {S.periodName(team.periods_count).toLowerCase()} lineups, so later changes to your rotation never
-            alter a finished game.
-          </Footer>
-        </>
-      )}
+                  )}
+                </>
+              }
+              chevron
+            >
+              <GameBadge game={item.game} />
+            </Row>
+          ) : (
+            <PracticeRow key={item.practice.id} practice={item.practice} />
+          ),
+        )}
+        {shown.length === 0 && <Row label={empty} />}
+      </Group>
+      <Footer>
+        Games and practices are listed together by date. A cancelled practice stays crossed out so nobody
+        shows up to an empty field. Past games and the season record are under Stats → Season. Each game and
+        practice has an Add to calendar link.
+      </Footer>
       {isStaff && (
         <>
           <NewGameSheet

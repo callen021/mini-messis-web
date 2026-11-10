@@ -40,7 +40,7 @@ import {
 } from './api';
 import { EditScoreSheet } from './EditScoreSheet';
 import { fmtDate, fmtTime, HOME_AWAY_LABEL, scheduleLine } from './format';
-import { GameBadge } from './GamesPage';
+import { GameBadge } from './GameBadge';
 import { downloadIcs } from './ics';
 import { LineScore } from './LineScore';
 import { makeNameLookup, periodTag } from './names';
@@ -55,7 +55,7 @@ export function GamePage() {
   if (game.isPending) return <LoadingScreen />;
   if (!game.data) {
     return (
-      <Page title="Game" back={{ to: '/games', label: 'Games' }}>
+      <Page title="Game" back={{ to: '/games', label: 'Schedule' }}>
         <p className="sub">This game is no longer available.</p>
       </Page>
     );
@@ -251,7 +251,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
       title={`vs ${game.opponent}`}
       documentTitle={`vs ${game.opponent}`}
       sub={meta}
-      back={{ to: '/games', label: 'Games' }}
+      back={{ to: '/games', label: 'Schedule' }}
     >
       {!isUpcoming && <Scoreline big us={game.us} them={game.them} />}
       {isStaff && (

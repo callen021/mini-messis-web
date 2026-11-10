@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { type Practice } from '../practices';
 import {
   MAX_SERIES,
+  filterSchedule,
   mergeSchedule,
-  pastPractices,
   practiceLine,
   practiceMinutes,
   weekdayOf,
@@ -77,7 +77,20 @@ describe('schedule merge', () => {
     const items = mergeSchedule(games, practices, '2026-11-09');
     expect(items.some((i) => i.kind === 'practice' && i.practice.status === 'cancelled')).toBe(true);
     expect(items.some((i) => i.kind === 'game' && i.game.id === 'g2')).toBe(false);
-    expect(pastPractices(practices, '2026-11-09').map((p) => p.id)).toEqual(['p2']);
+    expect(items.some((i) => i.kind === 'practice' && i.practice.id === 'p2')).toBe(false);
+  });
+  it('the segment filter keeps order, and cancelled practices stay in All and Practices', () => {
+    const items = mergeSchedule(games, practices, '2026-11-09');
+    const ids = (list: typeof items) => list.map((i) => (i.kind === 'game' ? i.game.id : i.practice.id));
+    expect(ids(filterSchedule(items, 'all'))).toEqual(['p4', 'g3', 'p1', 'g1', 'p3']);
+    expect(ids(filterSchedule(items, 'games'))).toEqual(['g3', 'g1']);
+    expect(ids(filterSchedule(items, 'practices'))).toEqual(['p4', 'p1', 'p3']);
+    expect(
+      filterSchedule(items, 'practices').some(
+        (i) => i.kind === 'practice' && i.practice.status === 'cancelled',
+      ),
+    ).toBe(true);
+    expect(filterSchedule(items, 'all')).not.toBe(items);
   });
   it('today counts as upcoming', () => {
     expect(mergeSchedule([], [practice({ practice_date: '2026-11-11' })], '2026-11-11')).toHaveLength(1);

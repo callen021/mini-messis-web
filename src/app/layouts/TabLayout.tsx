@@ -16,7 +16,7 @@ export function TabLayout() {
     { to: '/field', label: S.field, icon: <FieldIcon /> },
     ...(S.lineup ? [{ to: '/lineup', label: 'Lineup', icon: <LineupIcon /> }] : []),
     { to: '/team', label: 'Team', icon: <TeamIcon /> },
-    { to: '/games', label: 'Games', icon: <GamesIcon /> },
+    { to: '/games', label: 'Schedule', icon: <GamesIcon /> },
     { to: '/stats', label: 'Stats', icon: <StatsIcon /> },
   ];
   return (

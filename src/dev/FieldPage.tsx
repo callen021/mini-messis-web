@@ -8,7 +8,7 @@ import { useUIStore } from '@/lib/ui-store';
 import { FieldStage } from '@/lineups/FieldStage';
 import { Jersey, JerseyDefs } from '@/lineups/Jersey';
 import { ALL_SPORTS, SPORTS, defaultFormation, shortPeriod } from '@/sports/definitions';
-import { type FieldView, widestRow } from '@/sports/field';
+import { type FieldView, JERSEY_W, jerseyWidth, widestRow } from '@/sports/field';
 import { autoFillAll, counts, emptyPeriod, samplePlan } from '@/sports/lineup';
 import { type EnginePlayer, type SportKey } from '@/sports/types';
 import { JerseyTuner } from './JerseyTuner';
@@ -17,7 +17,7 @@ import { type TunerTable, loadTuner, saveTuner, tunerWidth } from './tunerModel'
 const TABS = [
   { to: '/dev/field', label: 'Field', icon: <FieldIcon /> },
   { to: '/team', label: 'Team', icon: <TeamIcon /> },
-  { to: '/games', label: 'Games', icon: <GamesIcon /> },
+  { to: '/games', label: 'Schedule', icon: <GamesIcon /> },
   { to: '/stats', label: 'Stats', icon: <StatsIcon /> },
 ];
 
@@ -263,7 +263,11 @@ export default function FieldPage() {
                   />
                   <div className="footer" style={{ margin: 0, padding: '10px 16px 0', fontSize: 12 }}>
                     Widest row {rowN} ·{' '}
-                    {tunedW !== undefined ? `jersey ${tunedW}% (tuner)` : `jersey w ${f.w}% (formation)`}
+                    {tunedW !== undefined
+                      ? `jersey ${tunedW}% (tuner)`
+                      : JERSEY_W[sport]
+                        ? `jersey ${jerseyWidth(sport, f, fieldView)}% (JERSEY_W)`
+                        : `jersey w ${f.w}% (formation)`}
                   </div>
                   <div className="bench">
                     {openN > 0 && <span className="opencount">{openN} open</span>}

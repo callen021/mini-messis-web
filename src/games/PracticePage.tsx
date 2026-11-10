@@ -27,7 +27,7 @@ export function PracticePage() {
   if (practice.isPending) return <LoadingScreen />;
   if (!practice.data) {
     return (
-      <Page title="Practice" back={{ to: '/games', label: 'Games' }}>
+      <Page title="Practice" back={{ to: '/games', label: 'Schedule' }}>
         <p className="sub">This practice is no longer available.</p>
       </Page>
     );
@@ -88,7 +88,7 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
           {p.end_time ? ` – ${fmtTime(p.end_time)}` : ''} · {team.name} · <PracticeBadge practice={p} />
         </>
       }
-      back={{ to: '/games', label: 'Games' }}
+      back={{ to: '/games', label: 'Schedule' }}
     >
       <Section>Details</Section>
       <Group>

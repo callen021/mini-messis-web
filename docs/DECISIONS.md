@@ -315,12 +315,37 @@ read, `scheduled|cancelled`) with the games policies: active members read, coach
 update, and only a platform admin can delete a row. A coach "cancels" instead, and the row stays on
 the schedule struck through with a Cancelled badge, so a parent who saw it earlier learns it was
 called off rather than finding it gone. Audit columns (`created_by`, `updated_by`) are stamped by
-trigger; `team_id` and `season_id` cannot be moved after insert. The Games tab is split into
-**Schedule** (upcoming games and practices from today on, merged by date then start time, practices
-drawn quieter with a Practice badge, plus a Past practices group) and **Results** (season tiles and
-completed games, unchanged). A repeating practice is expanded on the client (weekday between two
+trigger; `team_id` and `season_id` cannot be moved after insert. Practices appear on the Schedule
+tab merged with upcoming games by date then start time, drawn quieter with a Practice badge (the
+tab's layout is D41). A repeating practice is expanded on the client (weekday between two
 dates, capped at 60 weeks, with a checkbox per date to skip) and inserted as independent rows: there
 is no series object, so editing or cancelling one never touches the others. Start time is nullable
 like a game's (an all-day .ics event); the .ics for a practice ends at `end_time` or an hour after the
 start. `scripts/strikers-practices-2026.sql` seeds the Strikers' winter dates idempotently from the
 SQL editor, matching the team by name and skipping existing (date, start time) pairs.
+
+### D41. The Games tab is the Schedule; results live under Stats
+
+The tab is labelled **Schedule** (same calendar icon, same `/games` and `/games/:id` routes, so
+links and the back button keep working). It shows only what is coming up: segments **All | Games |
+Practices**, All by default and merged by date then start time; the live-game card is pinned above
+the segments so it is on top whichever one is chosen. Cancelled practices stay in All and
+Practices (D40); past practices simply drop off. The New game / New practice buttons became one
+round "+" in the page header, shown to coach, assistant and admin only, that opens an action sheet
+with the two choices, so the list starts at the top of the screen and parents see no controls.
+Completed games moved to **Stats → Season** as a **Results** section between the team tiles and
+the player table: newest first with opponent, date, score and a W/L/D badge, tapping opens the
+game, three shown with a "See all results" row that expands the rest in place. The remembered
+segment (`gamesView`) was re-versioned: the old schedule | results values migrate to All.
+
+### D42. Jersey size is a per-sport table tuned by eye
+
+`JERSEY_W` in `src/sports/field.ts` gives a sport's jersey width by the player count of the
+formation's widest row (1–5; wider rows use the 5 value), as a percent of the field in the top-down
+view and of the stage in 3D. The numbers come from the dev field page's jersey tuner (/dev/field):
+tune, copy the snippet, paste it over the sport's entry. A sport without an entry keeps the D37
+rule (formation `w` × per-sport 3D factor), so sports are tuned one at a time. Soccer is tuned to
+22.5% for every row, which the coach preferred over the D37 "never touch" sizing: on a 375px phone
+far-end rows of three overlap by about a tenth of a jersey and rows of four or five by up to a
+third. The field test therefore only requires that tuned jerseys overlap a neighbour by less than
+half their width (enough to keep names readable), while untuned sports still must not touch.

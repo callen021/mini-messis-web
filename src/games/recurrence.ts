@@ -62,7 +62,7 @@ const byDateTime = (a: { date: string; time: string | null }, b: { date: string;
   a.date.localeCompare(b.date) || (a.time ?? '').localeCompare(b.time ?? '');
 
 /**
- * The Schedule segment: upcoming games and every practice dated today or later (cancelled ones
+ * The Schedule tab: upcoming games and every practice dated today or later (cancelled ones
  * included, so a parent who saw it still sees it), merged and sorted by date then start time.
  */
 export function mergeSchedule<G extends ScheduleGame>(
@@ -79,17 +79,16 @@ export function mergeSchedule<G extends ScheduleGame>(
   return items.sort(byDateTime);
 }
 
-/** Practices before today, newest first. */
-export function pastPractices(practices: readonly Practice[], today: string): Practice[] {
-  return practices
-    .filter((p) => p.practice_date < today)
-    .sort(
-      (a, b) =>
-        -byDateTime(
-          { date: a.practice_date, time: a.start_time },
-          { date: b.practice_date, time: b.start_time },
-        ),
-    );
+export type ScheduleFilter = 'all' | 'games' | 'practices';
+
+/** The All | Games | Practices segment applied to a merged schedule (order preserved). */
+export function filterSchedule<G extends ScheduleGame>(
+  items: readonly ScheduleItem<G>[],
+  filter: ScheduleFilter,
+): ScheduleItem<G>[] {
+  if (filter === 'all') return [...items];
+  const kind = filter === 'games' ? 'game' : 'practice';
+  return items.filter((i) => i.kind === kind);
 }
 
 /** "Wed, Nov 11, 2026 · 6:30 PM – 7:30 PM · Field 2" */

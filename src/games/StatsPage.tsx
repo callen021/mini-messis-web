@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { Link } from 'react-router';
 import { LoadingScreen } from '@/auth/guards';
-import { Footer, Group, Section } from '@/components/List';
+import { Scoreline } from '@/components/Badge';
+import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
 import { Tile, Tiles } from '@/components/Tile';
@@ -12,7 +14,11 @@ import { SkillsMatrix } from '@/skills/SkillsMatrix';
 import { usePlayers } from '@/teams/api';
 import { useGames, usePlayerStats } from './api';
 import { fmtDate } from './format';
-import { formatStat, signed, sortRows, teamRecord } from './stats';
+import { GameBadge } from './GameBadge';
+import { completedGames, formatStat, signed, sortRows, teamRecord } from './stats';
+
+/** Completed games shown on Stats → Season before "See all results". */
+export const RECENT_RESULTS = 3;
 
 export function StatsPage() {
   const { teamId, sport } = useCurrentTeam();
@@ -21,8 +27,11 @@ export function StatsPage() {
   const setView = useUIStore((s) => s.setStatsView);
   const games = useGames(teamId);
   const players = usePlayers(teamId);
+  const [allResults, setAllResults] = useState(false);
 
   const all = games.data ?? [];
+  const results = completedGames(all);
+  const shownResults = allResults ? results : results.slice(0, RECENT_RESULTS);
   // legacy seasonGames: live + done, oldest first
   const season = all
     .filter((g) => g.status !== 'upcoming')
@@ -80,6 +89,35 @@ export function StatsPage() {
             <Tile label="Against" value={rec.ga} />
             <Tile label="Diff" value={signed(rec.gf - rec.ga)} />
           </Tiles>
+          {view === 'season' && (
+            <>
+              <Section>Results</Section>
+              <Group>
+                {shownResults.map((g) => (
+                  <Row
+                    key={g.id}
+                    to={`/games/${g.id}`}
+                    label={`vs ${g.opponent}`}
+                    detail={fmtDate(g.game_date)}
+                    chevron
+                  >
+                    <Scoreline us={g.us} them={g.them} />
+                    <GameBadge game={g} />
+                  </Row>
+                ))}
+                {results.length === 0 && (
+                  <Row label="No completed games yet. Results appear here after the first game." />
+                )}
+                {results.length > shownResults.length && (
+                  <Row
+                    link
+                    label={`See all results (${results.length})`}
+                    onClick={() => setAllResults(true)}
+                  />
+                )}
+              </Group>
+            </>
+          )}
           <Section>Players</Section>
           <Group className="statscroll">
             <div className="prow stathead">

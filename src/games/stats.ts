@@ -39,6 +39,15 @@ export function teamRecord(list: readonly Scored[]): TeamRecord {
   return r;
 }
 
+/** Completed games, newest first (the Results list on Stats → Season). */
+export function completedGames<G extends { status: string; game_date: string; created_at: string }>(
+  list: readonly G[],
+): G[] {
+  return list
+    .filter((g) => g.status === 'done')
+    .sort((a, b) => b.game_date.localeCompare(a.game_date) || b.created_at.localeCompare(a.created_at));
+}
+
 /** "+3" / "0" / "-2". */
 export const signed = (n: number): string => (n > 0 ? `+${n}` : String(n));
 
