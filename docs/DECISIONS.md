@@ -392,3 +392,18 @@ anyway), and it kept the audit at 89 against the ≥ 95 bar. `touch-action: mani
 document gives the same protection (no double-tap zoom, panning and pinch zoom untouched), so the
 viewport tag is now the plain `width=device-width, initial-scale=1, viewport-fit=cover`. Inline
 links inside footnotes also get an 8px tap padding for the target-size audit.
+
+## 2026-11-10 — Parent-feedback round
+
+### D47. Auth errors are translated before a parent sees them
+
+Supabase Auth's messages are written for developers: "Signups not allowed for otp" is what a
+parent gets when they ask for a magic link with an email that has no account, and "Invalid login
+credentials" covers both a typo in the email and a wrong password. `src/auth/errors.ts` maps the
+error code (preferred) or message to one sentence and an optional follow-up action: no account →
+"We couldn't find an account for that email" with a **Create an account** button that carries the
+typed email to the sign-up form; wrong password → a reset link; 429 / `over_*_rate_limit` → "Too
+many attempts"; duplicate account, unconfirmed email, weak password and network failures each get
+their own line; anything unknown falls back to the raw message so nothing is hidden. The sign-in
+screen's "Create an account" is a full-width secondary button under the form rather than a
+footnote link, since for parents it is the second most common tap on that screen.

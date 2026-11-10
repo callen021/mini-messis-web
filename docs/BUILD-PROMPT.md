@@ -52,7 +52,7 @@ Realtime: when a coach changes a live game's lineup or score, every signed-in vi
 
 ## 3. Onboarding and membership flows
 
-1. **Sign up / sign in:** email + password via Supabase Auth, plus magic-link as an alternative. Email verification required. "Forgot password" flow. Session persists (PWA relaunch should not require re-login).
+1. **Sign up / sign in:** email + password via Supabase Auth, plus magic-link as an alternative. Email verification required. "Forgot password" flow. Session persists (PWA relaunch should not require re-login). (Raw Supabase Auth errors are mapped to plain messages with a follow-up button, e.g. no account → Create an account with the email carried across — D47.)
 2. **First run (no teams):** choose "I'm a coach — create a team" or "I'm a parent — I have a join code".
 3. **Create team:** name, sport (soccer, baseball, basketball, lacrosse — football exists in code but is disabled, exactly as `ENABLED_SPORTS` does today), defaults applied from the sport definition. Team gets a join code and a current season.
 4. **Join by code:** user enters the code → sees the team name and sport → chooses role requested (`parent` or `assistant`) → if parent, picks one or more children from the roster (first names + numbers; if the child isn't listed, a free-text "my child's name" field is stored on the request) → request goes to `pending`. User sees "Waiting for the coach to approve" and nothing else about the team.

@@ -1,11 +1,12 @@
 import { type FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { Button } from '@/components/Button';
 import { Field, TextInput } from '@/components/Form';
 import { Footer, Group } from '@/components/List';
 import { Page } from '@/components/Page';
 import { useToast } from '@/components/Toast';
 import { appUrl, errorMessage, supabase } from '@/lib/supabase';
+import { authErrorMessage } from '../errors';
 import { useAuth } from '../AuthProvider';
 import { LoadingScreen } from '../guards';
 
@@ -17,7 +18,8 @@ export function ResetPage() {
 }
 
 function RequestReset() {
-  const [email, setEmail] = useState('');
+  const location = useLocation();
+  const [email, setEmail] = useState((location.state as { email?: string } | null)?.email ?? '');
   const [busy, setBusy] = useState(false);
   const [sent, setSent] = useState(false);
   const [error, setError] = useState('');
@@ -29,7 +31,7 @@ function RequestReset() {
       redirectTo: appUrl('/reset'),
     });
     setBusy(false);
-    if (err) return setError(errorMessage(err));
+    if (err) return setError(authErrorMessage(err).message);
     setSent(true);
   };
   return (

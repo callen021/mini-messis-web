@@ -5,39 +5,37 @@ import { Field, TextInput } from '@/components/Form';
 import { Footer, Group } from '@/components/List';
 import { Page } from '@/components/Page';
 import { useToast } from '@/components/Toast';
-import { appUrl, errorMessage, supabase } from '@/lib/supabase';
+import { appUrl, supabase } from '@/lib/supabase';
+import { authErrorMessage, type FriendlyAuthError } from '../errors';
 
 export function SignInPage() {
   const navigate = useNavigate();
   const location = useLocation();
   const toast = useToast();
-  const from = (location.state as { from?: string } | null)?.from ?? '/';
-  const [email, setEmail] = useState('');
+  const state = location.state as { from?: string; email?: string } | null;
+  const from = state?.from ?? '/';
+  const [email, setEmail] = useState(state?.email ?? '');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState<'password' | 'magic' | null>(null);
-  const [error, setError] = useState('');
+  const [error, setError] = useState<FriendlyAuthError | null>(null);
 
   const signIn = async (e: FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError(null);
     setBusy('password');
     const { error: err } = await supabase.auth.signInWithPassword({ email: email.trim(), password });
     setBusy(null);
     if (err) {
-      setError(
-        /confirm/i.test(err.message)
-          ? 'Please verify your email first — check your inbox for the link.'
-          : err.message,
-      );
+      setError(authErrorMessage(err));
       return;
     }
     navigate(from, { replace: true });
   };
 
   const magicLink = async () => {
-    setError('');
+    setError(null);
     if (!email.trim()) {
-      setError('Enter your email to get a magic link.');
+      setError({ message: 'Enter your email to get a magic link.' });
       return;
     }
     setBusy('magic');
@@ -47,11 +45,13 @@ export function SignInPage() {
     });
     setBusy(null);
     if (err) {
-      setError(errorMessage(err));
+      setError(authErrorMessage(err));
       return;
     }
     toast('Magic link sent · check your email');
   };
+
+  const createAccount = () => navigate('/signup', { state: { email: email.trim(), from } });
 
   return (
     <Page title="Sign in" sub="Lineups, playing time and scores for your team">
@@ -79,8 +79,21 @@ export function SignInPage() {
           </Field>
           {error && (
             <p className="form-error" role="alert">
-              {error}
+              {error.message}
+              {error.action === 'reset' && (
+                <>
+                  {' '}
+                  <Link to="/reset" state={{ email: email.trim() }}>
+                    Reset password
+                  </Link>
+                </>
+              )}
             </p>
+          )}
+          {error?.action === 'signup' && (
+            <Button type="button" variant="tinted" onClick={createAccount}>
+              Create an account for {email.trim() || 'this email'}
+            </Button>
           )}
           <Button type="submit" disabled={busy !== null}>
             {busy === 'password' ? 'Signing in…' : 'Sign in'}
@@ -88,12 +101,17 @@ export function SignInPage() {
           <Button variant="tinted" onClick={magicLink} disabled={busy !== null}>
             {busy === 'magic' ? 'Sending…' : 'Email me a magic link'}
           </Button>
+          <Button variant="gray" onClick={createAccount} disabled={busy !== null}>
+            Create an account
+          </Button>
         </form>
       </Group>
       <Footer>
-        <Link to="/reset">Forgot your password?</Link>
+        <Link to="/reset" state={{ email: email.trim() }}>
+          Forgot your password?
+        </Link>
         <br />
-        New here? <Link to="/signup">Create an account</Link>
+        Parents: the coach’s invite link creates your account and joins the team in one step.
       </Footer>
     </Page>
   );

@@ -7,7 +7,7 @@ test.describe('app shell', () => {
     await expect(page.getByRole('heading', { level: 1, name: 'Sign in' })).toBeVisible();
     await expect(page.getByLabel('Email')).toBeVisible();
     await expect(page.getByRole('button', { name: 'Sign in' })).toBeVisible();
-    await page.getByRole('link', { name: 'Create an account' }).click();
+    await page.getByRole('button', { name: 'Create an account' }).click();
     await expect(page.getByRole('heading', { level: 1, name: 'Create account' })).toBeVisible();
     await page.goBack();
     await page.getByRole('link', { name: 'Forgot your password?' }).click();

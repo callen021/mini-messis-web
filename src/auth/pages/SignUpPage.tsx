@@ -1,15 +1,18 @@
 import { type FormEvent, useState } from 'react';
-import { Link, useNavigate } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { Button } from '@/components/Button';
 import { Field, TextInput } from '@/components/Form';
 import { Footer, Group } from '@/components/List';
 import { Page } from '@/components/Page';
 import { appUrl, supabase } from '@/lib/supabase';
+import { authErrorMessage } from '../errors';
 
 export function SignUpPage() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const state = location.state as { email?: string; from?: string } | null;
   const [name, setName] = useState('');
-  const [email, setEmail] = useState('');
+  const [email, setEmail] = useState(state?.email ?? '');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
@@ -26,7 +29,7 @@ export function SignUpPage() {
       options: { data: { display_name: name.trim() }, emailRedirectTo: appUrl('/verify') },
     });
     setBusy(false);
-    if (err) return setError(err.message);
+    if (err) return setError(authErrorMessage(err).message);
     // With email confirmation on there is no session yet; with it off we are signed in already.
     if (data.session) navigate('/', { replace: true });
     else navigate('/verify', { replace: true, state: { email: email.trim() } });
