@@ -54,7 +54,8 @@ function parseCsv(text) {
 
 const rows = parseCsv(fs.readFileSync(file, 'utf8'));
 const sb = createClient(env.VITE_SUPABASE_URL, env.VITE_SUPABASE_ANON_KEY);
-const password = await askHidden(`Password for ${email}: `);
+// MM_PASSWORD lets automation skip the prompt; nothing is ever written to disk or logged.
+const password = process.env.MM_PASSWORD || (await askHidden(`Password for ${email}: `));
 const { error: authErr } = await sb.auth.signInWithPassword({ email, password });
 if (authErr) {
   console.error('sign-in failed:', authErr.message);
