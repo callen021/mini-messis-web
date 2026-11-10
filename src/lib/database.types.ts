@@ -902,52 +902,55 @@ export type Database = {
       }
     }
     Functions: {
-      admin_list_teams: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          id: string
-          name: string
-          sport: Database["public"]["Enums"]["sport"]
-          owner_id: string
-          owner_name: string
-          owner_email: string
-          coaches: number
-          assistants: number
-          parents: number
-          pending: number
-          players: number
-          created_at: string
-          archived_at: string | null
-        }[]
-      }
-      admin_list_users: {
-        Args: Record<PropertyKey, never>
-        Returns: {
-          user_id: string
-          display_name: string
-          email: string
-          created_at: string
-          is_platform_admin: boolean
-          teams: Json
-        }[]
-      }
       admin_add_member: {
-        Args: { p_team_id: string; p_email: string; p_role: Database["public"]["Enums"]["member_role"] }
+        Args: {
+          p_email: string
+          p_role: Database["public"]["Enums"]["member_role"]
+          p_team_id: string
+        }
         Returns: string
       }
       admin_change_sport: {
         Args: {
-          p_team_id: string
-          p_sport: Database["public"]["Enums"]["sport"]
-          p_side_size: number
+          p_colors: Json
           p_has_gk: boolean
           p_periods_count: number
-          p_colors: Json
+          p_side_size: number
+          p_sport: Database["public"]["Enums"]["sport"]
+          p_team_id: string
           p_template: Json
         }
         Returns: undefined
       }
-      is_platform_admin: { Args: Record<PropertyKey, never>; Returns: boolean }
+      admin_list_teams: {
+        Args: never
+        Returns: {
+          archived_at: string
+          assistants: number
+          coaches: number
+          created_at: string
+          id: string
+          name: string
+          owner_email: string
+          owner_id: string
+          owner_name: string
+          parents: number
+          pending: number
+          players: number
+          sport: Database["public"]["Enums"]["sport"]
+        }[]
+      }
+      admin_list_users: {
+        Args: never
+        Returns: {
+          created_at: string
+          display_name: string
+          email: string
+          is_platform_admin: boolean
+          teams: Json
+          user_id: string
+        }[]
+      }
       approve_guardian_link: {
         Args: { p_approve?: boolean; p_link_id: string }
         Returns: undefined
@@ -983,6 +986,10 @@ export type Database = {
         Returns: string
       }
       decline_member: { Args: { p_member_id: string }; Returns: undefined }
+      default_skill_tests: {
+        Args: { p_sport: Database["public"]["Enums"]["sport"] }
+        Returns: Json
+      }
       email_confirmed: { Args: { p_user_id: string }; Returns: boolean }
       finish_game: { Args: { p_game_id: string }; Returns: undefined }
       generate_join_code: { Args: never; Returns: string }
@@ -994,6 +1001,7 @@ export type Database = {
       is_coach: { Args: { p_team_id: string }; Returns: boolean }
       is_guardian_of: { Args: { p_player_id: string }; Returns: boolean }
       is_owner: { Args: { p_team_id: string }; Returns: boolean }
+      is_platform_admin: { Args: never; Returns: boolean }
       is_staff: { Args: { p_team_id: string }; Returns: boolean }
       list_team_members: {
         Args: { p_team_id: string }
@@ -1075,7 +1083,7 @@ export type Database = {
         Returns: Json
       }
       restore_skill_tests: {
-        Args: { p_team_id: string; p_tests: Json }
+        Args: { p_team_id: string; p_tests?: Json }
         Returns: number
       }
       rotate_join_code: { Args: { p_team_id: string }; Returns: string }
