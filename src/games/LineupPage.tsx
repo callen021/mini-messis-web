@@ -18,8 +18,12 @@ import { batterPointers, battingOrder, paResultLabel } from './batting';
 import { makeNameLookup } from './names';
 import { PlateAppearanceSheet } from './PlateAppearanceSheet';
 
-/** Baseball batting order (legacy Lineup tab): locked list, tap when batted, optional result entry. */
-export function LineupPage() {
+/**
+ * Baseball batting order (legacy Lineup tab): locked list, tap when batted, optional result entry.
+ * `embedded` renders it without its own page chrome, as the Batting order segment of a parent's
+ * Diamond tab (D53).
+ */
+export function LineupPage({ embedded = false }: { embedded?: boolean }) {
   const { teamId, team, sport } = useCurrentTeam();
   const isStaff = useIsStaff();
   const toast = useToast();
@@ -68,8 +72,8 @@ export function LineupPage() {
     }
   };
 
-  return (
-    <Page title="Batting order" sub={sub}>
+  const body = (
+    <>
       {isStaff && (
         <Toolbar className="noprint">
           <Button variant="tinted" onClick={() => void navigate('/lineup/order')}>
@@ -126,6 +130,19 @@ export function LineupPage() {
           inningCount={plan.periods.length}
         />
       )}
+    </>
+  );
+  if (embedded) {
+    return (
+      <>
+        <p className="sub">{sub}</p>
+        {body}
+      </>
+    );
+  }
+  return (
+    <Page title="Batting order" sub={sub}>
+      {body}
     </Page>
   );
 }

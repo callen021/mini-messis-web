@@ -71,6 +71,12 @@ export const PlusIcon = (p: IconProps) => (
     <path d="M12 5v14M5 12h14" />
   </Svg>
 );
+/** The parent home tab (their child). */
+export const StarIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 3.5l2.6 5.6 6.1.7-4.5 4.2 1.2 6-5.4-3-5.4 3 1.2-6L3.3 9.8l6.1-.7z" />
+  </Svg>
+);
 /** Turn-right arrow in a diamond: the Directions link on schedule rows and detail pages. */
 export const DirectionsIcon = (p: IconProps) => (
   <Svg {...p}>

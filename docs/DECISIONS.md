@@ -484,3 +484,16 @@ to exactly those people, editable by both staff and the child's own guardians (a
 own child's size and contacts current; the coach can fix anything). Contacts are plain rows rather
 than links to accounts because most emergency contacts are not app users; "This is me" sets the
 optional `user_id` when they are.
+
+### D53. Parents land on their child's tab
+
+A parent's first tab is their child's first name ("My players" with a segmented switcher when they
+have more than one; "Home" until a link is approved) at `/home`, and "/" sends parents there and
+staff to the field. The page is the parent's whole evening in one scroll: the next game or practice
+with a live countdown (ticks every 30 s), place, Directions and Add to calendar; the child's
+position per period from the current plan with the full position name under each chip (or that the
+coach has not set a lineup / has not placed them yet); the four season tiles; the skills bests with
+sparklines (`SkillsBests`, now shared with the player page); and the Details section from D52,
+editable. Coaches never see this tab. Five tabs is the limit at phone width, so when a parent's
+sport has a Lineup tab (baseball) it is folded into the Field tab as a "Diamond | Batting order"
+segment for parents only; `tabsFor()` in the tab layout is where that rule lives and is unit tested.

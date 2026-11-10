@@ -2112,3 +2112,40 @@ select.input {
   font-size: 14px;
   color: var(--text2);
 }
+
+/* parent home (D53) */
+.homecard .countdown {
+  font-weight: 500;
+  color: var(--tint);
+  font-size: 14px;
+  margin-left: 4px;
+}
+.homecard .row .lbl small .when {
+  margin-top: 2px;
+}
+.homepos .qchips {
+  gap: 10px;
+}
+.homepos .qname {
+  font-size: 10px;
+  color: var(--text2);
+  max-width: 64px;
+  text-align: center;
+  line-height: 1.1;
+}
+a.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+}
+a.btn svg {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.mb-3 {
+  margin-bottom: 12px;
+}

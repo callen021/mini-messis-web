@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
+import { createBrowserRouter, type RouteObject } from 'react-router';
 import { AuthRoot } from '@/auth/AuthProvider';
 import { PublicOnly, RequireAuth } from '@/auth/guards';
 import { AdminLayout } from '@/admin/AdminLayout';
@@ -23,6 +23,7 @@ import { PracticePage } from '@/games/PracticePage';
 import { GamesPage } from '@/games/GamesPage';
 import { LineupPage } from '@/games/LineupPage';
 import { StatsPage } from '@/games/StatsPage';
+import { HomePage } from '@/home/HomePage';
 import { FieldPage } from '@/lineups/FieldPage';
 import { PlayerPage } from '@/skills/PlayerPage';
 import { SkillsSettingsPage } from '@/skills/SkillsSettingsPage';
@@ -33,6 +34,7 @@ import { AuthLayout } from './layouts/AuthLayout';
 import { TabLayout } from './layouts/TabLayout';
 import { NotFound } from './pages/NotFound';
 import { RouteError } from './pages/RouteError';
+import { LandingRedirect } from './pages/LandingRedirect';
 import { TabError } from './pages/TabError';
 
 const base = import.meta.env.BASE_URL.replace(/\/+$/, '');
@@ -124,7 +126,8 @@ export const routes: RouteObject[] = [
                     // a page that throws shows TabError inside the shell; the tab bar keeps working
                     errorElement: <TabError />,
                     children: [
-                      { index: true, element: <Navigate to="/field" replace /> },
+                      { index: true, element: <LandingRedirect /> },
+                      { path: '/home', element: <HomePage /> },
                       { path: '/field', element: <FieldPage /> },
                       { path: '/lineup', element: <LineupPage /> },
                       { path: '/lineup/order', element: <BattingOrderPage /> },

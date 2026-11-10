@@ -168,8 +168,22 @@ test.describe('coach and parent flows', () => {
     await expect(sheet).toBeHidden();
     // the member row (a button for coaches) now carries the Parent badge
     await expect(coach.getByRole('button', { name: /Parent Pat/ })).toContainText('Parent');
-    // Realtime on the parent's own membership row flips the pending page into the app.
-    await expect(parent).toHaveURL(/\/field$/, { timeout: 15_000 });
+    // Realtime on the parent's own membership row flips the pending page into the app, on
+    // the child's tab (D53).
+    await expect(parent).toHaveURL(/\/home$/, { timeout: 15_000 });
+  });
+
+  test("the parent's first tab is their child: next event, positions, season, skills, details", async () => {
+    const nav = parent.getByRole('navigation', { name: 'Main' });
+    await expect(nav.getByRole('link', { name: 'Ava' })).toBeVisible();
+    await expect(nav.getByRole('link')).toHaveCount(6); // Ava, Field, Team, Schedule, Stats + gear
+    await expect(parent.getByRole('heading', { level: 1, name: 'Ava' })).toBeVisible();
+    await expect(parent.getByText('Next up')).toBeVisible();
+    await expect(parent.getByRole('link', { name: /vs Tigers/ })).toBeVisible();
+    await expect(parent.getByText('Ava in the next game')).toBeVisible();
+    await expect(parent.getByText('Personal bests', { exact: false })).toBeVisible();
+    await expect(parent.getByLabel('Shirt size')).toBeVisible(); // a guardian may edit details
+    await expect(parent.getByRole('link', { name: 'Whole team rotation' })).toBeVisible();
   });
 
   test('parent sees the schedule but no coach controls', async () => {

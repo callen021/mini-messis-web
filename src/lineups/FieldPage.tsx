@@ -6,7 +6,9 @@ import { EditableTitle } from '@/components/EditableTitle';
 import { Footer } from '@/components/List';
 import { useActionSheet } from '@/components/Sheet';
 import { useToast } from '@/components/Toast';
+import { Segmented } from '@/components/Segmented';
 import { useAddScoreEvent, useCreateGame, useDeleteScoreEvent, useScoreEvents } from '@/games/api';
+import { LineupPage } from '@/games/LineupPage';
 import { makeNameLookup } from '@/games/names';
 import { NewGameSheet } from '@/games/NewGameSheet';
 import { ScorePanel } from '@/games/ScorePanel';
@@ -61,6 +63,10 @@ export function FieldPage() {
   const createGame = useCreateGame(teamId);
   const [scoring, setScoring] = useState<number | null>(null);
   const [starting, setStarting] = useState<number | null>(null);
+  // Parents of a baseball team have no Lineup tab (their child's tab takes the slot, D53):
+  // the batting order is a segment here instead.
+  const foldLineup = !isStaff && !!S.lineup;
+  const [fieldTab, setFieldTab] = useState<'field' | 'lineup'>('field');
 
   const allPlayers = useMemo(() => players.data ?? [], [players.data]);
   const enginePlayers = useMemo(() => toEnginePlayers(allPlayers), [allPlayers]);
@@ -214,113 +220,132 @@ export function FieldPage() {
           </span>
         )}
       </p>
-      <div className="quarters">
-        {periods.map((q, i) => (
-          <PeriodCard
-            key={i}
-            sport={sport}
-            S={S}
-            view={view}
-            title={shortPeriod(S, N, i)}
-            periodIndex={i}
-            period={q}
-            formation={formationFor(q.formation)}
-            forms={forms}
-            players={allPlayers}
-            activePlayers={activePlayers}
-            colors={colors}
-            counts={c}
-            periodNoun={noun}
-            canEdit={isStaff}
-            highlight={highlight}
-            onFormationChange={(name) => onFormationChange(i, name)}
-            onAssign={(slot, pid) => onAssign(i, slot, pid)}
-            onAutoFill={() => onAutoFill(i, false)}
-            onRedo={() => onAutoFill(i, true)}
-            headerExtra={scoreButton(i)}
-          />
-        ))}
-      </div>
-      {isStaff && plan.liveGame && (
-        <ScorePanel
-          open={scoring !== null}
-          onClose={() => setScoring(null)}
-          S={S}
-          opponent={plan.liveGame.opponent}
-          periodCount={N || 1}
-          initialPeriod={scoring ?? 0}
-          players={activePlayers}
-          names={names}
-          events={log}
-          onAdd={(ev) => {
-            addEvent.mutate(ev, { onError: (e) => toast(errorMessage(e)) });
-            toast(
-              ev.side === 'them'
-                ? `${plan.liveGame?.opponent ?? 'Opponent'} scored · ${S.periodName(N)} ${ev.period_index + 1}`
-                : `${firstKind?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'} · ${S.periodName(N)} ${ev.period_index + 1}`,
-            );
-          }}
-          onUndo={(ev) => {
-            deleteEvent.mutate(ev.id, { onError: (e) => toast(errorMessage(e)) });
-            toast(`Removed · ${describeEvent(S, N || 1, plan.liveGame?.opponent ?? '', ev, names)}`);
-          }}
+      {foldLineup && (
+        <Segmented<'field' | 'lineup'>
+          wide
+          label={`${S.field} view`}
+          value={fieldTab}
+          onChange={setFieldTab}
+          options={[
+            { value: 'field', label: S.field },
+            { value: 'lineup', label: 'Batting order' },
+          ]}
+          className="mb-3"
         />
       )}
-      {isStaff && !plan.liveGame && (
-        <NewGameSheet
-          open={starting !== null}
-          onClose={() => setStarting(null)}
-          liveExists={false}
-          startOnly
-          busy={createGame.isPending}
-          onSubmit={(input) =>
-            createGame.mutate(
-              { ...input, start: true },
-              {
-                onSuccess: (g) => {
-                  setStarting(null);
-                  toast(`Game on · vs ${g.opponent}`);
-                  void navigate('/field');
-                },
-                onError: (e) => toast(errorMessage(e)),
-              },
-            )
-          }
-        />
-      )}
-      {periods.length === 0 && <Footer>No periods yet — check the team setup in Settings.</Footer>}
-      {isStaff ? (
-        <>
-          <Footer className="noprint" style={{ marginTop: 14 }}>
-            Pick a few jerseys yourself, then tap Auto-fill: the open ones go to the players who have played
-            the least so far, with a turn in each position group when it can. A dot on the jersey marks an
-            auto pick; your own picks are never moved. Picking a player who is already {S.unit} moves them to
-            the new jersey and opens up their old one.
-          </Footer>
-          <Toolbar sticky className="mt-3">
-            <Button variant="tinted" onClick={onAutoAll}>
-              Auto-fill
-            </Button>
-            <Button variant="gray" onClick={onClear}>
-              Clear
-            </Button>
-            <Button variant="gray" onClick={() => window.print()}>
-              Print
-            </Button>
-          </Toolbar>
-        </>
+      {foldLineup && fieldTab === 'lineup' ? (
+        <LineupPage embedded />
       ) : (
         <>
-          <Footer className="noprint" style={{ marginTop: 14 }}>
-            {highlight.size
-              ? 'Your child’s jersey is outlined. Lineups update live while the coach edits them.'
-              : 'Lineups update live while the coach edits them.'}
-          </Footer>
-          <Toolbar className="noprint mt-3">
-            <Button variant="gray" onClick={() => window.print()}>
-              Print
-            </Button>
-          </Toolbar>
+          <div className="quarters">
+            {periods.map((q, i) => (
+              <PeriodCard
+                key={i}
+                sport={sport}
+                S={S}
+                view={view}
+                title={shortPeriod(S, N, i)}
+                periodIndex={i}
+                period={q}
+                formation={formationFor(q.formation)}
+                forms={forms}
+                players={allPlayers}
+                activePlayers={activePlayers}
+                colors={colors}
+                counts={c}
+                periodNoun={noun}
+                canEdit={isStaff}
+                highlight={highlight}
+                onFormationChange={(name) => onFormationChange(i, name)}
+                onAssign={(slot, pid) => onAssign(i, slot, pid)}
+                onAutoFill={() => onAutoFill(i, false)}
+                onRedo={() => onAutoFill(i, true)}
+                headerExtra={scoreButton(i)}
+              />
+            ))}
+          </div>
+          {isStaff && plan.liveGame && (
+            <ScorePanel
+              open={scoring !== null}
+              onClose={() => setScoring(null)}
+              S={S}
+              opponent={plan.liveGame.opponent}
+              periodCount={N || 1}
+              initialPeriod={scoring ?? 0}
+              players={activePlayers}
+              names={names}
+              events={log}
+              onAdd={(ev) => {
+                addEvent.mutate(ev, { onError: (e) => toast(errorMessage(e)) });
+                toast(
+                  ev.side === 'them'
+                    ? `${plan.liveGame?.opponent ?? 'Opponent'} scored · ${S.periodName(N)} ${ev.period_index + 1}`
+                    : `${firstKind?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'} · ${S.periodName(N)} ${ev.period_index + 1}`,
+                );
+              }}
+              onUndo={(ev) => {
+                deleteEvent.mutate(ev.id, { onError: (e) => toast(errorMessage(e)) });
+                toast(`Removed · ${describeEvent(S, N || 1, plan.liveGame?.opponent ?? '', ev, names)}`);
+              }}
+            />
+          )}
+          {isStaff && !plan.liveGame && (
+            <NewGameSheet
+              open={starting !== null}
+              onClose={() => setStarting(null)}
+              liveExists={false}
+              startOnly
+              busy={createGame.isPending}
+              onSubmit={(input) =>
+                createGame.mutate(
+                  { ...input, start: true },
+                  {
+                    onSuccess: (g) => {
+                      setStarting(null);
+                      toast(`Game on · vs ${g.opponent}`);
+                      void navigate('/field');
+                    },
+                    onError: (e) => toast(errorMessage(e)),
+                  },
+                )
+              }
+            />
+          )}
+          {periods.length === 0 && <Footer>No periods yet — check the team setup in Settings.</Footer>}
+          {isStaff ? (
+            <>
+              <Footer className="noprint" style={{ marginTop: 14 }}>
+                Pick a few jerseys yourself, then tap Auto-fill: the open ones go to the players who have
+                played the least so far, with a turn in each position group when it can. A dot on the jersey
+                marks an auto pick; your own picks are never moved. Picking a player who is already {S.unit}{' '}
+                moves them to the new jersey and opens up their old one.
+              </Footer>
+              <Toolbar sticky className="mt-3">
+                <Button variant="tinted" onClick={onAutoAll}>
+                  Auto-fill
+                </Button>
+                <Button variant="gray" onClick={onClear}>
+                  Clear
+                </Button>
+                <Button variant="gray" onClick={() => window.print()}>
+                  Print
+                </Button>
+              </Toolbar>
+            </>
+          ) : (
+            <>
+              <Footer className="noprint" style={{ marginTop: 14 }}>
+                {highlight.size
+                  ? 'Your child’s jersey is outlined. Lineups update live while the coach edits them.'
+                  : 'Lineups update live while the coach edits them.'}
+              </Footer>
+              <Toolbar className="noprint mt-3">
+                <Button variant="gray" onClick={() => window.print()}>
+                  Print
+                </Button>
+              </Toolbar>
+            </>
+          )}
         </>
       )}
     </section>
