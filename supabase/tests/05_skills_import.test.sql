@@ -1,7 +1,7 @@
 -- Phase 6/7: skills tests (attempts lock, order, restore), stats games_played, legacy import (pgTAP).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(20);
+select plan(24);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -58,6 +58,15 @@ select is(public.restore_skill_tests((select v from ctx where k = 'team'),
   '[{"key":"juggling","name":"Juggling","metric":"count"},{"key":"sprint","name":"Sprint speed","metric":"time_seconds","higher_is_better":false},{"key":"passing","name":"Passing accuracy","metric":"made_of_attempted"}]'::jsonb), 2, 'restore re-adds the deleted test and un-hides the hidden one');
 select is((select is_active from public.skill_tests where id = (select v from ctx where k = 'juggling')), true, 'juggling shown again');
 select is((select name from public.skill_tests where id = (select v from ctx where k = 'juggling')), 'Juggles', 'restore does not overwrite edits');
+
+-- defaults seeded server-side: empty list on create_team, restore with no payload, sport sets
+insert into ctx select 'team2', public.create_team('Backfill FC', 'baseball', 6, false, 1, '{}'::jsonb,
+  '[{"formation_name":"6","slots":[{"position_role":"P","position_code":"P"}]}]'::jsonb, '[]'::jsonb);
+select is((select count(*)::int from public.skill_tests where team_id = (select v from ctx where k = 'team2')), 6, 'create_team with an empty list seeds the sport defaults');
+select is((select attempts from public.skill_tests where team_id = (select v from ctx where k = 'team2') and key = 'throwacc'), 10, 'seeded attempts come from the SQL defaults');
+delete from public.skill_tests where team_id = (select v from ctx where k = 'team2');
+select is(public.restore_skill_tests((select v from ctx where k = 'team2')), 6, 'restore with no payload seeds a team with zero tests');
+select is((select jsonb_array_length(public.default_skill_tests('lacrosse'))), 5, 'lacrosse default set has five tests incl. sprint');
 
 -- legacy import (replace) : players, template, one finished game with goals
 select lives_ok($$select public.import_legacy_backup((select v from ctx where k = 'team'), '{

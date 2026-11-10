@@ -4,11 +4,11 @@ import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { ChevronDownIcon, ChevronUpIcon, PlusIcon } from '@/components/icons';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
-import { Sheet, SheetButton, SheetGroup, SheetHeader, useActionSheet } from '@/components/Sheet';
+import { useActionSheet } from '@/components/Sheet';
 import { Switch } from '@/components/Switch';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
-import { ENABLED_SPORTS, SPORTS } from '@/sports/definitions';
+import { SPORTS } from '@/sports/definitions';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import {
@@ -20,13 +20,7 @@ import {
   useSkillTests,
   useUpdateSkillTest,
 } from './api';
-import {
-  DEFAULT_SKILL_TESTS,
-  type DefaultSkillTest,
-  defaultFor,
-  metricLabel,
-  type SkillTest,
-} from './defaults';
+import { DEFAULT_SKILL_TESTS, defaultFor, metricLabel, type SkillTest } from './defaults';
 import { EditTestSheet } from './EditTestSheet';
 
 /** Settings → Skills tests: show/hide, reorder, edit, add custom, add from library, restore defaults. */
@@ -46,7 +40,6 @@ export function SkillsSettingsPage() {
   const reorder = useReorderSkillTests(teamId);
   const restore = useRestoreSkillTests(teamId, sport);
   const [editing, setEditing] = useState<SkillTest | null | 'new'>(null);
-  const [library, setLibrary] = useState(false);
 
   if (!isStaff) return <Navigate to="/settings" replace />;
   if (tests.isPending) return <LoadingScreen />;
@@ -85,14 +78,6 @@ export function SkillsSettingsPage() {
       remove.mutate(t.id, { onError });
       toast(`${t.name} deleted`);
     }
-  };
-  const addFromLibrary = (d: DefaultSkillTest, from: string) => {
-    const { draft: _d, ...input } = d;
-    add.mutate(
-      { ...input, unit: input.unit ?? null },
-      { onError, onSuccess: () => toast(`${d.name} added from ${from}`) },
-    );
-    setLibrary(false);
   };
 
   const testRow = (t: SkillTest, i: number, list: SkillTest[]) => {
@@ -171,14 +156,6 @@ export function SkillsSettingsPage() {
           chevron
           onClick={() => setEditing('new')}
         />
-        <Row
-          icon="📚"
-          label="Add from library"
-          detail="Tests from other sports’ default sets"
-          link
-          chevron
-          onClick={() => setLibrary(true)}
-        />
         {restorable && (
           <Row
             icon="↺"
@@ -218,40 +195,6 @@ export function SkillsSettingsPage() {
         }}
         onDelete={() => editing && editing !== 'new' && void deleteTest(editing)}
       />
-      <Sheet open={library} onClose={() => setLibrary(false)} label="Add from library">
-        <SheetGroup>
-          <SheetHeader
-            title="Add from library"
-            message="Default tests from the other sports. Added tests become this team’s own copy to edit."
-          />
-        </SheetGroup>
-        {ENABLED_SPORTS.filter((k) => k !== sport).map((k) => {
-          const avail = DEFAULT_SKILL_TESTS[k].filter((d) => !all.some((t) => t.key === d.key));
-          if (!avail.length) return null;
-          return (
-            <SheetGroup key={k}>
-              <SheetHeader message={`${SPORTS[k].emoji} ${SPORTS[k].name}`} />
-              {avail.map((d) => (
-                <SheetButton key={d.key} onClick={() => addFromLibrary(d, SPORTS[k].name)}>
-                  {d.name} ·{' '}
-                  {metricLabel({
-                    ...d,
-                    unit: d.unit ?? null,
-                    attempts: d.attempts ?? 5,
-                    has_sides: d.has_sides ?? false,
-                    higher_is_better: d.higher_is_better ?? true,
-                  })}
-                </SheetButton>
-              ))}
-            </SheetGroup>
-          );
-        })}
-        <SheetGroup>
-          <SheetButton cancel onClick={() => setLibrary(false)} initialFocus>
-            Cancel
-          </SheetButton>
-        </SheetGroup>
-      </Sheet>
     </Page>
   );
 }

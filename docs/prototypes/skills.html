@@ -241,7 +241,6 @@ h1.large{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px}
         <div class="group" id="testHidden"></div>
         <div class="group" style="margin-top:12px">
           <button class="row btn" id="addTest"><span class="icon" style="background:var(--tint)"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg></span><span class="lbl">Add a custom test</span><span class="chev"></span></button>
-          <button class="row btn" id="addLib"><span class="icon" style="background:var(--blue)"><svg viewBox="0 0 24 24"><path d="M4 19V5a2 2 0 0 1 2-2h12v16H6a2 2 0 0 0-2 2zM4 19a2 2 0 0 0 2 2h12"/></svg></span><span class="lbl">Add from library<small>Tests from other sports' default sets</small></span><span class="chev"></span></button>
           <button class="row btn" id="restore"><span class="icon" style="background:var(--orange)"><svg viewBox="0 0 24 24"><path d="M20.5 12a8.5 8.5 0 1 1-2.5-6"/><path d="M20.5 3v5h-5"/></svg></span><span class="lbl">Restore defaults<small>Bring back any hidden default test</small></span></button>
         </div>
         <p class="footer">Tap a test to edit it. The order here is the order on every player page and on the Stats table. Hidden tests keep their history. A test with results can be hidden but not deleted.</p>
@@ -273,11 +272,11 @@ h1.large{font-size:30px;font-weight:800;letter-spacing:-.02em;margin:4px 0 2px}
         <li>On <b>Stats</b>, tap the <b>Skills</b> segment: every player's personal best per test, with an arrow when the latest result beat or missed the one before. Swipe the table sideways.</li>
         <li>Tap <b>Nolan</b> (there or on the Roster): the four season tiles, guardians (coach view only) and the Skills list with trend lines. Playing time is gone from this page.</li>
         <li>Tap <b>Juggling</b> for the history, then <b>Record a result</b>. Tap an old result to edit or delete it.</li>
-        <li>Tap the gear, then <b>Skills tests</b>. Hide, reorder, tap a test to edit it (metric locks once it has results), add a custom one, pull one in from the library, or restore hidden defaults. Try deleting Juggling: it refuses because it has history.</li>
+        <li>Tap the gear, then <b>Skills tests</b>. Hide, reorder, tap a test to edit it (metric locks once it has results), add a custom one, or restore hidden defaults. There is no cross-sport library: each sport's set already includes its own sprint-speed test. Try deleting Juggling: it refuses because it has history.</li>
         <li>Switch to <b>Parent</b>: the Skills table shrinks to Nolan, Record and the test editor disappear, and other kids' pages show no skills.</li>
       </ol>
     </div>
-    <div class="legend">Assistant coaches can edit the test list and record results, same as the head coach. Baseball, basketball and lacrosse default sets are drafts for your review.</div>
+    <div class="legend">Assistant coaches can edit the test list and record results, same as the head coach. Baseball, basketball and lacrosse default sets are drafts for your review. Built-ins come back only through Restore defaults; new tests only through Add a custom test.</div>
   </div>
 </div>
 
@@ -302,19 +301,19 @@ const DEFAULTS={
   T('tee','Tee contact','Ten swings off a tee into a net. Count solid line-drive contacts.','made_of_attempted',{attempts:10,draft:true}),
   T('grounders','Ground balls','Ten rolled grounders at game speed. Count clean fields and throws.','made_of_attempted',{attempts:10,draft:true}),
   T('popups','Fly balls','Ten tossed pop-ups. Count clean catches.','made_of_attempted',{attempts:10,draft:true}),
-  T('homefirst','Home to first','Swing, then sprint to first base. Time from contact to the bag. Best of two.','time_seconds',{higher:false,draft:true})],
+  T('sprint','Sprint speed','Run from home to first base (60 feet) from a standing start. Two tries, same start signal and timing method each session.','time_seconds',{higher:false,draft:true})],
  basketball:[
   T('ft','Free throws','Ten free throws from the line. Count makes.','made_of_attempted',{attempts:10,draft:true}),
   T('layups','Layups','Ten layups, five from each side, off the dribble. Count makes.','made_of_attempted',{attempts:5,sides:true,draft:true}),
   T('dribblecones','Dribble weave','Dribble through five cones and back. Time the run; a lost ball restarts the attempt.','time_seconds',{higher:false,draft:true}),
   T('passwall','Chest passes','Chest passes against a wall from 6 feet for 30 seconds. Count catches.','count',{draft:true}),
-  T('sprintcourt','Baseline to baseline','Sprint the length of the court from a standing start. Best of two.','time_seconds',{higher:false,draft:true})],
+  T('sprint','Sprint speed','Sprint baseline to baseline from a standing start. Two tries, same start signal and timing method each session.','time_seconds',{higher:false,draft:true})],
  lacrosse:[
   T('wallball','Wall ball','Throw and catch against a wall from 5 yards for 60 seconds, alternating hands. Count catches.','count',{draft:true}),
   T('shoot','Shooting accuracy','Ten shots from 8 yards at an open goal with corners marked. Count shots in a corner.','made_of_attempted',{attempts:10,draft:true}),
   T('ground','Ground balls','Ten rolled ground balls. Count clean scoops on the first try.','made_of_attempted',{attempts:10,draft:true}),
   T('cradle','Cradle and run','Weave four cones while cradling. Time the run; a dropped ball restarts it.','time_seconds',{higher:false,draft:true}),
-  T('sprint20','Sprint speed','Run 20 yards from a standing start. Best of two.','time_seconds',{higher:false,draft:true})]};
+  T('sprint','Sprint speed','Run 20 yards from a standing start. Two tries, same start signal and timing method each session.','time_seconds',{higher:false,draft:true})]};
 const SPORT_UI={soccer:{emoji:'⚽',name:'Soccer',cols:['G','A','QP'],tiles:[['G','Goals'],['A','Assists'],['QP','Quarters'],['GP','Games']],team:['Played','W-L-T','For','Against','Diff'],teamVals:['6','4-1-1','19','9','+10']},
  baseball:{emoji:'⚾',name:'Baseball',cols:['R','H','HR'],tiles:[['H','Hits'],['R','Runs'],['HR','Home runs'],['AVG','Avg']],team:['Played','W-L','Runs','Against','Diff'],teamVals:['6','4-2','41','30','+11']},
  basketball:{emoji:'🏀',name:'Basketball',cols:['PTS','FG','FT'],tiles:[['PTS','Points'],['FG','Field goals'],['3PT','Threes'],['FT','Free throws']],team:['Played','W-L','Points','Against','Diff'],teamVals:['6','3-3','168','160','+8']},
@@ -439,7 +438,6 @@ function renderSkills(){const S=SPORT_UI[sport],shown=tests.filter(t=>t.active),
  const hh=$('testHidden');hh.replaceChildren();$('hiddenHead').hidden=hh.hidden=!hid.length;hid.forEach((t,i)=>hh.append(testRow(t,i,hid)));
  const missing=DEFAULTS[sport].filter(d=>!tests.some(t=>t.key===d.key));$('restore').hidden=!missing.length&&!hid.some(t=>t.isDefault)}
 $('restore').onclick=()=>{let n=0;DEFAULTS[sport].forEach(d=>{const t=tests.find(x=>x.key===d.key);if(!t){tests.push(structuredClone(d));n++}else if(!t.active){t.active=true;n++}});renderSkills();toast(n?`${n} default test${n>1?'s':''} restored`:'All defaults already shown')};
-$('addLib').onclick=()=>sheet(f=>{f.classList.add('lib');f.append(make('h3','','Add from library'));f.append(Object.assign(make('p','hint','Default tests from the other sports. Added tests become this team\'s own copy to edit.')));
  const g=make('div','group');Object.entries(DEFAULTS).filter(([k])=>k!==sport).forEach(([k,list])=>list.filter(d=>!tests.some(t=>t.key===d.key)).forEach(d=>{const b=make('button','row btn');const l=make('span','lbl',d.name);l.append(make('small','',`${SPORT_UI[k].emoji} ${SPORT_UI[k].name} · ${metricLbl(d)}`));b.append(l,make('span','chev'));b.onclick=()=>{tests.push({...structuredClone(d),isDefault:false,draft:false});closeSheet();renderSkills();toast(`${d.name} added`)};g.append(b)}));f.append(g)});
 $('addTest').onclick=()=>editTestSheet(null);
 function editTestSheet(t){const locked=t&&hasResults(t.key);sheet(f=>{f.append(make('h3','',t?'Edit test':'Add a custom test'));if(locked)f.append(Object.assign(make('p','hint','This test has results on record, so the metric and the higher/lower rule are locked. Hide it and add a new test if you need a different version.')));

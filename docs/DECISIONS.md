@@ -244,8 +244,8 @@ default length, all-day when no start time). No server component is involved.
 
 `DEFAULT_SKILL_TESTS` (src/skills/defaults.ts) holds the per-sport sets; `create_team` seeds them and
 `restore_skill_tests` re-adds missing or hidden ones by `key` without overwriting edits. A team test
-whose key matches a default shows DRAFT (non-soccer sets) or nothing; other keys show CUSTOM. "Add
-from library" inserts another sport's default as the team's own row. `skill_tests.attempts` was
+whose key matches a default shows DRAFT (non-soccer sets) or nothing; other keys show CUSTOM.
+There is no cross-sport library (see D38). `skill_tests.attempts` was
 added so the metric lock covers it, as the spec lists.
 
 ### D33. Personal bests are computed in the client from the raw result rows
@@ -284,3 +284,13 @@ chosen so that no two jerseys in the same row touch at a 343px stage (a 375px ph
 formation; a test enforces that. Goals and hoops still scale with depth so the field reads as 3D. The
 flat view is unchanged, and the dev field page has a "Depth-scaled jerseys" switch to compare with the
 legacy look. Football's offensive line overlaps as it did in the legacy app; the sport is disabled.
+
+### D38. No cross-sport test library; defaults are seeded server-side
+
+A soccer coach never sees baseball drills, so "Add from library" is gone. Shared athletic tests
+(sprint speed) sit in every sport's own default set under the key `sprint`, with sport-appropriate
+wording. The default sets are duplicated in SQL (`default_skill_tests(sport)`, kept in step with
+`src/skills/defaults.ts` by a unit test) so the server can seed them: a backfill migration loads the
+set for every team with zero tests, `create_team` falls back to it when given an empty list, and
+`restore_skill_tests` with no payload seeds a team that has none. Restore defaults is therefore the
+only way to bring built-ins back and Add a custom test the only way to add something new.

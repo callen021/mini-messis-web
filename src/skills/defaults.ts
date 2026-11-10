@@ -38,7 +38,12 @@ const T = (
   draft: o.draft ?? false,
 });
 
-/** Default test sets. Soccer wording is the coach's; the other sports are drafts. */
+/**
+ * Default test sets. Soccer wording is the coach's; the other sports are drafts. Shared athletic
+ * tests (sprint speed) are part of every sport's own set under the same key, so there is no
+ * cross-sport library: Restore defaults brings built-ins back, Add a custom test adds new ones.
+ * The SQL twin is default_skill_tests() in supabase/migrations/20261109000800_skills_defaults.sql.
+ */
 export const DEFAULT_SKILL_TESTS: Readonly<Record<SportKey, readonly DefaultSkillTest[]>> = {
   soccer: [
     T(
@@ -120,9 +125,9 @@ export const DEFAULT_SKILL_TESTS: Readonly<Record<SportKey, readonly DefaultSkil
       draft: true,
     }),
     T(
-      'homefirst',
-      'Home to first',
-      'Swing, then sprint to first base. Time from contact to the bag. Best of two.',
+      'sprint',
+      'Sprint speed',
+      'Run from home to first base (60 feet) from a standing start. Two tries, same start signal and timing method each session.',
       'time_seconds',
       { draft: true },
     ),
@@ -154,9 +159,9 @@ export const DEFAULT_SKILL_TESTS: Readonly<Record<SportKey, readonly DefaultSkil
       { draft: true },
     ),
     T(
-      'sprintcourt',
-      'Baseline to baseline',
-      'Sprint the length of the court from a standing start. Best of two.',
+      'sprint',
+      'Sprint speed',
+      'Sprint baseline to baseline from a standing start. Two tries, same start signal and timing method each session.',
       'time_seconds',
       { draft: true },
     ),
@@ -190,9 +195,13 @@ export const DEFAULT_SKILL_TESTS: Readonly<Record<SportKey, readonly DefaultSkil
       'time_seconds',
       { draft: true },
     ),
-    T('sprint20', 'Sprint speed', 'Run 20 yards from a standing start. Best of two.', 'time_seconds', {
-      draft: true,
-    }),
+    T(
+      'sprint',
+      'Sprint speed',
+      'Run 20 yards from a standing start. Two tries, same start signal and timing method each session.',
+      'time_seconds',
+      { draft: true },
+    ),
   ],
   football: [],
 };
