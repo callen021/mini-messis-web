@@ -51,7 +51,7 @@ insert into public.players (id, team_id, first_name, jersey_number) values
   ('e0000000-0000-0000-0000-00000000000b', (select v from ctx where k = 'team_a'), 'Child Y', '2');
 -- a skill test with results for both children
 insert into public.skill_tests (id, team_id, key, name, metric) values
-  ('f0000000-0000-0000-0000-000000000001', (select v from ctx where k = 'team_a'), 'juggling', 'Juggling', 'count');
+  ('f0000000-0000-0000-0000-000000000001', (select v from ctx where k = 'team_a'), 'custom_touch', 'First touch', 'count');
 insert into public.skill_results (player_id, skill_test_id, value) values
   ('e0000000-0000-0000-0000-00000000000a', 'f0000000-0000-0000-0000-000000000001', 5),
   ('e0000000-0000-0000-0000-00000000000b', 'f0000000-0000-0000-0000-000000000001', 9);

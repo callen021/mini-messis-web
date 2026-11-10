@@ -1,7 +1,7 @@
 -- Platform admin (pgTAP): admins reach every team; nobody else gains anything.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(22);
+select plan(24);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -56,9 +56,9 @@ select pg_temp.logout();
 -- admin
 select pg_temp.login('f3000000-0000-0000-0000-000000000003');
 select is(public.is_platform_admin(), true, 'admin flag read');
-select is((select count(*)::int from public.teams), 2, 'admin reads every team');
+select is((select count(*)::int from public.teams where id in (select v from ctx where k in ('a', 'b'))), 2, 'admin reads every team');
 select is((select count(*)::int from public.team_members where team_id = (select v from ctx where k = 'a')), 1, 'admin reads memberships of a team they are not on');
-select is((select count(*)::int from public.admin_list_teams()), 2, 'admin_list_teams lists both teams');
+select is((select count(*)::int from public.admin_list_teams() where id in (select v from ctx where k in ('a', 'b'))), 2, 'admin_list_teams lists both teams');
 select is((select coaches from public.admin_list_teams() where id = (select v from ctx where k = 'a')), 1, 'counts per team');
 select ok((select count(*) from public.admin_list_users()) >= 4, 'admin_list_users lists every account');
 select lives_ok($$select public.rotate_join_code((select v from ctx where k = 'a'))$$, 'admin rotates any team code');
