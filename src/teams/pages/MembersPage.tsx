@@ -20,10 +20,12 @@ import {
   usePlayers,
   useRemoveMember,
   useRotateJoinCode,
+  useSetJoinEnabled,
   useSetMemberRole,
   useTeamMembers,
   useTransferOwnership,
 } from '../api';
+import { inviteUrl, shareInvite } from '../invite';
 import { useCurrentTeam } from '../TeamContext';
 
 const ROLE_LABEL: Record<MemberRole, string> = {
@@ -34,7 +36,8 @@ const ROLE_LABEL: Record<MemberRole, string> = {
 
 export function MembersPage() {
   const { role } = useCurrentTeam();
-  // Parents have no business here (the join code is for coaches to hand out); Settings hides the link.
+  // Parents have no business here (the invite link is for staff to hand out); Settings hides the link.
+  // Coach, assistant and admin all approve and decline here (D49); role changes stay with the coach.
   if (role === 'parent') return <Navigate to="/settings" replace />;
   return <MembersAdmin />;
 }
@@ -47,6 +50,7 @@ function MembersAdmin() {
   const members = useTeamMembers(teamId);
   const players = usePlayers(teamId);
   const rotate = useRotateJoinCode(teamId);
+  const setEnabled = useSetJoinEnabled(teamId);
   const approve = useApproveMember(teamId);
   const decline = useDeclineMember(teamId);
   const remove = useRemoveMember(teamId);
@@ -59,25 +63,45 @@ function MembersAdmin() {
   const pending = rows.filter((m) => m.status === 'pending');
   const active = rows.filter((m) => m.status === 'active');
 
-  const copyCode = async () => {
+  const enabled = team.join_enabled;
+  const link = inviteUrl(team.join_code);
+
+  const copy = async (text: string, done: string) => {
     try {
-      await navigator.clipboard.writeText(team.join_code);
-      toast('Join code copied');
+      await navigator.clipboard.writeText(text);
+      toast(done);
     } catch {
-      toast(team.join_code);
+      toast(text);
+    }
+  };
+
+  const share = async () => {
+    const r = await shareInvite(team.name, link);
+    if (r === 'unsupported') await copy(link, 'Invite link copied · paste it into a message');
+  };
+
+  const toggleEnabled = async () => {
+    try {
+      await setEnabled.mutateAsync(!enabled);
+      toast(
+        enabled ? 'Invite turned off · nobody can join until you turn it on or replace it' : 'Invite is on',
+      );
+    } catch (e) {
+      toast(errorMessage(e));
     }
   };
 
   const rotateCode = async () => {
     const ok = await sheet({
-      title: 'Rotate the join code?',
-      message: 'The current code stops working immediately. Anyone who hasn’t joined yet needs the new one.',
-      actions: [{ label: 'Rotate code', value: true, destructive: true }],
+      title: 'Replace the invite link?',
+      message:
+        'The current link and code stop working immediately. Anyone who hasn’t joined yet needs the new one.',
+      actions: [{ label: 'Replace link', value: true, destructive: true }],
     });
     if (!ok) return;
     try {
       await rotate.mutateAsync(undefined);
-      toast('New join code ready');
+      toast('New invite link ready');
     } catch (e) {
       toast(errorMessage(e));
     }
@@ -160,26 +184,56 @@ function MembersAdmin() {
       sub={`${active.length} member${active.length === 1 ? '' : 's'}${pending.length ? ` · ${pending.length} waiting` : ''}`}
       back={{ to: '/settings', label: 'Settings' }}
     >
-      <Section>Join code</Section>
+      <Section>Invite link</Section>
       <Group>
-        <div className="codebox">
-          <code className="code-big" aria-label={`Join code ${team.join_code.split('').join(' ')}`}>
+        <div className={`codebox${enabled ? '' : ' off'}`}>
+          <button
+            type="button"
+            className="code-big"
+            aria-label={`Join code ${team.join_code.split('').join(' ')}`}
+            title="Tap to copy the code"
+            onClick={() => void copy(team.join_code, 'Join code copied')}
+          >
             {team.join_code}
-          </code>
+          </button>
+          {!enabled && <Badge status="cancelled">Invite off</Badge>}
+          <p className="invite-url" aria-label="Invite link">
+            {link}
+          </p>
           <div className="toolbar" style={{ margin: 0 }}>
-            <Button variant="tinted" size="sm" onClick={copyCode}>
-              Copy
+            <Button
+              variant="tinted"
+              size="sm"
+              onClick={() => void copy(link, 'Invite link copied')}
+              disabled={!enabled}
+            >
+              Copy link
+            </Button>
+            <Button variant="tinted" size="sm" onClick={() => void share()} disabled={!enabled}>
+              Share
             </Button>
             {isCoach && (
-              <Button variant="gray" size="sm" onClick={rotateCode} disabled={rotate.isPending}>
-                Rotate
+              <Button
+                variant="gray"
+                size="sm"
+                onClick={() => void toggleEnabled()}
+                disabled={setEnabled.isPending}
+              >
+                {enabled ? 'Turn off' : 'Turn on'}
+              </Button>
+            )}
+            {isCoach && (
+              <Button variant="gray" size="sm" onClick={() => void rotateCode()} disabled={rotate.isPending}>
+                Replace
               </Button>
             )}
           </div>
         </div>
       </Group>
       <Footer>
-        Share this with parents and assistant coaches. They request to join; you approve them here.
+        Send parents the link: it creates their account, picks their child and sends you the request in one
+        step. Typing the code by hand works too. Assistant coaches are made here by a coach, not through the
+        link.
       </Footer>
 
       {pending.length > 0 && (
@@ -196,16 +250,14 @@ function MembersAdmin() {
                     {m.unlisted.length > 0 && ` · not on roster: ${m.unlisted.join(', ')}`}
                   </small>
                 </span>
-                {isCoach && (
-                  <div className="toolbar" style={{ margin: 0, flexBasis: '100%' }}>
-                    <Button size="sm" onClick={() => setApproving(m)}>
-                      Approve…
-                    </Button>
-                    <Button size="sm" variant="gray" onClick={() => declineReq(m)}>
-                      Decline
-                    </Button>
-                  </div>
-                )}
+                <div className="toolbar" style={{ margin: 0, flexBasis: '100%' }}>
+                  <Button size="sm" onClick={() => setApproving(m)}>
+                    Approve…
+                  </Button>
+                  <Button size="sm" variant="gray" onClick={() => declineReq(m)}>
+                    Decline
+                  </Button>
+                </div>
               </div>
             ))}
           </Group>
@@ -238,18 +290,16 @@ function MembersAdmin() {
               >
                 <Badge status={m.role === 'parent' ? undefined : 'live'}>{ROLE_LABEL[m.role]}</Badge>
               </Row>
-              {pendingLinks.map((c) =>
-                isCoach ? (
-                  <Row
-                    key={c.link_id}
-                    label={`Link request: ${c.first_name}`}
-                    detail="Tap to approve or decline"
-                    link
-                    chevron
-                    onClick={() => childLinkAction(m, c.link_id, c.first_name)}
-                  />
-                ) : null,
-              )}
+              {pendingLinks.map((c) => (
+                <Row
+                  key={c.link_id}
+                  label={`Link request: ${c.first_name}`}
+                  detail="Tap to approve or decline"
+                  link
+                  chevron
+                  onClick={() => childLinkAction(m, c.link_id, c.first_name)}
+                />
+              ))}
             </div>
           );
         })}
@@ -263,6 +313,7 @@ function MembersAdmin() {
       {approving && (
         <ApproveSheet
           member={approving}
+          canSetRole={isCoach}
           players={players.data ?? []}
           onClose={() => setApproving(null)}
           onApprove={async (role, playerIds) => {
@@ -282,16 +333,21 @@ function MembersAdmin() {
 
 function ApproveSheet({
   member,
+  canSetRole,
   players,
   onClose,
   onApprove,
 }: {
   member: TeamMemberRow;
+  /** Only a coach may approve someone as an assistant or coach (D49). */
+  canSetRole: boolean;
   players: { id: string; first_name: string; jersey_number: string | null }[];
   onClose: () => void;
   onApprove: (role: MemberRole, playerIds: string[] | null) => Promise<void>;
 }) {
-  const [role, setRole] = useState<MemberRole>(member.requested_role ?? member.role);
+  const [role, setRole] = useState<MemberRole>(
+    canSetRole ? (member.requested_role ?? member.role) : 'parent',
+  );
   const [kids, setKids] = useState<Set<string>>(new Set(member.children.map((c) => c.player_id)));
   const [busy, setBusy] = useState(false);
   const toggle = (id: string, on: boolean) =>
@@ -303,18 +359,22 @@ function ApproveSheet({
     });
   return (
     <FormSheet open onClose={onClose} title={`Approve ${member.display_name}`}>
-      <FieldGroup label="Role">
-        <Segmented<MemberRole>
-          label="Role"
-          value={role}
-          onChange={setRole}
-          options={[
-            { value: 'parent', label: 'Parent' },
-            { value: 'assistant', label: 'Assistant' },
-            { value: 'coach', label: 'Coach' },
-          ]}
-        />
-      </FieldGroup>
+      {canSetRole ? (
+        <FieldGroup label="Role">
+          <Segmented<MemberRole>
+            label="Role"
+            value={role}
+            onChange={setRole}
+            options={[
+              { value: 'parent', label: 'Parent' },
+              { value: 'assistant', label: 'Assistant' },
+              { value: 'coach', label: 'Coach' },
+            ]}
+          />
+        </FieldGroup>
+      ) : (
+        <p className="hint">Approving as a parent. A coach can make them an assistant afterwards.</p>
+      )}
       {role === 'parent' && (
         <FieldGroup label="Their children">
           <div className="checklist">

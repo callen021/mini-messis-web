@@ -227,31 +227,37 @@ The membership helpers in `0200_helpers_and_triggers.sql` (redefined for admins 
 `0900_platform_admin.sql`) are `SECURITY DEFINER` so policies can consult `team_members` without
 recursing into its own policies:
 
-| Helper                                  | Meaning                                                                       |
-| --------------------------------------- | ----------------------------------------------------------------------------- |
-| `member_role_on(team)`                  | the caller's active role on the team; `coach` for a platform admin everywhere |
-| `is_active_member(team)`                | any active role                                                               |
-| `is_staff(team)`                        | coach or assistant                                                            |
-| `is_coach(team)`                        | coach only                                                                    |
-| `is_owner(team)`                        | `teams.owner_id` is the caller, or the caller is a platform admin             |
-| `is_guardian_of(player)`                | an approved `player_guardians` link                                           |
-| `team_of_game/player/lineup/skill_test` | the team a row belongs to, for policies on child tables                       |
-| `email_confirmed(user)`                 | email verified; required to own or be approved onto a team                    |
-| `is_platform_admin()`                   | `profiles.is_platform_admin` of the caller                                    |
+| Helper                                  | Meaning                                                                        |
+| --------------------------------------- | ------------------------------------------------------------------------------ |
+| `member_role_on(team)`                  | the caller's active role on the team; `coach` for a platform admin everywhere  |
+| `is_active_member(team)`                | any active role                                                                |
+| `is_staff(team)`                        | coach or assistant                                                             |
+| `is_coach(team)`                        | coach only                                                                     |
+| `is_owner(team)`                        | `teams.owner_id` is the caller, or the caller is a platform admin              |
+| `is_guardian_of(player)`                | an approved `player_guardians` link                                            |
+| `team_of_game/player/lineup/skill_test` | the team a row belongs to, for policies on child tables                        |
+| `email_confirmed(user)`                 | email verified (automatic with confirmations off); checked by `approve_member` |
+| `is_platform_admin()`                   | `profiles.is_platform_admin` of the caller                                     |
 
 RLS in `0300_rls.sql` (and `1000_practices.sql`) follows one rule: **read = active membership,
 write = coach or assistant**, with these exceptions:
 
 - `profiles`: own row only (names of other members come through `list_team_members()`).
 - `teams`: insert only by a platform admin (`create_team()` checks it and an insert policy backs it up, D48); delete only by the owner.
-- `team_members`: a member sees their own row, a coach sees all; insert only through
-  `create_team()` / `request_join()`; update and delete by coaches.
-- `player_guardians` and `unlisted_child_requests`: own rows or coach; writes by coaches
+- `team_members`: a member sees their own row, staff see all; insert only through
+  `create_team()` / `request_join()` (parent requests only, D49); update and delete by coaches.
+  Approvals (`approve_member`, `decline_member`, `approve_guardian_link`) are for coach, assistant
+  and admin; only a coach may approve someone as an assistant or coach.
+- `player_guardians` and `unlisted_child_requests`: own rows or staff; writes by coaches
   (parents request links through RPCs).
 - `game_coach_notes`: staff only, in every direction; parents cannot read it.
 - `skill_results`: staff read and write; a parent reads only children they are an approved guardian of.
 - `practices`: members read, staff insert and update, **only a platform admin deletes** (coaches cancel).
 - `join_attempts`: no policies at all; only the definer functions touch it.
+- `lookup_invite(code)` is callable by `anon`: it returns the team name, sport, roster first names
+  and whether the invite is on, so the invite link can show the child picker before an account
+  exists (D49). `teams.join_enabled` is the on/off switch (`set_join_enabled`, coach only);
+  `rotate_join_code` replaces the code and turns the invite back on.
 
 Realtime is published for `games`, `score_events`, `plate_appearances`, `lineups`, `lineup_slots`,
 `team_members`, `player_guardians`, `players`, `skill_tests`, `skill_results` and `practices`.

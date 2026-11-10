@@ -72,8 +72,8 @@ insert into public.players (id, team_id, first_name) values
 -- ---------- join flow: assistant, parent (child X), and a pending user ----------
 select pg_temp.login('a0000000-0000-0000-0000-000000000002');
 select lives_ok(
-  $$select public.request_join((select v from txt where k = 'code_a'), 'assistant')$$,
-  'assistant can request to join team A');
+  $$select public.request_join((select v from txt where k = 'code_a'), 'parent')$$,
+  'the future assistant requests to join team A (requests are parent-only, D49)');
 select pg_temp.logout();
 
 select pg_temp.login('a0000000-0000-0000-0000-000000000003');
@@ -132,9 +132,9 @@ select lives_ok($$insert into public.players (team_id, first_name) values ((sele
 select is((select count(*)::int from public.skill_results), 2, 'assistant reads all skill results');
 select throws_ok($$update public.teams set name = 'Assistant Named' where id = (select v from ctx where k = 'team_a')$$, '42501', null, 'assistant cannot rename the team');
 select throws_ok(
-  $$select public.approve_member((select id from public.team_members where user_id = 'a0000000-0000-0000-0000-000000000004'), 'parent')$$,
-  '42501', null, 'assistant cannot approve members');
-select is((select count(*)::int from public.team_members), 1, 'assistant sees only their own membership row');
+  $$select public.approve_member((select id from public.team_members where user_id = 'a0000000-0000-0000-0000-000000000004'), 'assistant')$$,
+  '42501', null, 'assistant cannot approve someone as staff (D49)');
+select is((select count(*)::int from public.team_members), 4, 'assistant sees the whole membership list (D49)');
 select pg_temp.logout();
 
 -- ---------- cross-team isolation ----------

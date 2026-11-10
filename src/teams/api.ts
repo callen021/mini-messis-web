@@ -198,6 +198,19 @@ export async function lookupJoinCode(code: string): Promise<JoinPreview | null> 
   return (data as unknown as JoinPreview | null) ?? null;
 }
 
+/** What the invite link shows before an account exists (D49). Works signed out. */
+export interface InvitePreview extends JoinPreview {
+  join_enabled: boolean;
+  /** The caller's membership status on this team, when signed in and known. */
+  membership: 'pending' | 'active' | 'removed' | null;
+}
+
+export async function lookupInvite(code: string): Promise<InvitePreview | null> {
+  const { data, error } = await supabase.rpc('lookup_invite', { p_code: code });
+  if (error) throw new Error(error.message);
+  return (data as unknown as InvitePreview | null) ?? null;
+}
+
 export interface JoinResult {
   status: 'pending' | 'active';
   team_id: string;
@@ -205,19 +218,15 @@ export interface JoinResult {
   sport: SportKey;
 }
 
+/** Ask to join as a parent (the only role a link can request, D49). */
 export function useRequestJoin() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: {
-      code: string;
-      role: Extract<MemberRole, 'parent' | 'assistant'>;
-      playerIds: string[];
-      unlistedChildName: string;
-    }) =>
+    mutationFn: async (args: { code: string; playerIds: string[]; unlistedChildName: string }) =>
       unwrap(
         await supabase.rpc('request_join', {
           p_code: args.code,
-          p_requested_role: args.role,
+          p_requested_role: 'parent',
           p_player_ids: args.playerIds,
           p_unlisted_child_name: args.unlistedChildName || undefined,
         }),
@@ -225,6 +234,7 @@ export function useRequestJoin() {
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['memberships'] });
       void qc.invalidateQueries({ queryKey: ['pending-requests'] });
+      void qc.invalidateQueries({ queryKey: ['invite'] });
     },
   });
 }
@@ -332,9 +342,20 @@ export function useApproveGuardianLink(teamId: string) {
     ),
   );
 }
+/** "Replace": a new code; the invite is turned back on at the same time. */
 export function useRotateJoinCode(teamId: string) {
   return useTeamMutation(teamId, async () =>
     unwrap(await supabase.rpc('rotate_join_code', { p_team_id: teamId })),
+  );
+}
+/** Turn the invite link (and the typed code) off or on without changing it (coach). */
+export function useSetJoinEnabled(teamId: string) {
+  return useTeamMutation(teamId, async (enabled: boolean) =>
+    unwrap(
+      await supabase
+        .rpc('set_join_enabled', { p_team_id: teamId, p_enabled: enabled })
+        .then((r) => ({ data: true, error: r.error })),
+    ),
   );
 }
 export function useTransferOwnership(teamId: string) {

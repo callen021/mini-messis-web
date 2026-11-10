@@ -70,7 +70,7 @@ between the migrations and the linked project.
 
 Dashboard settings to mirror `supabase/config.toml`: Authentication → URL Configuration → Site URL
 `https://callen021.github.io/mini-messis-web/` and add `http://localhost:5173/**` plus the Pages
-URL with `/**` to the redirect allow-list; Authentication → Providers → Email → "Confirm email" on.
+URL with `/**` to the redirect allow-list; Authentication → Providers → Email → "Confirm email" **off** (the invite link signs new parents in immediately, D49).
 
 `supabase/seed.sql` seeds a demo coach / parent / assistant and the Strikers for local and CI
 databases only. Never run it against the hosted project.

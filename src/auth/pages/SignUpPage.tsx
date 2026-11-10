@@ -4,9 +4,14 @@ import { Button } from '@/components/Button';
 import { Field, TextInput } from '@/components/Form';
 import { Footer, Group } from '@/components/List';
 import { Page } from '@/components/Page';
-import { appUrl, supabase } from '@/lib/supabase';
+import { supabase } from '@/lib/supabase';
 import { authErrorMessage } from '../errors';
 
+/**
+ * Plain sign-up (parents normally arrive through the coach's invite link instead, D49). Email
+ * confirmation is off for this app, so a new account is signed in straight away; if the project
+ * still has confirmation on, the form says so instead of sending people to a "check your email" page.
+ */
 export function SignUpPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -26,13 +31,17 @@ export function SignUpPage() {
     const { data, error: err } = await supabase.auth.signUp({
       email: email.trim(),
       password,
-      options: { data: { display_name: name.trim() }, emailRedirectTo: appUrl('/verify') },
+      options: { data: { display_name: name.trim() } },
     });
     setBusy(false);
     if (err) return setError(authErrorMessage(err).message);
-    // With email confirmation on there is no session yet; with it off we are signed in already.
-    if (data.session) navigate('/', { replace: true });
-    else navigate('/verify', { replace: true, state: { email: email.trim() } });
+    if (data.session) {
+      navigate(state?.from ?? '/', { replace: true });
+      return;
+    }
+    setError(
+      'Your account was created, but this app still asks for an email confirmation. Confirm the email we just sent, then sign in.',
+    );
   };
 
   return (
@@ -80,8 +89,10 @@ export function SignUpPage() {
         </form>
       </Group>
       <Footer>
-        We&apos;ll email you a link to verify your address. Already have an account?{' '}
-        <Link to="/signin">Sign in</Link>
+        Already have an account?{' '}
+        <Link to="/signin" state={{ email: email.trim(), from: state?.from }}>
+          Sign in
+        </Link>
       </Footer>
     </Page>
   );

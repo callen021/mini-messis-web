@@ -37,6 +37,7 @@ const team: Team = {
   owner_id: 'u1',
   join_code: 'ABCD2345',
   join_code_rotated_at: '',
+  join_enabled: true,
   side_size: 7,
   has_gk: true,
   periods_count: 4,

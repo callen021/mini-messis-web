@@ -102,11 +102,13 @@ Optional but worth two minutes: **Authentication → Emails → Templates** → 
 Test it: sign up with a personal address on the live site and confirm the email arrives from your
 domain.
 
-## 5. Require email confirmation
+## 5. Turn email confirmation off
 
-**Authentication → Sign In / Providers → Email**: turn **Confirm email** on (and leave "Secure
-email change" on). Save. From now on a new account can't sign in until the link in the email is
-clicked; the app's `/verify` page explains this and offers to resend.
+**Authentication → Sign In / Providers → Email**: turn **Confirm email** **off** (leave "Secure
+email change" on). Save. The invite link creates a parent's account, signs them in and files the
+join request in one step, which needs the account to be usable immediately; there is no
+"check your email" page any more (D49). If confirmation is still on, the invite screen says so and
+asks the parent to confirm and open the link again.
 
 ## 6. Make your account a platform admin
 
@@ -161,19 +163,20 @@ Delete user**. Their profile and membership rows go with them.
 
 ## 9. Invite the first parents
 
-1. In the app (signed in as coach on the Strikers): **Settings (gear) → Members**. The eight-letter
-   **join code** is at the top; tap it to copy. **Rotate code** makes a new one if it ever leaks.
-2. Send parents the link and the code. Suggested text:
+1. In the app (signed in as coach on the Strikers): **Settings (gear) → Members**. The **invite
+   link** (`…/join/ABCD2345`) is at the top with **Copy link**, **Share**, **Turn off** and
+   **Replace**. Replace makes a new link if it ever leaks; Turn off closes the door without changing it.
+2. Send parents the link (Share opens the phone's share sheet with a ready-made message):
 
-   > Mini-Messi's has the Strikers schedule, lineups and scores. Open
-   > https://callen021.github.io/mini-messis-web/ on your phone, tap **Create an account**, confirm
-   > the email, then choose **I'm a parent, I have a join code** and enter **ABCD2345**. Pick your
-   > child from the roster and I'll approve you. Tip: use Share → Add to Home Screen so it opens
-   > like an app.
+   > Join the Strikers on Mini-Messi's — lineups, playing time and scores for the team. Open
+   > https://callen021.github.io/mini-messis-web/join/ABCD2345, create your account and pick your
+   > child from the roster; I'll approve you. Tip: use Share → Add to Home Screen so it opens like
+   > an app.
 
-3. Requests appear under **Settings → Members → Requests** with the requested role and child. Tap
-   a request to approve as parent (or change the role / child link) or decline. Parents are read-only
-   and only ever see their own child's skills results.
+3. Requests appear under **Settings → Members → Waiting for approval** with the child links. You or
+   an assistant coach tap **Approve…** to confirm or change the children (or decline). Parents are
+   read-only and only ever see their own child's skills results. Assistant coaches are promoted
+   from the member list by a coach, never requested through the link.
 
 ## 10. Rolling back a bad deploy
 

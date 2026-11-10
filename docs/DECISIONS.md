@@ -420,3 +420,22 @@ Settings and the pending screen are gone for everyone else; a signed-in user wit
 coach carries the flag so the Playwright coach flow can still create its team; the pgTAP suites
 flag a creator only around the `create_team` call so the rest of each suite keeps exercising
 plain coach permissions.
+
+### D49. The invite link: one screen from "tap" to "waiting for approval"
+
+Parents were getting lost between sign-up, the verification email, the code and the child picker,
+so joining is now one URL: `…/join/<code>`. `lookup_invite(code)` is callable signed out and
+returns the team name, sport, roster first names and whether the invite is on, so the page can
+show the whole form before an account exists; a visitor fills in name, email, password and picks
+their child, and one tap runs `signUp` → `request_join`. A signed-in user who opens the link
+sees only the picker. Email confirmation is off in Supabase for this to work (LAUNCH step 5), so
+the verify page is gone; if a project still has confirmation on, the screen says so rather than
+silently failing. Requests are parent-only (`request_join` rejects other roles): assistants are
+promoted by a coach or admin from the member list, never requested. Typing a code by hand opens
+the same screen. `teams.join_enabled` lets a coach turn the link (and the typed code) off and on
+without changing it; Replace (`rotate_join_code`) makes a new code and turns the invite back on.
+Approvals, declines and child-link confirmations are for coach, assistant and admin alike
+(`is_staff`), and staff can read membership / guardian rows, but only a coach may approve someone
+as an assistant or coach. The signed-in path keeps the join rate limit; the signed-out preview has
+no user to key it on, so the 30^8 code space is the protection there, as it already was for typed
+codes.

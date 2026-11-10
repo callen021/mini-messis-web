@@ -8,10 +8,10 @@ import { AdminTeamPage } from '@/admin/AdminTeamPage';
 import { ResetPage } from '@/auth/pages/ResetPage';
 import { SignInPage } from '@/auth/pages/SignInPage';
 import { SignUpPage } from '@/auth/pages/SignUpPage';
-import { VerifyPage } from '@/auth/pages/VerifyPage';
 import { ProfilePage } from '@/settings/ProfilePage';
 import { SettingsPage } from '@/settings/SettingsPage';
 import { CreateTeamPage } from '@/teams/pages/CreateTeamPage';
+import { InvitePage } from '@/teams/pages/InvitePage';
 import { JoinPage } from '@/teams/pages/JoinPage';
 import { MembersPage } from '@/teams/pages/MembersPage';
 import { PendingPage } from '@/teams/pages/PendingPage';
@@ -83,12 +83,13 @@ export const routes: RouteObject[] = [
           },
         ],
       },
-      // reachable either way (email links land here)
+      // reachable either way: the password-reset email lands here, and so does the coach's
+      // invite link (a visitor creates their account on it; a member goes straight to the picker)
       {
         element: <AuthLayout />,
         children: [
-          { path: '/verify', element: <VerifyPage /> },
           { path: '/reset', element: <ResetPage /> },
+          { path: '/join/:code', element: <InvitePage /> },
         ],
       },
       // signed in
@@ -100,7 +101,6 @@ export const routes: RouteObject[] = [
             children: [
               { path: '/welcome', element: <WelcomePage /> },
               { path: '/join', element: <JoinPage /> },
-              { path: '/join/:code', element: <JoinPage /> },
               { path: '/create-team', element: <CreateTeamPage /> },
               { path: '/pending', element: <PendingPage /> },
             ],

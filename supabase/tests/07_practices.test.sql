@@ -45,7 +45,7 @@ select pg_temp.logout();
 update public.profiles set is_platform_admin = false where id = 'f4000000-0000-0000-0000-000000000001';
 
 select pg_temp.login('f4000000-0000-0000-0000-000000000002');
-select public.request_join((select v from txt where k = 'code'), 'assistant');
+select public.request_join((select v from txt where k = 'code'), 'parent');  -- requests are parent-only (D49); approved as assistant below
 select pg_temp.logout();
 select pg_temp.login('f4000000-0000-0000-0000-000000000003');
 select public.request_join((select v from txt where k = 'code'), 'parent');

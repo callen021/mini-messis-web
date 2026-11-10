@@ -1971,3 +1971,32 @@ select.input {
   padding: 8px 4px;
   margin: -6px -2px;
 }
+
+/* invite link box (Members) */
+.codebox .code-big {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+.codebox.off .code-big {
+  text-decoration: line-through;
+  color: var(--text3);
+}
+.codebox .invite-url {
+  margin: 6px 0 10px;
+  font-size: 13px;
+  color: var(--text2);
+  overflow-wrap: anywhere;
+  text-align: center;
+}
+.linkbtn {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  color: var(--tint);
+  text-decoration: underline;
+  cursor: pointer;
+}

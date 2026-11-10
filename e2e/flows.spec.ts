@@ -119,17 +119,40 @@ test.describe('coach and parent flows', () => {
     expect(joinCode).toMatch(/^[A-Z2-9]{8}$/);
   });
 
-  test('parent signs up, joins by code and waits for approval', async () => {
-    await signUp(parent, 'Parent Pat', parentEmail);
-    // the welcome page's code box opens /join/<code>, which looks the code up by itself
-    await parent.getByLabel('Join code').fill(joinCode);
-    await parent.getByRole('button', { name: 'Join team' }).click();
-    await expect(parent).toHaveURL(new RegExp(`/join/${joinCode}$`));
+  test('parent opens the invite link, creates an account, picks a child and waits for approval', async () => {
+    // signed out: the one-screen join (D49)
+    await parent.goto(`/join/${joinCode}`);
     await expect(parent.getByRole('heading', { level: 1 })).toContainText(teamName);
+    await parent.getByLabel('Your name').fill('Parent Pat');
+    await parent.getByLabel('Email').fill(parentEmail);
+    await parent.getByLabel('Password').fill(PASSWORD);
     await parent.getByRole('switch', { name: 'Ava is my child' }).click();
-    await parent.getByRole('button', { name: 'Request to join' }).click();
-    await expect(parent.getByRole('heading', { level: 1, name: 'Almost in' })).toBeVisible();
+    await parent.getByRole('button', { name: 'Create account and join' }).click();
+    await expect(parent.getByRole('heading', { level: 1, name: 'Almost in' })).toBeVisible({
+      timeout: 20_000,
+    });
     await expect(parent.getByText('Pending')).toBeVisible();
+  });
+
+  test('a signed-in user who opens the link goes straight to the child picker', async () => {
+    await parent.goto(`/join/${joinCode}`);
+    await expect(parent.getByRole('heading', { level: 1 })).toContainText(teamName);
+    await expect(parent.getByLabel('Email')).toHaveCount(0);
+    await expect(parent.getByRole('switch', { name: 'Ava is my child' })).toBeVisible();
+    await expect(parent.getByRole('button', { name: 'Ask to join' })).toBeVisible();
+    await parent.goto('/pending');
+    await expect(parent.getByRole('heading', { level: 1, name: 'Almost in' })).toBeVisible();
+  });
+
+  test('a typed code opens the same screen', async () => {
+    const [ctx, page] = await fresh(parent.context().browser() as Browser);
+    await signUp(page, 'Typing Tess', `tess-${run}@example.com`);
+    await page.getByLabel('Join code').fill(joinCode);
+    await page.getByRole('button', { name: 'Join team' }).click();
+    await expect(page).toHaveURL(new RegExp(`/join/${joinCode}$`));
+    await expect(page.getByRole('heading', { level: 1 })).toContainText(teamName);
+    await expect(page.getByRole('button', { name: 'Ask to join' })).toBeVisible();
+    await ctx.close();
   });
 
   test('coach approves the parent; the parent gets in without reloading', async () => {
