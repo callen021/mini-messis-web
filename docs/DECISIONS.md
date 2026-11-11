@@ -508,3 +508,18 @@ already did this, the stats table and the skills table now do too, through one h
 (`pinFirst`) that keeps the normal order for the rest. The Auto-fill dot is a coaching note
 ("I did not pick this by hand"), so it is only drawn for staff, on jerseys and on rotation chips
 alike, and the Position key explains it to them; parents never see it.
+
+## 2026-11-10 — Parent-feedback round 2
+
+### D55. Read-only detail rows wrap instead of overlapping; layout checked in Playwright
+
+On the parent's game page the "When" value ran under its label at 375px: the value span had no
+shrink rules, so a long "Sat, Nov 14, 2026 · 9:30 AM · Riverside… · Home" string overflowed the
+flex row. `.row .val` now shrinks, right-aligns and wraps, and read-only rows carry a `detail`
+variant that lets a long value drop under its label. "When" shows only the date and time, since
+Where, Address and Home / away have rows of their own. The regression check is a Playwright test in
+the coach/parent flows that opens the parent's game page at 375px, asserts every detail row's
+label and value boxes are side by side or stacked (never overlapping), asserts no horizontal
+scroll, and attaches a full-page screenshot to the report. A pixel-snapshot comparison was
+considered and rejected: baselines differ between Windows (where they would be generated) and the
+Linux CI runners, so the geometric assertions are the stable form of the same check.

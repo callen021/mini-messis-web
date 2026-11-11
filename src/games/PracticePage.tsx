@@ -191,9 +191,9 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
           </>
         ) : (
           <>
-            <Row label="When" value={practiceLine({ ...p, location: null })} />
-            {p.location && <Row label="Where" value={p.location} />}
-            {p.address && <Row label="Address" value={p.address} />}
+            <Row className="detail" label="When" value={practiceLine({ ...p, location: null })} />
+            {p.location && <Row className="detail" label="Where" value={p.location} />}
+            {p.address && <Row className="detail" label="Address" value={p.address} />}
           </>
         )}
         {directions && (

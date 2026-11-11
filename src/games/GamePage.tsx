@@ -41,7 +41,7 @@ import {
 import { DirectionsIcon } from '@/components/icons';
 import { directionsUrl } from './directions';
 import { EditScoreSheet } from './EditScoreSheet';
-import { fmtDate, fmtTime, HOME_AWAY_LABEL, scheduleLine, todayISO } from './format';
+import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
 import { GameBadge } from './GameBadge';
 import { downloadIcs } from './ics';
 import { PlaceDatalist } from './PlaceDatalist';
@@ -376,10 +376,16 @@ function GameDetail({ game }: { game: GameWithScore }) {
           </>
         ) : (
           <>
-            <Row label="When" value={scheduleLine(game, true)} />
-            {game.location && <Row label="Where" value={game.location} />}
-            {game.address && <Row label="Address" value={game.address} />}
-            {game.home_away && <Row label="Home / away" value={HOME_AWAY_LABEL[game.home_away]} />}
+            <Row
+              className="detail"
+              label="When"
+              value={`${fmtDate(game.game_date, true)}${game.start_time ? ` · ${fmtTime(game.start_time)}` : ''}`}
+            />
+            {game.location && <Row className="detail" label="Where" value={game.location} />}
+            {game.address && <Row className="detail" label="Address" value={game.address} />}
+            {game.home_away && (
+              <Row className="detail" label="Home / away" value={HOME_AWAY_LABEL[game.home_away]} />
+            )}
           </>
         )}
         {directions && (

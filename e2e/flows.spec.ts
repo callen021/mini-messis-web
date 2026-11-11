@@ -105,6 +105,10 @@ test.describe('coach and parent flows', () => {
     await choose.getByRole('button', { name: 'New game' }).click();
     const sheet = coach.getByRole('dialog', { name: 'New game' });
     await sheet.getByLabel('Opponent').fill('Tigers');
+    await sheet.getByLabel('Start time (optional)').fill('09:30');
+    await sheet.getByLabel('Location / field (optional)').fill('Riverside Community Park, Field 3');
+    await sheet.getByLabel('Address (optional)').fill('1200 Example Parkway, Springfield');
+    await sheet.getByRole('radio', { name: 'Home' }).click();
     await sheet.getByRole('button', { name: 'Save for later' }).click();
     await expect(sheet).toBeHidden();
     await expect(coach.getByText('vs Tigers')).toBeVisible();
@@ -191,6 +195,40 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByRole('heading', { level: 1, name: 'Schedule' })).toBeVisible();
     await expect(parent.getByText('vs Tigers')).toBeVisible();
     await expect(parent.getByRole('button', { name: 'Add', exact: true })).toHaveCount(0);
+  });
+
+  test('parent game detail: rows wrap at 375px with no overlap (layout regression, D55)', async () => {
+    await parent.setViewportSize({ width: 375, height: 760 });
+    await parent.goto('/games');
+    await parent.getByRole('link', { name: /vs Tigers/ }).click();
+    await expect(parent.getByRole('heading', { level: 1, name: 'vs Tigers' })).toBeVisible();
+    const rows = parent.locator('.row.detail');
+    await expect(rows).toHaveCount(4); // When, Where, Address, Home / away
+    const when = rows.filter({ hasText: 'When' });
+    await expect(when.locator('.val')).toHaveText(/^[A-Z][a-z]{2}, [A-Z][a-z]{2} \d{1,2}, \d{4} · 9:30 AM$/);
+    for (let i = 0; i < 4; i++) {
+      const row = rows.nth(i);
+      const lbl = await row.locator('.lbl').boundingBox();
+      const val = await row.locator('.val').boundingBox();
+      const box = await row.boundingBox();
+      expect(lbl && val && box).toBeTruthy();
+      if (!lbl || !val || !box) continue;
+      // no overlap: the value is to the right of the label, or wrapped fully below it
+      const sideBySide = val.x >= lbl.x + lbl.width - 1;
+      const below = val.y >= lbl.y + lbl.height - 1;
+      expect(sideBySide || below, `row ${i}: label and value overlap`).toBe(true);
+      expect(val.x + val.width).toBeLessThanOrEqual(box.x + box.width + 1);
+    }
+    const overflow = await parent.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(0);
+    await test.info().attach('game-detail-parent-375', {
+      body: await parent.screenshot({ fullPage: true }),
+      contentType: 'image/png',
+    });
+    await parent.setViewportSize({ width: 412, height: 915 });
+    await parent.goto('/games'); // the live-game checks that follow expect the schedule
   });
 
   test('coach starts the game; the parent sees it go live', async () => {
