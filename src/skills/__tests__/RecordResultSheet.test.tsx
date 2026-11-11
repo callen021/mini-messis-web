@@ -115,7 +115,9 @@ describe('RecordResultSheet', () => {
       />,
     );
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByRole('combobox', { name: 'Test' })).toBeDisabled();
+    // D62: the test dropdown is never locked, only preselected
+    expect(within(dialog).getByRole('combobox', { name: 'Test' })).toBeEnabled();
+    expect(within(dialog).getByRole('combobox', { name: 'Test' })).toHaveValue('sprint');
     const value = within(dialog).getByRole('spinbutton', { name: 'Time value' });
     expect(value).toHaveValue(4.9);
     await userEvent.clear(value);
@@ -124,5 +126,50 @@ describe('RecordResultSheet', () => {
     expect(onUpdate).toHaveBeenCalledWith(expect.objectContaining({ value: 4.6, tested_on: '2026-10-05' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Delete this result' }));
     expect(onDelete).toHaveBeenCalled();
+  });
+  it('"Save and add another" keeps the sheet open on the player and moves to the next test (D62)', async () => {
+    const onSave = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <RecordResultSheet
+        open
+        onClose={onClose}
+        playerId="p1"
+        playerName="Nolan"
+        tests={tests}
+        testId="jug"
+        onSave={onSave}
+      />,
+    );
+    const dialog = screen.getByRole('dialog');
+    await userEvent.type(within(dialog).getByRole('spinbutton', { name: 'Longest streak value' }), '9');
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Save and add another' }));
+    expect(onSave).toHaveBeenCalledWith([expect.objectContaining({ skill_test_id: 'jug', value: 9 })]);
+    expect(onClose).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole('combobox', { name: 'Test' })).toHaveValue('pass');
+    expect(within(dialog).getByText('1 saved for Nolan so far')).toBeInTheDocument();
+    // the next test's fields are blank, with its own attempts default
+    expect(within(dialog).getByRole('spinbutton', { name: 'Right side value' })).toHaveValue(null);
+    expect(within(dialog).getByRole('spinbutton', { name: 'Right side attempts' })).toHaveValue(5);
+    expect(within(dialog).getByRole('button', { name: 'Save and add another' })).toBeDisabled();
+  });
+
+  it('opened from a test page with every shown test, the preselected test can still be changed', async () => {
+    render(
+      <RecordResultSheet
+        open
+        onClose={vi.fn()}
+        playerId="p1"
+        playerName="Nolan"
+        tests={tests}
+        testId="sprint"
+        onSave={vi.fn()}
+      />,
+    );
+    const select = within(screen.getByRole('dialog')).getByRole('combobox', { name: 'Test' });
+    expect(select).toHaveValue('sprint');
+    expect(within(select).getAllByRole('option')).toHaveLength(3);
+    await userEvent.selectOptions(select, 'jug');
+    expect(select).toHaveValue('jug');
   });
 });

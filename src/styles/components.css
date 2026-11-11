@@ -2391,3 +2391,62 @@ a.prow.dir .pname {
   font-size: 13px;
   color: var(--text2);
 }
+
+/* skills session sheet and table cells (D62) */
+.session {
+  display: flex;
+  flex-direction: column;
+  margin: 4px 0 8px;
+  max-height: 48vh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+.session .srow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 0;
+  border-top: 0.5px solid var(--sep);
+}
+.session .srow:first-child {
+  border-top: 0;
+}
+.session .pname {
+  flex: 1 1 40%;
+  min-width: 0;
+  font-size: 15px;
+  font-weight: 600;
+}
+.session .pname small {
+  margin-left: 4px;
+  color: var(--text3);
+  font-weight: 500;
+}
+.session .sinputs {
+  flex: 1 1 60%;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.session .inrow input {
+  width: 72px;
+}
+.session .sidelab {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text3);
+  width: 14px;
+}
+.matrix .cellbtn {
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  padding: 0;
+  min-width: 36px;
+  min-height: 32px;
+  cursor: pointer;
+}
+.matrix .cellbtn .none {
+  color: var(--text3);
+}

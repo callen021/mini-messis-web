@@ -242,13 +242,82 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByLabel('Shirt size')).toHaveCount(0);
     await parent.goto('/team/sheet');
     await expect(parent).toHaveURL(/\/team$/);
-    // from Stats the card goes back to Stats
+  });
+
+  test('two player pages: the card from Roster, the skills page from Stats (D60)', async () => {
+    // Roster → contact card: Parents and Details, no Skills
+    await parent.goto('/team');
+    await parent.getByRole('radio', { name: 'Roster' }).click();
+    await parent.locator('.group').getByRole('link', { name: /Ava/ }).click();
+    await expect(parent).toHaveURL(/\/players\/[0-9a-f-]+$/);
+    await expect(parent.getByText('Parents', { exact: true })).toBeVisible();
+    await expect(parent.getByText('Details', { exact: true })).toBeVisible();
+    await expect(parent.getByText('Skills', { exact: true })).toHaveCount(0);
+    // Stats → skills page: Skills only
     await parent.goto('/stats');
     await parent.getByRole('radio', { name: 'Season' }).click();
     await parent.locator('.statscroll').getByRole('link', { name: /Ava/ }).click();
-    await expect(parent.getByRole('link', { name: 'Stats', exact: true }).first()).toBeVisible();
-    await parent.getByRole('link', { name: 'Stats', exact: true }).first().click();
-    await expect(parent).toHaveURL(/\/stats$/);
+    await expect(parent).toHaveURL(/\/players\/[0-9a-f-]+\/skills$/);
+    await expect(parent.getByText('Skills', { exact: true })).toBeVisible();
+    await expect(parent.getByText('Parents', { exact: true })).toHaveCount(0);
+    await expect(parent.getByLabel('Shirt size')).toHaveCount(0);
+  });
+
+  test('back from a player page returns to the opener: Stats (with scroll), Roster, home (D61)', async () => {
+    // Stats → Skills table, scrolled down (the coach's eight-row table in a short viewport so it scrolls)
+    await coach.setViewportSize({ width: 375, height: 420 });
+    await coach.goto('/stats');
+    await coach.getByRole('radio', { name: 'Skills' }).click();
+    await coach.evaluate(() => window.scrollTo(0, 400));
+    await expect.poll(() => coach.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    await coach.locator('.matrix').getByRole('link', { name: 'Ava' }).click();
+    await expect(coach).toHaveURL(/\/skills$/);
+    await coach.getByRole('button', { name: 'Skills', exact: true }).click();
+    await expect(coach).toHaveURL(/\/stats$/);
+    await expect(coach.getByRole('radio', { name: 'Skills' })).toHaveAttribute('aria-checked', 'true');
+    await expect.poll(() => coach.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    await coach.setViewportSize({ width: 412, height: 915 });
+    // Roster → card → back to Team
+    await parent.goto('/team');
+    await parent.getByRole('radio', { name: 'Roster' }).click();
+    await parent.locator('.group').getByRole('link', { name: /Ava/ }).click();
+    await parent.getByRole('button', { name: 'Team', exact: true }).click();
+    await expect(parent).toHaveURL(/\/team$/);
+    // home → skills history → back to home
+    await parent.goto('/home');
+    await parent.getByRole('link', { name: 'Full skills history' }).click();
+    await expect(parent).toHaveURL(/\/skills$/);
+    await parent.getByRole('button', { name: 'Ava', exact: true }).click();
+    await expect(parent).toHaveURL(/\/home$/);
+    await parent.setViewportSize({ width: 412, height: 915 });
+  });
+
+  test('recording skills: a session for the team, then a tap on a cell (D62)', async () => {
+    await coach.goto('/stats');
+    await coach.getByRole('radio', { name: 'Skills' }).click();
+    await coach.getByRole('button', { name: 'Record results' }).click();
+    const session = coach.getByRole('dialog', { name: 'Record results' });
+    const first = await session.getByRole('combobox', { name: 'Test' }).inputValue();
+    expect(first).toBeTruthy();
+    await session.getByRole('spinbutton', { name: 'Ava value' }).fill('12');
+    await session.getByRole('spinbutton', { name: 'Ben value' }).fill('9');
+    await session.getByRole('button', { name: 'Save 2 results' }).click();
+    await expect(session).toBeHidden();
+    await expect(coach.getByRole('status').filter({ hasText: '2 results saved' })).toBeVisible();
+    const avaRow = coach.locator('.matrix tr', { hasText: 'Ava' });
+    await expect(avaRow.locator('td').nth(1)).toContainText('12');
+    // tap Cal's empty cell for the same test
+    const calRow = coach.locator('.matrix tr', { hasText: 'Cal' });
+    await calRow.locator('td').nth(1).getByRole('button').click();
+    const single = coach.getByRole('dialog', { name: /Record a result · Cal/ });
+    await expect(single.getByRole('combobox', { name: 'Test' })).toBeEnabled();
+    await single.getByRole('spinbutton').first().fill('7');
+    await single.getByRole('button', { name: 'Save result' }).click();
+    await expect(single).toBeHidden();
+    await expect(calRow.locator('td').nth(1)).toContainText('7');
+    // the parent's skills page shows Ava's new result without a reload of anything else
+    await parent.goto('/home');
+    await expect(parent.getByText(/Best 12/)).toBeVisible();
   });
 
   test('team board: announcement, unread dot, banner, comment (D58)', async () => {

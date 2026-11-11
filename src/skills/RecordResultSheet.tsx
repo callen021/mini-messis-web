@@ -11,9 +11,9 @@ export interface RecordResultSheetProps {
   onClose: () => void;
   playerId: string;
   playerName: string;
-  /** Shown tests to choose from. */
+  /** Every shown test; the dropdown always lists them all (D62). */
   tests: readonly SkillTest[];
-  /** Preselected test (or the one being edited). */
+  /** Preselected test (or the one being edited); never locked. */
   testId?: string;
   existing?: SkillResult | null;
   onSave: (rows: SkillResultInput[]) => void;
@@ -29,9 +29,16 @@ interface Draft {
   attempts: string;
 }
 
+const emptyFields = (att: string): Record<SideKey, Draft> => ({
+  '': { value: '', attempts: att },
+  left: { value: '', attempts: att },
+  right: { value: '', attempts: att },
+});
+
 /**
- * Record (or edit) a result: pick the test, the date, the value(s) and an optional note.
+ * Record (or edit) a result for one player: pick the test, the date, the value(s) and a note.
  * Two-sided tests take right and left in one go when recording; editing touches one row.
+ * "Save and add another" keeps the sheet on the same player and moves to the next test (D62).
  */
 export function RecordResultSheet({
   open,
@@ -48,12 +55,9 @@ export function RecordResultSheet({
   const [test, setTest] = useState('');
   const [date, setDate] = useState(todayISO());
   const [note, setNote] = useState('');
-  const [fields, setFields] = useState<Record<SideKey, Draft>>({
-    '': { value: '', attempts: '' },
-    left: { value: '', attempts: '' },
-    right: { value: '', attempts: '' },
-  });
+  const [fields, setFields] = useState<Record<SideKey, Draft>>(emptyFields('5'));
   const [prevKey, setPrevKey] = useState('');
+  const [saved, setSaved] = useState(0);
 
   const key = open ? `${existing?.id ?? 'new'}:${testId ?? ''}:${playerId}` : '';
   if (key !== prevKey) {
@@ -63,6 +67,7 @@ export function RecordResultSheet({
       setTest(t?.id ?? '');
       setDate(existing?.tested_on ?? todayISO());
       setNote(existing?.note ?? '');
+      setSaved(0);
       const att = String(existing?.attempts ?? t?.attempts ?? 5);
       const v = existing ? String(existing.value) : '';
       setFields({
@@ -79,6 +84,12 @@ export function RecordResultSheet({
   const setField = (side: SideKey, patch: Partial<Draft>) =>
     setFields((f) => ({ ...f, [side]: { ...f[side], ...patch } }));
 
+  const pickTest = (id: string) => {
+    setTest(id);
+    const next = tests.find((x) => x.id === id);
+    setFields(emptyFields(String(next?.attempts ?? 5)));
+  };
+
   const valueLabel = (side: SideKey) =>
     made
       ? side
@@ -88,8 +99,8 @@ export function RecordResultSheet({
           t?.metric ?? 'count'
         ];
 
-  const save = () => {
-    if (!t) return;
+  const rowsFor = (): SkillResultInput[] => {
+    if (!t) return [];
     const on = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : todayISO();
     const rows: SkillResultInput[] = [];
     for (const side of sides) {
@@ -105,12 +116,29 @@ export function RecordResultSheet({
         note: note.trim() || null,
       });
     }
+    return rows;
+  };
+
+  const save = () => {
+    const rows = rowsFor();
     if (!rows.length) return;
     if (existing && onUpdate) {
       const r = rows[0] as SkillResultInput;
       onUpdate({ tested_on: r.tested_on, value: r.value, attempts: r.attempts, side: r.side, note: r.note });
     } else onSave(rows);
     onClose();
+  };
+
+  /** Save, then stay on this player and move to the next shown test (wrapping round). */
+  const saveAndNext = () => {
+    const rows = rowsFor();
+    if (!rows.length || !t) return;
+    onSave(rows);
+    setSaved((n) => n + 1);
+    const i = tests.findIndex((x) => x.id === t.id);
+    const next = tests[(i + 1) % tests.length] ?? t;
+    pickTest(next.id);
+    setNote('');
   };
 
   const anyValue = sides.some((s) => !Number.isNaN(parseFloat(fields[s].value)));
@@ -122,7 +150,7 @@ export function RecordResultSheet({
       title={existing ? 'Edit result' : `Record a result · ${playerName}`}
     >
       <Field label="Test">
-        <Select value={test} onChange={(e) => setTest(e.target.value)} disabled={!!existing}>
+        <Select value={test} onChange={(e) => pickTest(e.target.value)}>
           {tests.map((x) => (
             <option key={x.id} value={x.id}>
               {x.name}
@@ -134,7 +162,7 @@ export function RecordResultSheet({
         <TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
       {sides.map((side) => (
-        <Field key={side || 'one'} label={valueLabel(side)}>
+        <Field key={`${test}-${side || 'one'}`} label={valueLabel(side)}>
           <div className="inrow">
             <TextInput
               type="number"
@@ -173,9 +201,19 @@ export function RecordResultSheet({
           placeholder="e.g. windy, size 4 ball"
         />
       </Field>
+      {saved > 0 && !existing && (
+        <p className="sub" role="status">
+          {saved} saved for {playerName} so far
+        </p>
+      )}
       <Button onClick={save} disabled={!t || !anyValue}>
         {existing ? 'Save changes' : 'Save result'}
       </Button>
+      {!existing && tests.length > 1 && (
+        <Button variant="tinted" onClick={saveAndNext} disabled={!t || !anyValue}>
+          Save and add another
+        </Button>
+      )}
       {existing && onDelete && (
         <Button variant="gray" className="undo" onClick={onDelete}>
           Delete this result
