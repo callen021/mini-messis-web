@@ -27,6 +27,7 @@ import { BoardPage } from '@/board/BoardPage';
 import { HomePage } from '@/home/HomePage';
 import { FieldPage } from '@/lineups/FieldPage';
 import { PlayerPage } from '@/skills/PlayerPage';
+import { PlayerSkillsPage } from '@/skills/PlayerSkillsPage';
 import { SkillsSettingsPage } from '@/skills/SkillsSettingsPage';
 import { SkillTestPage } from '@/skills/SkillTestPage';
 import { TeamSetupPage } from '@/settings/TeamSetupPage';
@@ -141,6 +142,7 @@ export const routes: RouteObject[] = [
                       { path: '/practices/:practiceId', element: <PracticePage /> },
                       { path: '/stats', element: <StatsPage /> },
                       { path: '/players/:playerId', element: <PlayerPage /> },
+                      { path: '/players/:playerId/skills', element: <PlayerSkillsPage /> },
                       { path: '/players/:playerId/skills/:testId', element: <SkillTestPage /> },
                       { path: '/settings', element: <SettingsPage /> },
                       { path: '/settings/members', element: <MembersPage /> },

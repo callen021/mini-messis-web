@@ -595,3 +595,33 @@ add pushed new rows into every results cache. The key now carries the sorted ids
 update only touches caches that cover the row's player, and the same mistake in the team-contacts
 query is fixed; an audit found no other per-player query keyed by a count. A hook test reproduces
 the bug against the old key (it fails there) and guards the fix. "1 results" reads "1 result".
+
+### D60. Two player pages: the contact card and the skills page
+
+One page tried to be both and parents got lost in it. `/players/:id` is the contact card
+(jersey, name, Parents, birthdate and shirt size), opened from Team → Roster; `/players/:id/skills`
+is the skills page (jersey, name, skills bests, Record a result for staff), opened from Stats →
+Skills, the stats table, the parent home tab's "Full skills history" link and a test's own page.
+The parent home tab keeps its own layout and links to both.
+
+### D61. Back goes to the opener
+
+Every link into a player page passes router state saying where it came from. The page's back
+control then goes _back in history_ (`navigate(-1)`) instead of pushing a fixed route, so the
+opener returns exactly as it was: the Stats → Skills table keeps its segment and scroll position
+(React Router's ScrollRestoration restores on a history pop), the Roster is the Roster, the home
+tab the home tab. With no in-app history (a deep link, a reload) the control is a plain link to the
+sensible fallback: Team for the card, Stats for the skills page, the skills page for a test page.
+Playwright covers each entry point.
+
+### D62. Recording skills: a session, a tapped cell, and "Save and add another"
+
+Coaches record a test for the whole team at once: **Record results** on Stats → Skills opens one
+sheet with the test and date on top and every active player below, each with the inputs the
+metric needs (count, seconds with decimals, distance, made-of-attempted with attempts, right and
+left rows for two-sided tests), numeric keyboards, and Enter / Next jumping to the following
+player; blank rows are skipped and one Save writes them all. Staff can also tap any cell in the
+table to add a result for that player and test, or edit the latest one. The single-player sheet
+always lists every shown test, preselecting rather than locking the one it was opened for, and
+"Save and add another" saves, stays on the player and moves to the next test with a running count.
+The table and the player pages refresh through the existing optimistic update and invalidation.

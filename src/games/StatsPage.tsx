@@ -148,7 +148,7 @@ export function StatsPage() {
                     </>
                   ) : (
                     <Link
-                      to={`/players/${r.player_id}`}
+                      to={`/players/${r.player_id}/skills`}
                       state={{ from: '/stats', fromLabel: 'Stats' }}
                       className="plink"
                     >

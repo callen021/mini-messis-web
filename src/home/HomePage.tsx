@@ -270,8 +270,12 @@ function ChildHome({ child }: { child: Player }) {
       <Footer>
         The line is the trend over the last sessions; PB marks a new personal best. Tap a test for every
         result.{' '}
+        <Link to={`/players/${child.id}/skills`} state={{ from: '/home', fromLabel: child.first_name }}>
+          Full skills history
+        </Link>{' '}
+        ·{' '}
         <Link to={`/players/${child.id}`} state={{ from: '/home', fromLabel: child.first_name }}>
-          Contact card and full history
+          Contact card
         </Link>
       </Footer>
 

@@ -282,7 +282,7 @@ Parents get the same tabs but every edit control is hidden (not merely disabled)
 3. **Database & auth** — migrations for §5, RLS, functions, generated types, seed, RLS tests; auth screens; create-team / join / pending / approve flows; team switcher.
 4. **Roster, Field, Team (rotation)** — full coach editing with optimistic updates; parent read-only variants; Realtime subscriptions.
 5. **Games, scoring log (all sports), baseball batting log, schedule, stats, batting order** — including `start_game`/`finish_game` semantics, basketball +1/+2/+3 panel, baseball line score and plate-appearance entry, schedule fields, ics export, sport-specific stats per season.
-6. **Player profiles & skills assessments** — player page, default test sets, team test editor, result entry and history, guardian-scoped parent view with RLS tests proving a parent cannot read another child's results.
+6. **Player profiles & skills assessments** — player page, default test sets, team test editor, result entry and history, guardian-scoped parent view with RLS tests proving a parent cannot read another child's results. (Round 3: the player page is two pages — a contact card from the Roster and a skills page from Stats / Skills / the home tab, D60; back goes to the opener, D61; a whole-session recording sheet on Stats → Skills, tap-a-cell entry, and "Save and add another" on the single-player sheet, D62.)
 7. **Settings, profile, backup import/export, print** — legacy JSON import for my existing Strikers data; export.
 8. **Hardening** — offline mutation queue, error boundaries, empty states, loading skeletons, Lighthouse pass, Playwright suite, CI deploy to GitHub Pages, `docs/DATA-MODEL.md` ERD.
 

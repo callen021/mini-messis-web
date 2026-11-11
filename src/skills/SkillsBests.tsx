@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { useNavigate } from 'react-router';
+import { useLocation, useNavigate } from 'react-router';
 import { Row } from '@/components/List';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useSkillResults, useSkillTests } from './api';
@@ -10,9 +10,10 @@ import { Sparkline } from './Sparkline';
  * One row per shown test: name, personal best, latest, a trend sparkline. Shared by the player
  * page and the parent home (D53). RLS already limits a parent to their own children's results.
  */
-export function SkillsBests({ playerId }: { playerId: string }) {
+export function SkillsBests({ playerId, playerName }: { playerId: string; playerName?: string }) {
   const { teamId, sport } = useCurrentTeam();
   const navigate = useNavigate();
+  const location = useLocation();
   const tests = useSkillTests(teamId);
   const results = useSkillResults(teamId, [playerId]);
   const shown = useMemo(() => (tests.data ?? []).filter((t) => t.is_active), [tests.data]);
@@ -53,7 +54,11 @@ export function SkillsBests({ playerId }: { playerId: string }) {
         return (
           <Row
             key={t.id}
-            onClick={() => void navigate(`/players/${playerId}/skills/${t.id}`)}
+            onClick={() =>
+              void navigate(`/players/${playerId}/skills/${t.id}`, {
+                state: { from: location.pathname, fromLabel: playerName ?? 'Skills' },
+              })
+            }
             label={
               <>
                 {t.name}

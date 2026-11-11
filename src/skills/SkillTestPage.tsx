@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useParams } from 'react-router';
+import { useLocation, useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { Button, Toolbar } from '@/components/Button';
 import { Footer, Group, Row, Section } from '@/components/List';
@@ -20,12 +20,14 @@ import {
   useUpdateSkillResult,
 } from './api';
 import { bestOf, fmtResult, mainSide, metricSentence, type SkillResult, sortResults } from './defaults';
+import { type PlayerBackState, playerBack } from './playerBack';
 import { RecordResultSheet } from './RecordResultSheet';
 
 /** One test for one player: Best / Latest / Sessions, the how-to, and the full history newest first. */
 export function SkillTestPage() {
   const { playerId = '', testId = '' } = useParams<{ playerId: string; testId: string }>();
   const { teamId } = useCurrentTeam();
+  const location = useLocation();
   const isStaff = useIsStaff();
   const toast = useToast();
   const sheet = useActionSheet();
@@ -41,6 +43,10 @@ export function SkillTestPage() {
 
   const player = players.data?.find((p) => p.id === playerId);
   const test = tests.data?.find((t) => t.id === testId);
+  const back = playerBack((location.state as PlayerBackState | null) ?? {}, {
+    to: `/players/${playerId}/skills`,
+    label: player?.first_name ?? 'Skills',
+  });
   const all = useMemo(
     () => sortResults((results.data ?? []).filter((r) => r.skill_test_id === testId)),
     [results.data, testId],
@@ -49,12 +55,13 @@ export function SkillTestPage() {
   if (players.isPending || tests.isPending) return <LoadingScreen />;
   if (!player || !test) {
     return (
-      <Page title="Skill" back={{ to: `/players/${playerId}`, label: 'Player' }}>
+      <Page title="Skill" back={back}>
         <p className="sub">This test is no longer available.</p>
       </Page>
     );
   }
   const canSee = isStaff || (children.data?.has(playerId) ?? false);
+  const shownTests = (tests.data ?? []).filter((t) => t.is_active);
   const list = mainSide(test, all);
   const best = bestOf(test, list);
   const last = all[all.length - 1];
@@ -77,11 +84,7 @@ export function SkillTestPage() {
   };
 
   return (
-    <Page
-      title={test.name}
-      sub={`${player.first_name} · ${metricSentence(test)}`}
-      back={{ to: `/players/${playerId}`, label: player.first_name }}
-    >
+    <Page title={test.name} sub={`${player.first_name} · ${metricSentence(test)}`} back={back}>
       {canSee && (
         <Tiles>
           <Tile label="Best" value={fmtResult(test, best)} />
@@ -141,7 +144,7 @@ export function SkillTestPage() {
             }}
             playerId={playerId}
             playerName={player.first_name}
-            tests={[test]}
+            tests={shownTests.some((t) => t.id === test.id) ? shownTests : [test, ...shownTests]}
             testId={test.id}
             existing={editing}
             onSave={(rows) => {
