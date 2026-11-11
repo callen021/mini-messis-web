@@ -195,14 +195,14 @@ isOneToOne: false
                   ]
                 },"player_contacts": {
                   Row: {
-                    "created_at": string,"email": string | null,"id": string,"name": string,"phone": string | null,"player_id": string,"relationship": string | null,"sort_order": number,"updated_at": string,"updated_by": string | null,"user_id": string | null
+                    "created_at": string,"email": string | null,"id": string,"name": string,"phone": string | null,"player_id": string,"relationship": string | null,"share_with_team": boolean,"sort_order": number,"updated_at": string,"updated_by": string | null,"user_id": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"email"?: string | null,"id"?: string,"name": string,"phone"?: string | null,"player_id": string,"relationship"?: string | null,"sort_order"?: number,"updated_at"?: string,"updated_by"?: string | null,"user_id"?: string | null
+                    "created_at"?: string,"email"?: string | null,"id"?: string,"name": string,"phone"?: string | null,"player_id": string,"relationship"?: string | null,"share_with_team"?: boolean,"sort_order"?: number,"updated_at"?: string,"updated_by"?: string | null,"user_id"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"email"?: string | null,"id"?: string,"name"?: string,"phone"?: string | null,"player_id"?: string,"relationship"?: string | null,"sort_order"?: number,"updated_at"?: string,"updated_by"?: string | null,"user_id"?: string | null
+                    "created_at"?: string,"email"?: string | null,"id"?: string,"name"?: string,"phone"?: string | null,"player_id"?: string,"relationship"?: string | null,"share_with_team"?: boolean,"sort_order"?: number,"updated_at"?: string,"updated_by"?: string | null,"user_id"?: string | null
                   }
                   Relationships: [
                     {
@@ -425,14 +425,14 @@ isOneToOne: false
                   ]
                 },"team_members": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"created_at": string,"id": string,"note": string | null,"requested_role": Database["public"]['Enums']["member_role"] | null,"role": Database["public"]['Enums']["member_role"],"status": Database["public"]['Enums']["member_status"],"team_id": string,"updated_at": string,"user_id": string
+                    "approved_at": string | null,"approved_by": string | null,"contact_phone": string | null,"created_at": string,"id": string,"note": string | null,"requested_role": Database["public"]['Enums']["member_role"] | null,"role": Database["public"]['Enums']["member_role"],"status": Database["public"]['Enums']["member_status"],"team_id": string,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"created_at"?: string,"id"?: string,"note"?: string | null,"requested_role"?: Database["public"]['Enums']["member_role"] | null,"role": Database["public"]['Enums']["member_role"],"status"?: Database["public"]['Enums']["member_status"],"team_id": string,"updated_at"?: string,"user_id": string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"id"?: string,"note"?: string | null,"requested_role"?: Database["public"]['Enums']["member_role"] | null,"role": Database["public"]['Enums']["member_role"],"status"?: Database["public"]['Enums']["member_status"],"team_id": string,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"created_at"?: string,"id"?: string,"note"?: string | null,"requested_role"?: Database["public"]['Enums']["member_role"] | null,"role"?: Database["public"]['Enums']["member_role"],"status"?: Database["public"]['Enums']["member_status"],"team_id"?: string,"updated_at"?: string,"user_id"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"id"?: string,"note"?: string | null,"requested_role"?: Database["public"]['Enums']["member_role"] | null,"role"?: Database["public"]['Enums']["member_role"],"status"?: Database["public"]['Enums']["member_status"],"team_id"?: string,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -542,6 +542,9 @@ isOneToOne: false
 "archive_player":
 { Args: { "p_player_id": string }; Returns: undefined
                            },
+"can_see_contact":
+{ Args: { "p_player_id": string,"p_shared": boolean }; Returns: boolean
+                           },
 "can_see_player_private":
 { Args: { "p_player_id": string }; Returns: boolean
                            },
@@ -630,6 +633,11 @@ isOneToOne: false
 "normalize_join_code":
 { Args: { "p_code": string }; Returns: string
                            },
+"player_people":
+{ Args: { "p_player_id": string }; Returns: {
+              "can_edit": boolean,"contact_id": string,"email": string,"in_app": boolean,"link_status": string,"name": string,"phone": string,"relationship": string,"share_with_team": boolean,"user_id": string
+            }[]
+                           },
 "player_season_stats":
 { Args: { "p_game_id"?: string,"p_season_id"?: string,"p_team_id": string }; Returns: {
               "assists": number,"at_bats": number,"doubles": number,"field_goals": number,"free_throws": number,"games_played": number,"goals": number,"hits": number,"home_runs": number,"name": string,"number": string,"periods_played": number,"plate_appearances": number,"player_id": string,"points": number,"rbi": number,"removed": boolean,"runs": number,"strikeouts": number,"three_pointers": number,"triples": number,"walks": number
@@ -645,10 +653,15 @@ isOneToOne: false
 { Args: { "p_player_id": string,"p_relationship"?: string }; Returns: string
                            },
 "request_join":
-{ Args: { "p_code": string,"p_player_ids"?: (string)[],"p_requested_role": Database["public"]['Enums']["member_role"],"p_unlisted_child_name"?: string }; Returns: Json
+{ Args: { "p_code": string,"p_phone"?: string,"p_player_ids"?: (string)[],"p_requested_role": Database["public"]['Enums']["member_role"],"p_unlisted_child_name"?: string }; Returns: Json
                            },
 "restore_skill_tests":
 { Args: { "p_team_id": string,"p_tests"?: Json }; Returns: number
+                           },
+"roster_directory":
+{ Args: { "p_team_id": string }; Returns: {
+              "parent_names": (string)[],"player_id": string
+            }[]
                            },
 "rotate_join_code":
 { Args: { "p_team_id": string }; Returns: string
@@ -698,6 +711,11 @@ isOneToOne: false
 "team_places":
 { Args: { "p_team_id": string }; Returns: {
               "address": string,"last_used": string,"location": string,"uses": number
+            }[]
+                           },
+"team_sheet":
+{ Args: { "p_team_id": string }; Returns: {
+              "birthdate": string,"contacts": Json,"first_name": string,"jersey_number": string,"last_name": string,"player_id": string,"shirt_size": Database["public"]['Enums']["shirt_size"]
             }[]
                            },
 "transfer_ownership":

@@ -28,6 +28,7 @@ vi.mock('@/lineups/api', async () => {
 });
 vi.mock('../api', () => ({
   useSetAvailable: () => ({ mutate: setAvailableMutate }),
+  useEveryoneBack: () => ({ mutate: vi.fn() }),
 }));
 
 const team: Team = {

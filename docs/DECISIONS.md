@@ -539,3 +539,25 @@ definer functions (`game_events`, `game_plate_appearances`, `game_scores_for`,
 can no longer receive realtime rows from the log, a trigger touches the game row on every log
 change and the existing `games` subscription keeps their live score fresh. pgTAP 11 covers a
 parent under both settings, the coach, and a non-member.
+
+### D57. The roster is the team directory; contacts are shared by choice
+
+Team → Roster is one clean list for everyone: number, name and the parents' first names the
+viewer may see; tapping opens the player's contact card. Staff management (numbers, names, remove,
+add) sits behind an **Edit roster** button, and the game-day out switch lives on Rotation only. The
+contact card merges what were the Guardians and Contacts sections into one **Parents** list
+(`player_people`): contact rows plus guardian accounts without one, "In app" for linked accounts,
+"Pending link" for staff, with Call, Text, Email and Add to contacts (a vCard 3.0) under each person
+and **Add all to contacts** on the roster for every contact the viewer may read. Season tiles left
+the card (they live on the parent home tab and the Stats tab); details and skills stay for staff
+and the child's own parents. Sharing is per contact: `share_with_team` (default on) lets any active
+member read name, relationship, phone and email; off keeps it to staff and that child's guardians.
+Birthdate and shirt size never widen. Phone numbers are normalised on save (E.164, +1 assumed for
+ten digits) and formatted for display. The invite asks for an optional mobile number; on approval
+it becomes a contact on each linked child, so the directory fills itself. Staff get a **Team sheet**
+(`/team/sheet`, `team_sheet()`): every child with birthdate, shirt size and parents, Copy (text) and
+CSV. A player page goes back to where it was opened from (roster, stats, skills, home) through
+router state rather than always to Team. vCards and .ics files share the same iOS delivery path
+(navigate to the blob); it still needs a check on a real iPhone. pgTAP 12 covers shared vs private
+contacts for another parent, a guardian's edits, staff and the pending-link rule; nothing in the
+repo uses real names or numbers.

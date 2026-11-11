@@ -173,6 +173,9 @@ Delete user**. Their profile and membership rows go with them.
    > child from the roster; I'll approve you. Tip: use Share → Add to Home Screen so it opens like
    > an app.
 
+   The invite also asks for an optional mobile number; on approval it becomes a contact on the
+   child's card, shared with team parents unless the family turns that off.
+
 3. Requests appear under **Settings → Members → Waiting for approval** with the child links. You or
    an assistant coach tap **Approve…** to confirm or change the children (or decline). Parents are
    read-only and only ever see their own child's skills results. Assistant coaches are promoted

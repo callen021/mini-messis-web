@@ -11,6 +11,7 @@ import { Page } from '@/components/Page';
 import { Switch } from '@/components/Switch';
 import { useToast } from '@/components/Toast';
 import { normalizeCode } from '@/lib/join-code';
+import { normalizePhone } from '@/lib/phone';
 import { errorMessage, supabase } from '@/lib/supabase';
 import { SPORTS } from '@/sports/definitions';
 import { lookupInvite, useRequestJoin } from '../api';
@@ -74,6 +75,7 @@ function InviteForm({ code, preview, signedIn }: { code: string; preview: Previe
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [phone, setPhone] = useState('');
   const [children, setChildren] = useState<Set<string>>(() => new Set());
   const [unlisted, setUnlisted] = useState('');
   const [busy, setBusy] = useState(false);
@@ -125,10 +127,12 @@ function InviteForm({ code, preview, signedIn }: { code: string; preview: Previe
           return;
         }
       }
+      if (phone.trim() && !normalizePhone(phone)) throw new Error('That doesn’t look like a phone number.');
       const r = await request.mutateAsync({
         code,
         playerIds: [...children],
         unlistedChildName: unlisted.trim(),
+        phone: normalizePhone(phone),
       });
       if (r.status === 'active') {
         toast(`You're already on ${r.name}`);
@@ -252,6 +256,26 @@ function InviteForm({ code, preview, signedIn }: { code: string; preview: Previe
           </div>
         </Group>
         <Footer>You can pick more than one. The coach confirms the link before you see anything.</Footer>
+        <Section>Your phone (optional)</Section>
+        <Group>
+          <div className="form">
+            <Field label="Mobile number">
+              <TextInput
+                type="tel"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                autoComplete="tel"
+                inputMode="tel"
+                maxLength={40}
+                placeholder="(555) 010-0001"
+              />
+            </Field>
+          </div>
+        </Group>
+        <Footer>
+          Saved as a contact on your child’s card when the coach approves you, so the coaches can reach you.
+          You can turn sharing with other parents off afterwards.
+        </Footer>
         {error && (
           <p className="form-error" role="alert" style={{ margin: '12px 16px 0' }}>
             {error.message}

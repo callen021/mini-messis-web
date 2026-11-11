@@ -222,13 +222,19 @@ export interface JoinResult {
 export function useRequestJoin() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (args: { code: string; playerIds: string[]; unlistedChildName: string }) =>
+    mutationFn: async (args: {
+      code: string;
+      playerIds: string[];
+      unlistedChildName: string;
+      phone?: string | null;
+    }) =>
       unwrap(
         await supabase.rpc('request_join', {
           p_code: args.code,
           p_requested_role: 'parent',
           p_player_ids: args.playerIds,
           p_unlisted_child_name: args.unlistedChildName || undefined,
+          p_phone: args.phone || undefined,
         }),
       ) as unknown as JoinResult,
     onSuccess: () => {

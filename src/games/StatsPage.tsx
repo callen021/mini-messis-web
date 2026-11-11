@@ -147,7 +147,11 @@ export function StatsPage() {
                       <small>removed</small>
                     </>
                   ) : (
-                    <Link to={`/players/${r.player_id}`} className="plink">
+                    <Link
+                      to={`/players/${r.player_id}`}
+                      state={{ from: '/stats', fromLabel: 'Stats' }}
+                      className="plink"
+                    >
                       {r.name}
                       {r.number && <small>#{r.number}</small>}
                     </Link>

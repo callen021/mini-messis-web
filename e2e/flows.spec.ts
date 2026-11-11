@@ -74,6 +74,8 @@ test.describe('coach and parent flows', () => {
   test('coach adds eight players on the roster', async () => {
     await coach.goto('/team');
     await coach.getByRole('radio', { name: 'Roster' }).click();
+    // staff controls sit behind Edit roster (D57)
+    await coach.getByRole('button', { name: 'Edit roster' }).click();
     for (const [i, name] of PLAYERS.entries()) {
       await coach.getByRole('button', { name: 'Add player' }).first().click();
       const sheet = coach.getByRole('dialog', { name: 'Add player' });
@@ -84,6 +86,10 @@ test.describe('coach and parent flows', () => {
       await expect(coach.getByRole('textbox', { name: 'Player name' }).nth(i)).toHaveValue(name);
     }
     await expect(coach.getByRole('textbox', { name: 'Player name' })).toHaveCount(PLAYERS.length);
+    await coach.getByRole('button', { name: 'Done' }).click();
+    // the directory view: one row per player, no inputs
+    await expect(coach.getByRole('textbox', { name: 'Player name' })).toHaveCount(0);
+    await expect(coach.locator('.group').getByRole('link', { name: /Ava/ })).toBeVisible();
   });
 
   test('coach auto-fills every period on the Field', async () => {
@@ -131,6 +137,7 @@ test.describe('coach and parent flows', () => {
     await parent.getByLabel('Email').fill(parentEmail);
     await parent.getByLabel('Password').fill(PASSWORD);
     await parent.getByRole('switch', { name: 'Ava is my child' }).click();
+    await parent.getByLabel('Mobile number').fill('(555) 010-0001');
     await parent.getByRole('button', { name: 'Create account and join' }).click();
     await expect(parent.getByRole('heading', { level: 1, name: 'Almost in' })).toBeVisible({
       timeout: 20_000,
@@ -188,6 +195,60 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByText('Personal bests', { exact: false })).toBeVisible();
     await expect(parent.getByLabel('Shirt size')).toBeVisible(); // a guardian may edit details
     await expect(parent.getByRole('link', { name: 'Whole team rotation' })).toBeVisible();
+  });
+
+  test("contact card: approval made the parent a contact; roster shows parents' names (D57)", async () => {
+    // the coach: Ava's card lists Parent Pat with the invite phone, In app, call/text/email/vCard
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    const avaRow = coach.locator('.group').getByRole('link', { name: /Ava/ });
+    await expect(avaRow).toContainText('Parent');
+    await avaRow.click();
+    await expect(coach.getByRole('heading', { level: 1 })).toContainText('Ava');
+    await expect(coach.getByText('Parents', { exact: true })).toBeVisible();
+    await expect(coach.getByText('Parent Pat')).toBeVisible();
+    await expect(coach.getByText('(555) 010-0001')).toBeVisible();
+    await expect(coach.getByText('In app')).toBeVisible();
+    await expect(coach.getByRole('link', { name: 'Call Parent Pat' })).toHaveAttribute(
+      'href',
+      'tel:+15550100001',
+    );
+    await expect(coach.getByRole('link', { name: 'Text Parent Pat' })).toHaveAttribute(
+      'href',
+      'sms:+15550100001',
+    );
+    await expect(coach.getByRole('button', { name: 'Add Parent Pat to contacts' })).toBeVisible();
+    await expect(coach.getByRole('switch', { name: 'Share Parent Pat with team parents' })).toHaveAttribute(
+      'aria-checked',
+      'true',
+    );
+    await expect(coach.getByLabel('Shirt size')).toBeVisible();
+    // back goes where we came from
+    await coach.getByRole('link', { name: 'Team' }).first().click();
+    await expect(coach).toHaveURL(/\/team$/);
+    // the team sheet exists for staff
+    await coach.goto('/team/sheet');
+    await expect(coach.getByRole('heading', { level: 1, name: 'Team sheet' })).toBeVisible();
+    await expect(coach.getByRole('cell', { name: /Parent Pat/ })).toBeVisible();
+    await expect(coach.getByRole('button', { name: 'CSV' })).toBeVisible();
+
+    // the parent: own card is editable, shares are visible, the team sheet is not
+    await parent.goto('/team');
+    await parent.getByRole('radio', { name: 'Roster' }).click();
+    await expect(parent.getByRole('button', { name: 'Edit roster' })).toHaveCount(0);
+    await parent.locator('.group').getByRole('link', { name: /Ben/ }).click();
+    await expect(parent.getByRole('heading', { level: 1 })).toContainText('Ben');
+    await expect(parent.getByText('Nothing shared with the team yet.')).toBeVisible();
+    await expect(parent.getByLabel('Shirt size')).toHaveCount(0);
+    await parent.goto('/team/sheet');
+    await expect(parent).toHaveURL(/\/team$/);
+    // from Stats the card goes back to Stats
+    await parent.goto('/stats');
+    await parent.getByRole('radio', { name: 'Season' }).click();
+    await parent.locator('.statscroll').getByRole('link', { name: /Ava/ }).click();
+    await expect(parent.getByRole('link', { name: 'Stats' }).first()).toBeVisible();
+    await parent.getByRole('link', { name: 'Stats' }).first().click();
+    await expect(parent).toHaveURL(/\/stats$/);
   });
 
   test('parent sees the schedule but no coach controls', async () => {

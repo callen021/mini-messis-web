@@ -65,7 +65,7 @@ select pg_temp.logout();
 select pg_temp.login('f7000000-0000-0000-0000-000000000003');
 select is((select count(*)::int from public.player_details), 1, 'guardian of X reads exactly one details row');
 select is((select player_id from public.player_details), 'e7000000-0000-0000-0000-00000000000a', 'and it is X');
-select is((select count(*)::int from public.player_contacts), 0, 'guardian of X reads none of Y''s contacts');
+select is((select count(*)::int from public.player_contacts where player_id = 'e7000000-0000-0000-0000-00000000000b'), 1, 'guardian of X reads Y''s shared contact (sharing is on by default, D57)');
 select lives_ok($$update public.player_details set shirt_size = 'YL' where player_id = 'e7000000-0000-0000-0000-00000000000a'$$, 'guardian edits X''s details');
 select is((select shirt_size::text from public.player_details where player_id = 'e7000000-0000-0000-0000-00000000000a'), 'YL', 'the edit stuck');
 select lives_ok($$insert into public.player_contacts (player_id, name, relationship, email, user_id) values ('e7000000-0000-0000-0000-00000000000a', 'Xavier', 'father', 'parent-x@test.com', 'f7000000-0000-0000-0000-000000000003')$$, 'guardian adds themselves as a contact for X');
@@ -77,8 +77,8 @@ select is((select shirt_size::text from public.player_details where player_id = 
 -- ---------- Y's guardian sees only Y; pending guardian and stranger see nothing ----------
 select pg_temp.login('f7000000-0000-0000-0000-000000000004');
 select is((select string_agg(player_id::text, ',') from public.player_details), 'e7000000-0000-0000-0000-00000000000b', 'guardian of Y reads only Y');
-select is((select count(*)::int from public.player_contacts), 1, 'and only Y''s contact');
-select is((select name from public.player_contacts), 'Yolanda', 'which is Yolanda');
+select is((select count(*)::int from public.player_contacts where player_id = 'e7000000-0000-0000-0000-00000000000b'), 1, 'and Y''s own contact');
+select is((select name from public.player_contacts where player_id = 'e7000000-0000-0000-0000-00000000000b'), 'Yolanda', 'which is Yolanda');
 select pg_temp.logout();
 select pg_temp.login('f7000000-0000-0000-0000-000000000005');
 select is((select count(*)::int from public.player_details), 0, 'a pending guardian reads nothing');

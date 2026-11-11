@@ -30,6 +30,7 @@ import { SkillsSettingsPage } from '@/skills/SkillsSettingsPage';
 import { SkillTestPage } from '@/skills/SkillTestPage';
 import { TeamSetupPage } from '@/settings/TeamSetupPage';
 import { TeamPage } from '@/roster/TeamPage';
+import { TeamSheetPage } from '@/roster/TeamSheetPage';
 import { AuthLayout } from './layouts/AuthLayout';
 import { TabLayout } from './layouts/TabLayout';
 import { NotFound } from './pages/NotFound';
@@ -132,6 +133,7 @@ export const routes: RouteObject[] = [
                       { path: '/lineup', element: <LineupPage /> },
                       { path: '/lineup/order', element: <BattingOrderPage /> },
                       { path: '/team', element: <TeamPage /> },
+                      { path: '/team/sheet', element: <TeamSheetPage /> },
                       { path: '/games', element: <GamesPage /> },
                       { path: '/games/:gameId', element: <GamePage /> },
                       { path: '/practices/:practiceId', element: <PracticePage /> },

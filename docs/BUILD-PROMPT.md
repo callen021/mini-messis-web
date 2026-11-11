@@ -31,7 +31,7 @@ Three roles, scoped **per team** (one user can be a coach on one team and a pare
 | Delete team, change sport, rename team, transfer ownership | ✅ (owner only for delete/transfer; sport change is admin-only, D39) | ❌ | ❌ |
 | Approve/remove members, change member roles, generate/rotate join code | ✅ | ❌ | ❌ |
 | Team setup: players-on-field, goalkeeper on/off, number of periods, jersey colors | ✅ | ✅ | ❌ |
-| Roster: add/edit/remove players, jersey numbers, mark player active/out for a game | ✅ | ✅ | ❌ |
+| Roster: add/edit/remove players, jersey numbers, mark player active/out for a game | ✅ | ✅ | ❌ (Round 2, D57: Roster is the team directory — number, name, parents' first names — for everyone; staff controls sit behind Edit roster; the out switch lives on Rotation) |
 | Lineups: assign jerseys, formation per period, Auto-fill / Redo, Clear, rotation grid edits | ✅ | ✅ | ❌ |
 | Batting order edit, "batted" tap, New-game reset (baseball) | ✅ | ✅ | ❌ |
 | Games: schedule (opponent, date, time, location, address, home/away), start, finish, delete, edit details | ✅ | ✅ | ❌ |
@@ -46,7 +46,9 @@ Three roles, scoped **per team** (one user can be a coach on one team and a pare
 | Print lineup sheet | ✅ | ✅ | ✅ |
 | Own profile: display name, theme (light/dark/auto), field view (3D/flat), which team is default | ✅ | ✅ | ✅ |
 | Link additional children on the same team | ✅ | ✅ | ✅ (pending coach approval) |
-| Player details (birthdate, shirt size) and contacts — D52 | ✅ | ✅ | ✅ **own linked children only**; never another child's |
+| Player details (birthdate, shirt size) — D52 | ✅ | ✅ | ✅ **own linked children only**; never another child's |
+| Contacts (name, relationship, phone, email) — D57 | ✅ read/write all | ✅ read/write all | ✅ own children read/write; other children's only when the family's "Share with team parents" switch is on |
+| Team sheet (every child's birthdate, shirt size and parents; Copy / CSV) — D57 | ✅ | ✅ | ❌ |
 
 Parents are **read-only on everything team-related**; their only writes are to their own profile/preferences and to join/link requests. Parents see *all* kids' positions and playing time, not just their own child — the only parent-specific touch is that their own child's jersey/row is highlighted and shown first in the stats list. (D54: the jersey carries a gold star badge and a gold name instead of an outline; the child leads every list a parent sees — rotation, roster, stats table, skills table — and the Auto-fill dot is hidden from parents.)
 

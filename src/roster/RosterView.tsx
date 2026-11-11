@@ -1,20 +1,26 @@
-import { type FormEvent, useState } from 'react';
-import { Link } from 'react-router';
+import { type FormEvent, useMemo, useState } from 'react';
+import { Link, useLocation } from 'react-router';
 import { Badge } from '@/components/Badge';
-import { Button } from '@/components/Button';
+import { Button, Toolbar } from '@/components/Button';
 import { Field, TextInput } from '@/components/Form';
-import { CheckIcon, PlusIcon } from '@/components/icons';
+import { PlusIcon } from '@/components/icons';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { FormSheet, useActionSheet } from '@/components/Sheet';
-import { Switch } from '@/components/Switch';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
 import { useCurrentPlan } from '@/lineups/api';
+import { type PlayerContact, useRosterDirectory, useTeamContacts } from '@/players/api';
+import { buildVCards, deliverVcf } from '@/players/vcard';
 import { SPORTS } from '@/sports/definitions';
 import { type Player } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
-import { useAddPlayer, useArchivePlayer, useEveryoneBack, useSetAvailable, useUpdatePlayer } from './api';
+import { useAddPlayer, useArchivePlayer, useUpdatePlayer } from './api';
 
+/**
+ * Team → Roster is the team directory (D57): number, name and the parents' first names the viewer
+ * may see; tapping opens the contact card. Staff controls sit behind an Edit roster button; the
+ * game-day out switch lives on Rotation.
+ */
 export function RosterView({
   players,
   canEdit,
@@ -24,24 +30,26 @@ export function RosterView({
   canEdit: boolean;
   highlight: ReadonlySet<string>;
 }) {
-  const { teamId, sport } = useCurrentTeam();
+  const { teamId, team, sport } = useCurrentTeam();
   const S = SPORTS[sport];
   const toast = useToast();
   const sheet = useActionSheet();
+  const location = useLocation();
   const plan = useCurrentPlan(teamId);
+  const directory = useRosterDirectory(teamId);
+  const ids = useMemo(() => players.map((p) => p.id), [players]);
+  const contacts = useTeamContacts(teamId, ids);
   const update = useUpdatePlayer(teamId);
-  const setAvailable = useSetAvailable(teamId);
-  const everyoneBack = useEveryoneBack(teamId);
   const archive = useArchivePlayer(teamId);
   const add = useAddPlayer(teamId);
+  const [editing, setEditing] = useState(false);
   const [adding, setAdding] = useState(false);
 
-  const active = players.filter((p) => p.is_available);
-  const outs = players.filter((p) => !p.is_available);
   const N = plan.periods.length;
   const noun = S.periodName(N).toLowerCase();
-
   const onError = (e: unknown) => toast(errorMessage(e));
+  const back = { from: location.pathname, fromLabel: 'Team' };
+  const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
 
   const saveName = (p: Player, value: string) => {
     const v = value.trim().slice(0, 40);
@@ -52,11 +60,6 @@ export function RosterView({
     const v = value.replace(/\D/g, '').slice(0, 3);
     if ((v || null) === p.jersey_number) return;
     update.mutate({ id: p.id, jersey_number: v || null }, { onError });
-  };
-  const toggle = (p: Player, on: boolean) => {
-    const used = plan.periods.some((q) => q.slots.includes(p.id));
-    setAvailable.mutate({ id: p.id, available: on }, { onError });
-    toast(on ? `${p.first_name} is active` : `${p.first_name} out${used ? ' · positions cleared' : ''}`);
   };
   const remove = async (p: Player) => {
     const used = plan.periods.some((q) => q.slots.includes(p.id));
@@ -72,8 +75,49 @@ export function RosterView({
     archive.mutate(p.id, { onError, onSuccess: () => toast('Player removed') });
   };
 
-  const editableRow = (p: Player, isOut: boolean) => (
-    <div key={p.id} className={`prow${isOut ? ' out' : ''}`}>
+  const addAll = () => {
+    const list = (contacts.data ?? []).map((c: PlayerContact) => ({
+      name: c.name,
+      relationship: c.relationship,
+      phone: c.phone,
+      email: c.email,
+      childName: byId.get(c.player_id)?.first_name ?? 'player',
+      teamName: team.name,
+    }));
+    if (!list.length) {
+      toast('No contacts to add yet');
+      return;
+    }
+    deliverVcf(buildVCards(list), `${team.name}-contacts.vcf`);
+    toast(`${list.length} contact${list.length === 1 ? '' : 's'} ready for your phone`);
+  };
+
+  const directoryRow = (p: Player) => {
+    const parents = directory.data?.get(p.id) ?? [];
+    return (
+      <Link
+        key={p.id}
+        to={`/players/${p.id}`}
+        state={back}
+        className={`prow dir${!p.is_available ? ' out' : ''}${highlight.has(p.id) ? ' mine' : ''}`}
+      >
+        <div className="num">{p.jersey_number || '–'}</div>
+        <div className="pname">
+          {p.first_name}
+          {p.last_name ? ` ${p.last_name}` : ''}
+          <span className="parents">
+            {parents.length ? parents.join(' · ') : canEdit ? 'No parent on file' : ''}
+          </span>
+        </div>
+        {highlight.has(p.id) && <Badge status="live">Mine</Badge>}
+        {!p.is_available && <Badge>Out</Badge>}
+        <span className="chev" aria-hidden="true" />
+      </Link>
+    );
+  };
+
+  const editableRow = (p: Player) => (
+    <div key={p.id} className={`prow${!p.is_available ? ' out' : ''}`}>
       <input
         className="numin"
         defaultValue={p.jersey_number ?? ''}
@@ -94,81 +138,52 @@ export function RosterView({
         onBlur={(e) => saveName(p, e.target.value)}
         onKeyDown={(e) => e.key === 'Enter' && e.currentTarget.blur()}
       />
-      <Switch
-        label={
-          isOut
-            ? `${p.first_name}: out — tap to make active`
-            : `${p.first_name}: active — tap to mark out for this game`
-        }
-        size="md"
-        checked={!isOut}
-        onChange={(on) => toggle(p, on)}
-      />
       <button type="button" className="rm" aria-label={`Remove ${p.first_name}`} onClick={() => remove(p)} />
-      <Link to={`/players/${p.id}`} className="plink chev-link" aria-label={`Open ${p.first_name}`}>
+      <Link
+        to={`/players/${p.id}`}
+        state={back}
+        className="plink chev-link"
+        aria-label={`Open ${p.first_name}`}
+      >
         <span className="chev" aria-hidden="true" />
       </Link>
     </div>
   );
 
-  const readRow = (p: Player, isOut: boolean) => (
-    <div key={p.id} className={`prow${isOut ? ' out' : ''}${highlight.has(p.id) ? ' mine' : ''}`}>
-      <div className="num">{p.jersey_number || '–'}</div>
-      <Link to={`/players/${p.id}`} className="pname plink">
-        {p.first_name}
-      </Link>
-      {highlight.has(p.id) && <Badge status="live">Mine</Badge>}
-      {isOut && <Badge>Out</Badge>}
-      <span className="chev" aria-hidden="true" />
-    </div>
-  );
-
-  const row = canEdit ? editableRow : readRow;
   const ordered = highlight.size
-    ? [...active.filter((p) => highlight.has(p.id)), ...active.filter((p) => !highlight.has(p.id))]
-    : active;
+    ? [...players.filter((p) => highlight.has(p.id)), ...players.filter((p) => !highlight.has(p.id))]
+    : players;
+  const contactCount = contacts.data?.length ?? 0;
 
   return (
     <>
-      <Section>Playing today</Section>
+      {canEdit && (
+        <Toolbar className="noprint">
+          <Button variant={editing ? 'primary' : 'tinted'} onClick={() => setEditing((v) => !v)}>
+            {editing ? 'Done' : 'Edit roster'}
+          </Button>
+          {!editing && (
+            <Button variant="gray" onClick={addAll} disabled={!contactCount}>
+              Add all to contacts
+            </Button>
+          )}
+        </Toolbar>
+      )}
+      {!canEdit && contactCount > 0 && (
+        <Toolbar className="noprint">
+          <Button variant="gray" onClick={addAll}>
+            Add all to contacts
+          </Button>
+        </Toolbar>
+      )}
+      <Section>{editing ? 'Edit roster' : 'Players'}</Section>
       <Group>
-        {ordered.map((p) => row(p, false))}
+        {ordered.map((p) => (editing ? editableRow(p) : directoryRow(p)))}
         {!players.length && (
-          <div className="prow">No players yet{canEdit ? ' — add your team below.' : '.'}</div>
-        )}
-        {players.length > 0 && !active.length && (
-          <div className="prow">
-            Everyone is marked out{canEdit ? ' — flip a switch below to activate.' : '.'}
-          </div>
+          <div className="prow">No players yet{canEdit ? ' — tap Edit roster, then Add player.' : '.'}</div>
         )}
       </Group>
-      {canEdit && (
-        <Footer style={{ marginTop: 8 }}>
-          Switch a player off if they’re not at the game. They move to the Out list and disappear from the
-          jersey menus, rotation and batting order until you switch them back on.
-        </Footer>
-      )}
-      {outs.length > 0 && (
-        <>
-          <Section>Out this game</Section>
-          <Group>{outs.map((p) => row(p, true))}</Group>
-          {canEdit && (
-            <Group style={{ marginTop: 12 }}>
-              <Row
-                icon={<CheckIcon />}
-                iconColor="var(--green)"
-                label="Everyone’s back"
-                detail="Mark the whole roster active for the next game"
-                link
-                onClick={() =>
-                  everyoneBack.mutate(undefined, { onError, onSuccess: () => toast('Everyone is active') })
-                }
-              />
-            </Group>
-          )}
-        </>
-      )}
-      {canEdit && (
+      {editing && (
         <Group style={{ marginTop: 12 }}>
           <Row
             icon={<PlusIcon />}
@@ -177,12 +192,20 @@ export function RosterView({
             link
             onClick={() => setAdding(true)}
           />
+          <Row
+            to="/team/sheet"
+            label="Team sheet"
+            detail="Birthdates, shirt sizes and every parent"
+            chevron
+          />
         </Group>
       )}
       <Footer>
-        {canEdit
-          ? 'Removing a player keeps their name on past game results.'
-          : `${players.length} player${players.length === 1 ? '' : 's'} on the roster.`}
+        {editing
+          ? 'Numbers and names save as you type. Removing a player keeps their name on past game results. Mark players out for a game on the Rotation view.'
+          : canEdit
+            ? `${players.length} player${players.length === 1 ? '' : 's'}. Tap a player for their contact card. Add all to contacts saves every contact you can see to your phone.`
+            : `${players.length} player${players.length === 1 ? '' : 's'}. Tap a player for the contacts their family shares with the team.`}
       </Footer>
       {canEdit && (
         <AddPlayerSheet

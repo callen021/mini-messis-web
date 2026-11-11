@@ -22,7 +22,7 @@ import {
 import { type Period } from '@/sports/types';
 import { type Player } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
-import { useSetAvailable } from './api';
+import { useEveryoneBack, useSetAvailable } from './api';
 import { PositionPickerSheet } from './PositionPickerSheet';
 
 export function RotationView({
@@ -41,6 +41,7 @@ export function RotationView({
   const plan = useCurrentPlan(teamId);
   const save = useSavePlan(teamId, plan.gameId);
   const setAvailable = useSetAvailable(teamId);
+  const everyoneBack = useEveryoneBack(teamId);
   const [picking, setPicking] = useState<{ player: Player; periodIndex: number } | null>(null);
 
   const enginePlayers = useMemo(() => toEnginePlayers(players), [players]);
@@ -177,6 +178,19 @@ export function RotationView({
           <Button variant="tinted" onClick={onAutoAll}>
             Auto-fill open spots
           </Button>
+          {outs.length > 0 && (
+            <Button
+              variant="gray"
+              onClick={() =>
+                everyoneBack.mutate(undefined, {
+                  onError: (e) => toast(errorMessage(e)),
+                  onSuccess: () => toast('Everyone is active'),
+                })
+              }
+            >
+              Everyone’s back
+            </Button>
+          )}
         </Toolbar>
       )}
       <Section>Playing time</Section>

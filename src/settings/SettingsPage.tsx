@@ -72,6 +72,14 @@ export function SettingsPage() {
         </RoleGate>
         <RoleGate allow={STAFF_ROLES}>
           <Row
+            to="/team/sheet"
+            label="Team sheet"
+            detail="Birthdates, shirt sizes and every parent; copy or CSV"
+            chevron
+          />
+        </RoleGate>
+        <RoleGate allow={STAFF_ROLES}>
+          <Row
             label="Parents can see stats for"
             detail={
               team.parent_stats === 'team'

@@ -253,8 +253,10 @@ write = coach or assistant**, with these exceptions:
 - `game_coach_notes`: staff only, in every direction; parents cannot read it.
 - `skill_results`: staff read and write; a parent reads only children they are an approved guardian of.
 - `practices`: members read, staff insert and update, **only a platform admin deletes** (coaches cancel).
-- `player_details` / `player_contacts`: staff or an approved guardian of that player, read and
-  write; nothing for anyone else (D52).
+- `player_details`: staff or an approved guardian of that player, read and write; nothing for
+  anyone else (D52).
+- `player_contacts`: writes by staff or an approved guardian; reads by them always, and by any
+  active member of the team while `share_with_team` is on (D57).
 - `score_events` / `plate_appearances`: readable directly only by staff, or by parents when
   `teams.parent_stats = 'team'`. Parents on an `own` team read them through `game_events()`,
   `game_plate_appearances()` and `game_scores_for()`, which withhold other children's ids;
@@ -377,7 +379,12 @@ Private data for one player (D52): `player_details` (one row per player: `birthd
 `shirt_size` youth XS → adult XL) and `player_contacts` (name, relationship, email, phone, an
 optional `user_id` link to an app account). One policy each: `can_see_player_private(player)` =
 staff of the player's team (admins included) **or an approved guardian of that player**, for every
-operation. Another parent on the same team reads nothing and cannot insert; pgTAP 10 proves it.
+operation. Another parent on the same team reads nothing of the details and cannot insert; pgTAP 10 proves it.
+Contacts carry `share_with_team` (default on, D57): when on, every active member of the team may
+read that contact's name, relationship, phone and email; writes stay with staff and guardians.
+`team_members.contact_phone` holds the phone typed on the invite; `approve_member` turns it into a
+contact on each linked child. `roster_directory`, `player_people` and `team_sheet` are the read
+functions behind the directory, the contact card and the staff-only sheet; pgTAP 12 covers them.
 
 ### join_attempts
 

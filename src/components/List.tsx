@@ -75,6 +75,8 @@ export interface RowProps {
   onClick?: MouseEventHandler<HTMLButtonElement>;
   /** Render as a router link. */
   to?: string;
+  /** Router state for the link (e.g. where a player page should go back to). */
+  state?: unknown;
   disabled?: boolean;
   className?: string;
   style?: CSSProperties;
@@ -97,6 +99,7 @@ export function Row({
   destructive,
   onClick,
   to,
+  state,
   disabled,
   className,
   style,
@@ -128,7 +131,7 @@ export function Row({
   );
   if (to !== undefined) {
     return (
-      <Link to={to} className={cls} style={style} aria-label={ariaLabel}>
+      <Link to={to} state={state} className={cls} style={style} aria-label={ariaLabel}>
         {content}
       </Link>
     );

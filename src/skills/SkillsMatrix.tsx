@@ -69,7 +69,9 @@ export function SkillsMatrix({ players }: { players: readonly Player[] }) {
               {rows.map((p) => (
                 <tr key={p.id} className={cn(!isStaff && mine.has(p.id) && 'me')}>
                   <td>
-                    <Link to={`/players/${p.id}`}>{p.first_name}</Link>
+                    <Link to={`/players/${p.id}`} state={{ from: '/stats', fromLabel: 'Skills' }}>
+                      {p.first_name}
+                    </Link>
                   </td>
                   {shown.map((t) => {
                     const list = mainSide(t, byKey.get(`${p.id}:${t.id}`) ?? []);
