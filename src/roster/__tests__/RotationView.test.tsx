@@ -39,6 +39,7 @@ const team: Team = {
   join_code_rotated_at: '',
   join_enabled: true,
   timezone: 'America/Chicago',
+  parent_stats: 'own',
   side_size: 7,
   has_gk: true,
   periods_count: 4,

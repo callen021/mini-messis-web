@@ -252,6 +252,49 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByLabel('Us 1, them 0')).toBeVisible({ timeout: 15_000 });
   });
 
+  test("stats visibility: a parent sees other children's goals as 'Goal', own child by name (D56)", async () => {
+    // a second goal by Ben, who is not the parent's child
+    await coach.getByRole('button', { name: 'Add goal' }).click();
+    const sheet = coach.getByRole('dialog', { name: 'Goal · vs Tigers' });
+    await sheet.getByLabel('Scorer').selectOption({ label: '#2 Ben' });
+    await sheet.getByRole('button', { name: 'Add our goal' }).click();
+    await expect(sheet).toBeHidden();
+    await expect(coach.getByLabel('Us 2, them 0')).toBeVisible();
+
+    await parent.goto('/games');
+    await parent.getByRole('button', { name: /In progress · vs Tigers/ }).click();
+    await expect(parent.getByRole('heading', { level: 1, name: 'vs Tigers' })).toBeVisible();
+    const log = parent.locator('.section', { hasText: 'Goals · 2' }).locator('xpath=following-sibling::*[1]');
+    await expect(log).toContainText('Ava');
+    await expect(log.locator('.row', { hasText: /Q[0-9]Goal/ })).toHaveCount(1); // Ben's goal, name withheld
+    await expect(log).not.toContainText('Ben');
+
+    await parent.goto('/stats');
+    await parent.getByRole('radio', { name: 'Season' }).click();
+    const rows = parent.locator('.statscroll .prow:not(.stathead)');
+    await expect(rows).toHaveCount(1);
+    await expect(rows.first()).toContainText('Ava');
+
+    // the coach opens stats to the whole team
+    await coach.goto('/settings');
+    await coach
+      .getByRole('radiogroup', { name: 'Parents can see stats for' })
+      .getByRole('radio', { name: 'Team' })
+      .click();
+    await expect(coach.getByRole('status').filter({ hasText: 'whole team' })).toBeVisible();
+    await parent.reload();
+    await parent.getByRole('radio', { name: 'Season' }).click();
+    await expect(parent.locator('.statscroll .prow:not(.stathead)')).toHaveCount(PLAYERS.length);
+    await parent.goto(`/games`);
+    await parent.getByRole('button', { name: /In progress · vs Tigers/ }).click();
+    const log2 = parent
+      .locator('.section', { hasText: 'Goals · 2' })
+      .locator('xpath=following-sibling::*[1]');
+    await expect(log2.locator('.row', { hasText: /Q[0-9]Ben/ })).toHaveCount(1);
+    await coach.goto('/games');
+    await coach.getByRole('button', { name: /In progress · vs Tigers/ }).click();
+  });
+
   test('coach finishes the game and the Stats show the result', async () => {
     await coach.getByRole('button', { name: 'Finish game' }).click();
     const confirm = coach.getByRole('dialog', { name: 'Finish game vs Tigers?' });
@@ -264,7 +307,7 @@ test.describe('coach and parent flows', () => {
     const result = coach.getByRole('link', { name: /vs Tigers/ });
     await expect(result).toBeVisible();
     await expect(result.getByText('Win')).toBeVisible();
-    await expect(result.getByLabel('Us 1, them 0')).toBeVisible();
+    await expect(result.getByLabel('Us 2, them 0')).toBeVisible();
     const avaRow = coach.locator('.prow', { has: coach.getByRole('link', { name: /^Ava/ }) });
     await expect(avaRow.getByLabel('Goals: 1')).toBeVisible();
 

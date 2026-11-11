@@ -523,3 +523,19 @@ label and value boxes are side by side or stacked (never overlapping), asserts n
 scroll, and attaches a full-page screenshot to the report. A pixel-snapshot comparison was
 considered and rejected: baselines differ between Windows (where they would be generated) and the
 Linux CI runners, so the geometric assertions are the stable form of the same check.
+
+### D56. "Parents can see stats for": own children by default, enforced in the database
+
+`teams.parent_stats` ('own' | 'team', default own) is a staff setting on the Settings page. With
+own, a parent sees individual stats only for their linked children: the stats table returns just
+those rows, and in the goal log, at-bats and anything built from the log, other children's scorer
+and assist ids are withheld so the row reads "Goal · Q2". Team totals, results and the score are
+untouched; positions, rotation and playing time are unchanged; skills stay own-child only whatever
+the setting. The rule is server-side: the select policies on `score_events` and
+`plate_appearances` now admit staff and 'team' parents only, and everyone reads the log through
+definer functions (`game_events`, `game_plate_appearances`, `game_scores_for`,
+`player_season_stats`) that apply `can_see_player_stats(player)` and flag withheld rows with
+`hidden`, so the UI can say "Goal" rather than "Unknown scorer". Because parents on an own team
+can no longer receive realtime rows from the log, a trigger touches the game row on every log
+change and the existing `games` subscription keeps their live score fresh. pgTAP 11 covers a
+parent under both settings, the coach, and a non-member.

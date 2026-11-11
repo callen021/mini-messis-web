@@ -8,15 +8,20 @@ import { useActionSheet } from '@/components/Sheet';
 import { type FieldView, type Theme, useUIStore } from '@/lib/ui-store';
 import { SPORTS } from '@/sports/definitions';
 import { useSkillTests } from '@/skills/api';
+import { useToast } from '@/components/Toast';
+import { errorMessage } from '@/lib/supabase';
 import { DataSection } from './DataSection';
 import { signOut } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
+import { useSetParentStats } from '@/teams/teamMutations';
 
 export function SettingsPage() {
   const { team, role } = useCurrentTeam();
   const { user } = useAuth();
   const isAdmin = useIsPlatformAdmin() === true;
   const sheet = useActionSheet();
+  const toast = useToast();
+  const setParentStats = useSetParentStats(team.id);
   const theme = useUIStore((s) => s.theme);
   const setTheme = useUIStore((s) => s.setTheme);
   const fieldView = useUIStore((s) => s.fieldView);
@@ -64,6 +69,37 @@ export function SettingsPage() {
         </RoleGate>
         <RoleGate allow={STAFF_ROLES}>
           <Row to="/settings/skills" label="Skills tests" detail={skillsSummary} chevron />
+        </RoleGate>
+        <RoleGate allow={STAFF_ROLES}>
+          <Row
+            label="Parents can see stats for"
+            detail={
+              team.parent_stats === 'team'
+                ? 'Every player’s goals, assists and at-bats'
+                : 'Their own children only; other goals read as “Goal · Q2”'
+            }
+          >
+            <Segmented<'own' | 'team'>
+              label="Parents can see stats for"
+              value={team.parent_stats}
+              onChange={(v) =>
+                setParentStats.mutate(v, {
+                  onSuccess: () =>
+                    toast(
+                      v === 'team'
+                        ? 'Parents see the whole team’s stats'
+                        : 'Parents see their own children’s stats',
+                    ),
+                  onError: (e) => toast(errorMessage(e)),
+                })
+              }
+              style={{ width: 150 }}
+              options={[
+                { value: 'own', label: 'Own' },
+                { value: 'team', label: 'Team' },
+              ]}
+            />
+          </Row>
         </RoleGate>
       </Group>
       <Section>Appearance</Section>

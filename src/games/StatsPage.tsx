@@ -23,7 +23,7 @@ import { completedGames, formatStat, signed, sortRows, teamRecord } from './stat
 export const RECENT_RESULTS = 3;
 
 export function StatsPage() {
-  const { teamId, sport } = useCurrentTeam();
+  const { teamId, team, sport } = useCurrentTeam();
   const S = SPORTS[sport];
   const view = useUIStore((s) => s.statsView);
   const setView = useUIStore((s) => s.setStatsView);
@@ -176,6 +176,9 @@ export function StatsPage() {
               ? 'AVG is hits divided by at-bats; walks, hit by pitch and sacrifices are not at-bats. '
               : ''}
             Removed players stay in the season totals.
+            {!isStaff && team.parent_stats === 'own'
+              ? ' Individual stats are shown for your own children; team totals cover everyone.'
+              : ''}
           </Footer>
         </>
       )}

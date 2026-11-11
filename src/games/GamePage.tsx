@@ -440,11 +440,14 @@ function GameDetail({ game }: { game: GameWithScore }) {
           </Section>
           <Group>
             {sortedLog.map((ev) => {
+              const kind = S.scoring.events.find((k) => k.type === ev.event_type);
+              const kindName = kind?.noun ?? noun;
               const who =
                 ev.side === 'them'
-                  ? `${game.opponent} ${S.scoring.events.find((k) => k.type === ev.event_type)?.noun ?? noun}`
-                  : names.name(ev.scorer_player_id) || 'Unknown scorer';
-              const kind = S.scoring.events.find((k) => k.type === ev.event_type);
+                  ? `${game.opponent} ${kindName}`
+                  : ev.hidden
+                    ? (kindName[0]?.toUpperCase() ?? '') + kindName.slice(1) // another family's child: name withheld (D56)
+                    : names.name(ev.scorer_player_id) || 'Unknown scorer';
               const detail = [
                 ev.side === 'them' ? 'Opponent' : 'Us',
                 ev.side === 'us' && S.scoring.events.length > 1 ? kind?.noun : '',
@@ -490,11 +493,15 @@ function GameDetail({ game }: { game: GameWithScore }) {
             {paList.map((pa) => (
               <Row
                 key={pa.id}
-                onClick={isStaff ? () => setPaEditing(pa) : undefined}
+                onClick={
+                  isStaff && pa.player_id
+                    ? () => setPaEditing({ ...pa, player_id: pa.player_id as string })
+                    : undefined
+                }
                 label={
                   <>
                     <PeriodTag>Inn {pa.inning}</PeriodTag>
-                    {names.name(pa.player_id) || 'Removed player'}
+                    {pa.hidden ? 'At-bat' : names.name(pa.player_id) || 'Removed player'}
                   </>
                 }
                 detail={`${paResultLabel(pa.result)}${pa.rbi ? ` · ${pa.rbi} RBI` : ''}`}

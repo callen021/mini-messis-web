@@ -42,7 +42,7 @@ Three roles, scoped **per team** (one user can be a coach on one team and a pare
 | Import legacy JSON backup into this team | ✅ | ❌ | ❌ |
 | View field lineups for every period (template and live game) | ✅ | ✅ | ✅ |
 | View full rotation table, playing-time totals and balance meter for all players | ✅ | ✅ | ✅ |
-| View roster (names + numbers), game schedule, scores, live goal log with scorer/assist names, season and per-game stats leaderboard | ✅ | ✅ | ✅ |
+| View roster (names + numbers), game schedule, scores, live goal log with scorer/assist names, season and per-game stats leaderboard | ✅ | ✅ | ✅ (Round 2, D56: a team setting "Parents can see stats for" — own (default) or team — decides whether a parent sees other children's names in the goal log, at-bats and the stats table; enforced server-side) |
 | Print lineup sheet | ✅ | ✅ | ✅ |
 | Own profile: display name, theme (light/dark/auto), field view (3D/flat), which team is default | ✅ | ✅ | ✅ |
 | Link additional children on the same team | ✅ | ✅ | ✅ (pending coach approval) |

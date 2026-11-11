@@ -74,15 +74,8 @@ export function useCurrentSeason(teamId: string) {
 
 async function attachScores<T extends Game>(games: T[]): Promise<(T & { us: number; them: number })[]> {
   if (!games.length) return [];
-  const scores = unwrap(
-    await supabase
-      .from('game_scores')
-      .select('*')
-      .in(
-        'game_id',
-        games.map((g) => g.id),
-      ),
-  );
+  // a definer RPC: parents on an 'own' team cannot sum the log themselves (D56)
+  const scores = unwrap(await supabase.rpc('game_scores_for', { p_game_ids: games.map((g) => g.id) }));
   const byId = new Map(scores.map((s) => [s.game_id, s]));
   return games.map((g) => ({ ...g, us: byId.get(g.id)?.us ?? 0, them: byId.get(g.id)?.them ?? 0 }));
 }
@@ -254,18 +247,14 @@ export function useGamePlayers(gameId: string | undefined) {
 
 /* ---------- scoring log ---------- */
 
+/** A log row as the viewer may see it: `hidden` marks a scorer withheld by the team's stats setting (D56). */
+export type VisibleScoreEvent = ScoreEvent & { hidden?: boolean };
+
 export function useScoreEvents(gameId: string | undefined) {
   return useQuery({
     queryKey: qk.scoreEvents(gameId ?? ''),
     queryFn: async () =>
-      unwrap(
-        await supabase
-          .from('score_events')
-          .select('*')
-          .eq('game_id', gameId as string)
-          .order('occurred_at')
-          .order('created_at'),
-      ),
+      unwrap(await supabase.rpc('game_events', { p_game_id: gameId as string })) as VisibleScoreEvent[],
     enabled: !!gameId,
   });
 }
@@ -354,18 +343,19 @@ export function useDeleteScoreEvent(teamId: string, gameId: string) {
 
 /* ---------- baseball batting log ---------- */
 
+/** An at-bat as the viewer may see it: `player_id` is null and `hidden` true when withheld (D56). */
+export type VisiblePlateAppearance = Omit<PlateAppearance, 'player_id'> & {
+  player_id: string | null;
+  hidden?: boolean;
+};
+
 export function usePlateAppearances(gameId: string | undefined, enabled = true) {
   return useQuery({
     queryKey: qk.plateAppearances(gameId ?? ''),
     queryFn: async () =>
       unwrap(
-        await supabase
-          .from('plate_appearances')
-          .select('*')
-          .eq('game_id', gameId as string)
-          .order('sequence')
-          .order('occurred_at'),
-      ),
+        await supabase.rpc('game_plate_appearances', { p_game_id: gameId as string }),
+      ) as VisiblePlateAppearance[],
     enabled: !!gameId && enabled,
   });
 }

@@ -255,6 +255,10 @@ write = coach or assistant**, with these exceptions:
 - `practices`: members read, staff insert and update, **only a platform admin deletes** (coaches cancel).
 - `player_details` / `player_contacts`: staff or an approved guardian of that player, read and
   write; nothing for anyone else (D52).
+- `score_events` / `plate_appearances`: readable directly only by staff, or by parents when
+  `teams.parent_stats = 'team'`. Parents on an `own` team read them through `game_events()`,
+  `game_plate_appearances()` and `game_scores_for()`, which withhold other children's ids;
+  `player_season_stats()` returns only the rows they may see (D56).
 - `join_attempts`: no policies at all; only the definer functions touch it.
 - `lookup_invite(code)` is callable by `anon`: it returns the team name, sport, roster first names
   and whether the invite is on, so the invite link can show the child picker before an account
