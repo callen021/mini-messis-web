@@ -11,7 +11,7 @@ import { qk } from '@/lib/query-keys';
 import { errorMessage, supabase } from '@/lib/supabase';
 import { toEnginePlayers, useLiveGame } from '@/lineups/api';
 import { periodsToPayload, rowsToPeriods } from '@/lineups/convert';
-import { formationByName, SPORTS } from '@/sports/definitions';
+import { formationByName, SPORTS, periodPlural } from '@/sports/definitions';
 import { fixPeriods, resizePeriods } from '@/sports/lineup';
 import { type Team, usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
@@ -170,12 +170,9 @@ export function TeamSetupPage() {
             <Switch label="Goalkeeper" checked={team.has_gk} onChange={(on) => patch({ has_gk: on })} />
           </Row>
         )}
-        <Row
-          label={`${noun}s`}
-          detail={noun === 'Half' ? 'two halves' : `${N} ${noun.toLowerCase()}s per game`}
-        >
+        <Row label={periodPlural(S, N, true)} detail={`${N} ${periodPlural(S, N)} per game`}>
           <Stepper
-            label={`${noun}s`}
+            label={periodPlural(S, N, true)}
             value={perIdx}
             min={0}
             max={S.periodOptions.length - 1}

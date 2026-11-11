@@ -337,3 +337,46 @@
   height: 100%;
   display: block;
 }
+
+/* open jersey: the position code alone, a small plus, no "Select" (D63) */
+.shirt.open .code {
+  top: 40%;
+  font-size: clamp(9px, 17cqw, 19px);
+  letter-spacing: 1.2px;
+  opacity: 0.95;
+}
+.shirt.open.hasnum .code {
+  top: 40%;
+}
+.shirt .plus {
+  position: absolute;
+  top: 16%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 22%;
+  height: 22%;
+  max-width: 18px;
+  max-height: 18px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.92);
+  color: #333;
+  font-size: clamp(9px, 13cqw, 14px);
+  font-weight: 800;
+  line-height: 1;
+  display: grid;
+  place-items: center;
+  pointer-events: none;
+}
+/* the sitting-out strip wraps and clears the sticky action bar (D63) */
+.bench {
+  flex-wrap: wrap;
+}
+.bench .names {
+  flex: 1 1 160px;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  line-height: 1.35;
+}
+.quarters {
+  padding-bottom: 8px;
+}

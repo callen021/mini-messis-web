@@ -26,6 +26,7 @@ export function TabLayout() {
   return (
     <>
       <ProfileSync />
+      <div className="statusbar-bg" aria-hidden="true" />
       <main className="app-main">
         <SyncBanner />
         <div className="topbar">

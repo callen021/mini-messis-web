@@ -625,3 +625,16 @@ table to add a result for that player and test, or edit the latest one. The sing
 always lists every shown test, preselecting rather than locking the one it was opened for, and
 "Save and add another" saves, stays on the player and moves to the next test with a running count.
 The table and the player pages refresh through the existing optimistic update and invalidation.
+
+### D63. Layout fixes: open jerseys, the sitting-out strip, the status bar, plurals
+
+An open jersey printed "Select" over its position code; it now shows the code alone, larger, with
+a small "+" badge, and keeps the breathing glow. The "Sitting out" strip under each period wraps
+its names and the sticky Auto-fill / Clear / Print bar gets a margin so the last strip scrolls
+clear of it. A fixed strip the height of the top safe-area inset sits behind the phone's status
+bar on every tab page, so scrolled content no longer shows through it on the installed app.
+"2 halfs" is gone: `periodPlural()` gives quarters / halves / innings wherever a period noun is
+pluralised. The parent game page "When" fix from D55 is confirmed in the deployed bundle. The
+Playwright flows check all three at 375px: the Field empty state (code inside the shirt, no
+"Select", strip above the bar), a scrolled player page (the strip exists, is fixed at the top and
+layered above content), and the parent game detail rows (D55).

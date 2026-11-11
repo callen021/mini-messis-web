@@ -68,7 +68,14 @@ export const Jersey = memo(function Jersey({
       aria-disabled={readOnly || undefined}
     >
       <span dangerouslySetInnerHTML={{ __html: svg }} />
-      <span className={cn('name', open && 'empty')}>{open ? 'Select' : name}</span>
+      {open ? (
+        // an open jersey shows its position code only, plus a small "+" (D63): no "Select" text
+        <span className="plus" aria-hidden="true">
+          +
+        </span>
+      ) : (
+        <span className="name">{name}</span>
+      )}
       {number && <span className="num">{number}</span>}
       <span className="code">{code}</span>
       {auto && !open && <span className="autobadge" title="Picked by Auto-fill" />}

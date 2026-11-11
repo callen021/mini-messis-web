@@ -4,7 +4,7 @@ import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
 import { type TeamView, useUIStore } from '@/lib/ui-store';
 import { useCurrentPlan, useMyChildren } from '@/lineups/api';
-import { SPORTS } from '@/sports/definitions';
+import { SPORTS, periodPlural } from '@/sports/definitions';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { RosterView } from './RosterView';
@@ -29,7 +29,7 @@ export function TeamPage() {
   const N = plan.periods.length;
   const sub =
     view === 'rotation'
-      ? `${S.periodName(N)}s each player is scheduled for${isStaff ? ' · tap a box to assign' : ''}`
+      ? `${periodPlural(S, N, true)} each player is scheduled for${isStaff ? ' · tap a box to assign' : ''}`
       : `${S.emoji} ${S.name} roster · ${active} active${outCount ? ` · ${outCount} out` : ''}`;
 
   return (

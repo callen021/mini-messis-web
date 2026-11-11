@@ -7,7 +7,7 @@ import { errorMessage } from '@/lib/supabase';
 import { playerName, toEnginePlayers, useCurrentPlan, useFormations, useSavePlan } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
 import { textColor } from '@/sports/colors';
-import { SPORTS, chipLabel } from '@/sports/definitions';
+import { SPORTS, chipLabel, periodPlural } from '@/sports/definitions';
 import { periodsHeader, positionName, usedPositions } from '@/sports/positions';
 import {
   autoFillAll,
@@ -158,7 +158,7 @@ export function RotationView({
           </div>
           <div
             className={`total ${totalLevel(c[p.id] ?? 0, N)}`}
-            aria-label={`${c[p.id] ?? 0} of ${N} ${noun}s`}
+            aria-label={`${c[p.id] ?? 0} of ${N} ${periodPlural(S, N)}`}
           >
             {c[p.id] ?? 0} <small>of {N}</small>
           </div>
@@ -251,12 +251,12 @@ export function RotationView({
                 <b>
                   {bal.min}–{bal.max}
                 </b>{' '}
-                {noun}s · average <b>{bal.average}</b>
+                {periodPlural(S, N)} · average <b>{bal.average}</b>
               </p>
               <div
                 className="meter"
                 role="img"
-                aria-label={`Playing time spread: least ${bal.min}, most ${bal.max} ${noun}s`}
+                aria-label={`Playing time spread: least ${bal.min}, most ${bal.max} ${periodPlural(S, N)}`}
               >
                 <i className={bal.spread ? 'spread' : undefined} style={{ width: `${bal.percent}%` }} />
               </div>
@@ -269,8 +269,8 @@ export function RotationView({
       </Group>
       <Footer>
         {canEdit
-          ? `Tap a ${noun} box to put a player in a position for that ${noun}, or choose * Sitting out to sit them. Picking a position someone else holds swaps them in and leaves the other player unassigned. Auto-fill gives open spots to the players with the fewest ${noun}s, rotating position groups; a dotted corner marks an auto pick. Mid-${noun} substitutions aren't counted.`
-          : `Each box shows the position for that ${noun}; the number at the end is how many ${noun}s the player is scheduled for. This is the coach's plan and updates live.`}
+          ? `Tap a ${noun} box to put a player in a position for that ${noun}, or choose * Sitting out to sit them. Picking a position someone else holds swaps them in and leaves the other player unassigned. Auto-fill gives open spots to the players with the fewest ${periodPlural(S, N)}, rotating position groups; a dotted corner marks an auto pick. Mid-${noun} substitutions aren't counted.`
+          : `Each box shows the position for that ${noun}; the number at the end is how many ${periodPlural(S, N)} the player is scheduled for. This is the coach's plan and updates live.`}
       </Footer>
       {picking && (
         <PositionPickerSheet

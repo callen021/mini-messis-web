@@ -2450,3 +2450,18 @@ a.prow.dir .pname {
 .matrix .cellbtn .none {
   color: var(--text3);
 }
+
+/* a solid strip behind the phone's status bar so scrolled content never shows through it (D63) */
+.statusbar-bg {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top);
+  background: var(--bg);
+  z-index: 40;
+  pointer-events: none;
+}
+.actionbar {
+  margin-top: 12px;
+}

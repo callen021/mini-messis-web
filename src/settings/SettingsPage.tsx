@@ -6,7 +6,7 @@ import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
 import { useActionSheet } from '@/components/Sheet';
 import { type FieldView, type Theme, useUIStore } from '@/lib/ui-store';
-import { SPORTS } from '@/sports/definitions';
+import { SPORTS, periodPlural } from '@/sports/definitions';
 import { useSkillTests } from '@/skills/api';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
@@ -49,7 +49,7 @@ export function SettingsPage() {
         <Row
           icon={S.emoji}
           label={S.name}
-          detail={`${team.side_size} ${S.unit}${team.has_gk ? ' incl. goalie' : ''} · ${team.periods_count} ${S.periodName(team.periods_count).toLowerCase()}s`}
+          detail={`${team.side_size} ${S.unit}${team.has_gk ? ' incl. goalie' : ''} · ${team.periods_count} ${periodPlural(S, team.periods_count)}`}
         />
         <RoleGate allow={STAFF_ROLES}>
           <Row
@@ -63,7 +63,7 @@ export function SettingsPage() {
           <Row
             to="/settings/team"
             label="Team setup"
-            detail={`Players ${S.unit}, ${S.periodName(team.periods_count).toLowerCase()}s, jersey colors`}
+            detail={`Players ${S.unit}, ${periodPlural(S, team.periods_count)}, jersey colors`}
             chevron
           />
         </RoleGate>

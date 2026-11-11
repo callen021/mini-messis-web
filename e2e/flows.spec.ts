@@ -92,6 +92,28 @@ test.describe('coach and parent flows', () => {
     await expect(coach.locator('.group').getByRole('link', { name: /Ava/ })).toBeVisible();
   });
 
+  test('Field empty state at 375px: open jerseys show the code and a plus, never "Select" (D63)', async () => {
+    await coach.setViewportSize({ width: 375, height: 760 });
+    await coach.goto('/field');
+    const first = coach.locator('.qcard').first();
+    await expect(first.locator('.shirt.open')).toHaveCount(7);
+    await expect(coach.getByText('Select')).toHaveCount(0);
+    const shirt = first.locator('.shirt.open').first();
+    await expect(shirt.locator('.code')).toHaveText(/^[A-Z]{1,4}$/);
+    await expect(shirt.locator('.plus')).toBeVisible();
+    // the code sits inside the shirt box
+    const box = await shirt.boundingBox();
+    const code = await shirt.locator('.code').boundingBox();
+    expect(box && code && code.x >= box.x - 1 && code.x + code.width <= box.x + box.width + 1).toBe(true);
+    // the sitting-out strip is readable above the sticky action bar
+    const bench = coach.locator('.bench').last();
+    await bench.scrollIntoViewIfNeeded();
+    const benchBox = await bench.boundingBox();
+    const bar = await coach.locator('.actionbar').boundingBox();
+    expect(benchBox && bar && benchBox.y + benchBox.height <= bar.y + 1).toBe(true);
+    await coach.setViewportSize({ width: 412, height: 915 });
+  });
+
   test('coach auto-fills every period on the Field', async () => {
     await coach.goto('/field');
     const cards = coach.locator('.qcard');
@@ -242,6 +264,24 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByLabel('Shirt size')).toHaveCount(0);
     await parent.goto('/team/sheet');
     await expect(parent).toHaveURL(/\/team$/);
+  });
+
+  test('a scrolled player page at 375px keeps a solid strip behind the status bar (D63)', async () => {
+    await parent.setViewportSize({ width: 375, height: 520 });
+    await parent.goto('/team');
+    await parent.getByRole('radio', { name: 'Roster' }).click();
+    await parent.locator('.group').getByRole('link', { name: /Ava/ }).click();
+    await expect(parent.getByRole('heading', { level: 1 })).toContainText('Ava');
+    const strip = parent.locator('.statusbar-bg');
+    await expect(strip).toHaveCount(1);
+    await expect(strip).toHaveCSS('position', 'fixed');
+    expect(await strip.evaluate((el) => getComputedStyle(el).top)).toBe('0px');
+    await parent.evaluate(() => window.scrollTo(0, 300));
+    await expect.poll(() => parent.evaluate(() => window.scrollY)).toBeGreaterThan(50);
+    // still fixed at the top after scrolling, above the content
+    expect(await strip.evaluate((el) => Number(getComputedStyle(el).zIndex))).toBeGreaterThan(10);
+    await expect(parent.getByRole('button', { name: 'Team', exact: true })).toHaveCount(1);
+    await parent.setViewportSize({ width: 412, height: 915 });
   });
 
   test('two player pages: the card from Roster, the skills page from Stats (D60)', async () => {

@@ -366,6 +366,13 @@ export function formationByName(forms: readonly Formation[], name: string): Form
   return found;
 }
 
+/** "quarters" / "halves" / "innings": the plural, lower-case unless `cap` (D63). */
+export function periodPlural(sport: SportDefinition, periodCount: number, cap = false): string {
+  const name = sport.periodName(periodCount);
+  const plural = name === 'Half' ? 'Halves' : `${name}s`;
+  return cap ? plural : plural.toLowerCase();
+}
+
 /** "Q1" / "H2" / "Inning 3" — short period title for a card. */
 export function shortPeriod(sport: SportDefinition, periodCount: number, index: number): string {
   const name = sport.periodName(periodCount);

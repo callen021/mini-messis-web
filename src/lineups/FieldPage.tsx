@@ -15,7 +15,7 @@ import { ScorePanel } from '@/games/ScorePanel';
 import { describeEvent, scoreNoun as scoreNounFor } from '@/games/scoring';
 import { errorMessage } from '@/lib/supabase';
 import { useUIStore } from '@/lib/ui-store';
-import { SPORTS, shortPeriod } from '@/sports/definitions';
+import { SPORTS, shortPeriod, periodPlural } from '@/sports/definitions';
 import {
   assignSlot,
   autoFill,
@@ -179,7 +179,7 @@ export function FieldPage() {
     commit(
       r.periods,
       r.filled
-        ? `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled across ${N} ${noun}s`
+        ? `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled across ${N} ${periodPlural(S, N)}`
         : 'Nobody left on the bench',
     );
   };
@@ -206,7 +206,7 @@ export function FieldPage() {
 
   const sub = plan.liveGame
     ? `Live vs ${plan.liveGame.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ` · tap a score to add ${scoreNoun === 'score' ? 'points' : `a ${scoreNoun}`}` : ''}`
-    : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${N} ${noun}s${isStaff ? ' · tap a jersey to assign · tap a score to start a game' : ''}`;
+    : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${N} ${periodPlural(S, N)}${isStaff ? ' · tap a jersey to assign · tap a score to start a game' : ''}`;
 
   return (
     <section className="page">

@@ -10,7 +10,7 @@ import { useToast } from '@/components/Toast';
 import { todayISO } from '@/games/format';
 import { errorMessage } from '@/lib/supabase';
 import { useFormations } from '@/lineups/api';
-import { defaultFormation, SPORTS } from '@/sports/definitions';
+import { defaultFormation, SPORTS, periodPlural } from '@/sports/definitions';
 import { samplePlan } from '@/sports/lineup';
 import { useCurrentTeam } from '@/teams/TeamContext';
 
@@ -79,7 +79,7 @@ export function DataSection() {
     const { payload, summary } = normalizeLegacyBackup(raw, sport, true);
     const ok = await sheet({
       title: `Import ${S.name.toLowerCase()} data into ${team.name}?`,
-      message: `${summary.players} players, ${summary.template} ${S.periodName(summary.template).toLowerCase()}s of lineups, ${summary.games} games with ${summary.events} ${S.scoring.unitPlural.toLowerCase()}. This replaces the players, lineups and games currently on this team.`,
+      message: `${summary.players} players, ${summary.template} ${periodPlural(S, summary.template)} of lineups, ${summary.games} games with ${summary.events} ${S.scoring.unitPlural.toLowerCase()}. This replaces the players, lineups and games currently on this team.`,
       actions: [{ label: 'Import and replace', value: true, destructive: true }],
     });
     if (!ok) return;
