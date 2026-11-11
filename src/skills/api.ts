@@ -142,10 +142,23 @@ export function useRestoreSkillTests(teamId: string, sport: SportKey) {
 
 /* ---------- results ---------- */
 
+/**
+ * Cache key for a set of players' results. The key carries the ids themselves (sorted), never
+ * just their count: two single-player pages must never share a cache entry (D59).
+ */
+export const resultsKey = (teamId: string, playerIds: readonly string[]) =>
+  [...skillKeys.results(teamId), 'players', [...playerIds].sort().join(',')] as const;
+
+/** The player ids a results cache key covers (the inverse of `resultsKey`). */
+export function keyPlayers(key: QueryKey): Set<string> {
+  const ids = key[4];
+  return new Set(typeof ids === 'string' && ids ? ids.split(',') : []);
+}
+
 /** All results for the team's players that the signed-in user may read (RLS trims parents to their children). */
 export function useSkillResults(teamId: string, playerIds: readonly string[]) {
   return useQuery({
-    queryKey: [...skillKeys.results(teamId), playerIds.length],
+    queryKey: resultsKey(teamId, playerIds),
     queryFn: async () => {
       if (!playerIds.length) return [] as SkillResult[];
       return unwrap(
@@ -176,10 +189,14 @@ export function useAddSkillResults(teamId: string) {
       const snapshots = qc.getQueriesData<SkillResult[]>({ queryKey: prefix });
       for (const [key, previous] of snapshots) {
         if (!previous) continue;
+        // only caches that cover the row's player get the optimistic row (D59)
+        const covered = keyPlayers(key);
+        const mine = rows.filter((r) => covered.has(r.player_id));
+        if (!mine.length) continue;
         const now = new Date().toISOString();
         qc.setQueryData(key, [
           ...previous,
-          ...rows.map((r) => ({
+          ...mine.map((r) => ({
             id: tempId(),
             player_id: r.player_id,
             skill_test_id: r.skill_test_id,

@@ -96,7 +96,7 @@ export function PlayerPage() {
             Skills
             {total > 0 ? (
               <span className="pill" style={{ marginLeft: 8 }}>
-                {total} results
+                {total} result{total === 1 ? '' : 's'}
               </span>
             ) : null}
           </Section>

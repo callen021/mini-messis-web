@@ -204,7 +204,8 @@ export function useRosterDirectory(teamId: string) {
 /** Every contact row on the team the caller may read (for "Add all to contacts"). */
 export function useTeamContacts(teamId: string, playerIds: readonly string[], enabled = true) {
   return useQuery({
-    queryKey: [...playerKeys.teamContacts(teamId), playerIds.length],
+    // the ids themselves, never just their count (D59)
+    queryKey: [...playerKeys.teamContacts(teamId), [...playerIds].sort().join(',')],
     queryFn: async () => {
       if (!playerIds.length) return [] as PlayerContact[];
       const { data, error } = await supabase

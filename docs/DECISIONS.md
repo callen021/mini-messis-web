@@ -579,3 +579,19 @@ action sheet offers "Post this to the board" with the message pre-filled as an a
 There are no push notifications in this round, which docs/LAUNCH.md says plainly: the board is
 only seen when someone opens the app. pgTAP 13 covers posting, the announcement rule, editing and
 deleting by author, staff and admin, the pending member, and the unread flag.
+
+## 2026-11-11 — Bug-fix and skills-entry round
+
+### D59. Per-player caches are keyed by the ids, never by how many there are
+
+A parent opening one child after another, or a coach recording for one player and opening the
+next, saw the first player's skill results on the second player's page (and "1 results" with
+nothing listed). The database was fine: a result's `player_id` always comes from the page's route
+and the insert policy admits only staff of that player's team, and an integrity query (results
+whose player and test are on different teams) returns nothing. The cause was in the client:
+`useSkillResults(teamId, playerIds)` keyed its TanStack Query cache by `playerIds.length`, so
+every single-player page shared the entry `['team', t, 'skill-results', 1]`, and the optimistic
+add pushed new rows into every results cache. The key now carries the sorted ids, the optimistic
+update only touches caches that cover the row's player, and the same mistake in the team-contacts
+query is fixed; an audit found no other per-player query keyed by a count. A hook test reproduces
+the bug against the old key (it fails there) and guards the fix. "1 results" reads "1 result".
