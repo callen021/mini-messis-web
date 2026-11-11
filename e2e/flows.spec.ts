@@ -224,7 +224,7 @@ test.describe('coach and parent flows', () => {
     );
     await expect(coach.getByLabel('Shirt size')).toBeVisible();
     // back goes where we came from
-    await coach.getByRole('link', { name: 'Team' }).first().click();
+    await coach.getByRole('link', { name: 'Team', exact: true }).first().click();
     await expect(coach).toHaveURL(/\/team$/);
     // the team sheet exists for staff
     await coach.goto('/team/sheet');
@@ -246,9 +246,39 @@ test.describe('coach and parent flows', () => {
     await parent.goto('/stats');
     await parent.getByRole('radio', { name: 'Season' }).click();
     await parent.locator('.statscroll').getByRole('link', { name: /Ava/ }).click();
-    await expect(parent.getByRole('link', { name: 'Stats' }).first()).toBeVisible();
-    await parent.getByRole('link', { name: 'Stats' }).first().click();
+    await expect(parent.getByRole('link', { name: 'Stats', exact: true }).first()).toBeVisible();
+    await parent.getByRole('link', { name: 'Stats', exact: true }).first().click();
     await expect(parent).toHaveURL(/\/stats$/);
+  });
+
+  test('team board: announcement, unread dot, banner, comment (D58)', async () => {
+    await coach.goto('/board');
+    await expect(coach.getByRole('heading', { level: 1, name: 'Team board' })).toBeVisible();
+    await coach.getByLabel('New post').fill('Bring water bottles Saturday — the fountain is broken.');
+    await coach.getByRole('switch', { name: 'Announcement' }).click();
+    await coach.getByRole('button', { name: 'Post' }).click();
+    await expect(coach.getByText('Announcement', { exact: true })).toBeVisible();
+
+    // the parent: dot in the header, banner on the home tab, then the board clears the dot
+    await parent.goto('/home');
+    await expect(parent.getByRole('link', { name: 'Team board, new posts' })).toBeVisible({
+      timeout: 15_000,
+    });
+    const banner = parent.getByRole('status').filter({ hasText: 'Bring water bottles' });
+    await expect(banner).toBeVisible();
+    await banner.getByRole('button', { name: 'Dismiss announcement' }).click();
+    await expect(banner).toHaveCount(0);
+    await parent.getByRole('link', { name: 'Team board, new posts' }).click();
+    await expect(parent.getByRole('heading', { level: 1, name: 'Team board' })).toBeVisible();
+    await expect(parent.getByRole('link', { name: 'Team board', exact: true })).toBeVisible();
+    await expect(parent.getByRole('switch', { name: 'Announcement' })).toHaveCount(0); // parents cannot announce
+    await parent.getByLabel(/^Comment on post by/).fill('Got it, thanks!');
+    await parent.getByRole('button', { name: 'Send' }).click();
+    await expect(parent.getByText('Got it, thanks!')).toBeVisible();
+
+    // the coach sees the comment arrive without reloading
+    await expect(coach.getByText('Got it, thanks!')).toBeVisible({ timeout: 15_000 });
+    await parent.goto('/games');
   });
 
   test('parent sees the schedule but no coach controls', async () => {

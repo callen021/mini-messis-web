@@ -261,6 +261,8 @@ write = coach or assistant**, with these exceptions:
   `teams.parent_stats = 'team'`. Parents on an `own` team read them through `game_events()`,
   `game_plate_appearances()` and `game_scores_for()`, which withhold other children's ids;
   `player_season_stats()` returns only the rows they may see (D56).
+- `board_posts` / `board_comments`: active members of the team read and write; update own,
+  delete own or staff; announcement flag staff-only. `board_reads`: own rows (D58).
 - `join_attempts`: no policies at all; only the definer functions touch it.
 - `lookup_invite(code)` is callable by `anon`: it returns the team name, sport, roster first names
   and whether the invite is on, so the invite link can show the child picker before an account
@@ -385,6 +387,15 @@ read that contact's name, relationship, phone and email; writes stay with staff 
 `team_members.contact_phone` holds the phone typed on the invite; `approve_member` turns it into a
 contact on each linked child. `roster_directory`, `player_people` and `team_sheet` are the read
 functions behind the directory, the contact card and the staff-only sheet; pgTAP 12 covers them.
+
+### board_posts, board_comments and board_reads
+
+The team board (D58): `board_posts` (team, author, body ≤ 2000, `is_announcement`), one level of
+`board_comments` (body ≤ 1000) and `board_reads` (one `last_read_at` per user and team). Active
+members read and insert; authors update their own; authors or staff delete; the announcement flag
+is staff-only (trigger). `board_feed(team)` returns posts with author names and comments,
+`board_unread(team)` says whether anyone else wrote since the caller last opened the board, and
+`board_mark_read(team)` stamps it. Both post tables are in the realtime publication. pgTAP 13.
 
 ### join_attempts
 

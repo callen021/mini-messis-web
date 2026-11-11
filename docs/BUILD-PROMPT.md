@@ -54,6 +54,8 @@ Parents are **read-only on everything team-related**; their only writes are to t
 
 Realtime: when a coach changes a live game's lineup or score, every signed-in viewer of that team sees it within a couple of seconds (Supabase Realtime on `games`, `score_events`, `plate_appearances`, `lineup_slots`).
 
+**Team board (Round 2, D58):** a message icon in the header of every screen (with an unread dot) opens the team board. Any active member posts text and adds one level of comments; staff can pin a post as an Announcement, which also shows as a dismissible banner on the Schedule page and the parent home tab. Authors edit and delete their own; coach, assistant and admin delete anything. Realtime, per-user last-read tracking, text and links only. There are no push notifications: the board is only seen when the app is opened.
+
 ## 3. Onboarding and membership flows
 
 1. **Sign up / sign in:** email + password via Supabase Auth, plus magic-link as an alternative. ~~Email verification required.~~ Email confirmation is off; there is no "check your email" step (D49). "Forgot password" flow. Session persists (PWA relaunch should not require re-login). (Raw Supabase Auth errors are mapped to plain messages with a follow-up button, e.g. no account → Create an account with the email carried across — D47.)

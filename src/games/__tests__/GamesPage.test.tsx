@@ -41,6 +41,7 @@ vi.mock('../practices', async () => {
     useCreatePractices: () => ({ mutate: createPractices, isPending: false }),
   };
 });
+vi.mock('@/board/AnnouncementBanner', () => ({ AnnouncementBanner: () => null }));
 vi.mock('../places', () => ({
   useTeamPlaces: () => ({ data: [], isPending: false }),
   addressFor: () => null,

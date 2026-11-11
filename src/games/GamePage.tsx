@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
+import { useOfferBoardPost } from '@/board/offer';
 import { PeriodTag, Scoreline } from '@/components/Badge';
 import { Button, Toolbar } from '@/components/Button';
 import { Textarea } from '@/components/Form';
@@ -101,6 +102,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const deletePa = useDeletePlateAppearance(teamId, game.id);
   const saveNotes = useSaveCoachNotes(game.id);
   const savePlan = useSavePlan(teamId, game.id);
+  const offerPost = useOfferBoardPost();
 
   const [scoring, setScoring] = useState(false);
   const [editing, setEditing] = useState<ScoreEvent | null>(null);
@@ -228,7 +230,22 @@ function GameDetail({ game }: { game: GameWithScore }) {
     });
   };
 
-  const patch = (p: Parameters<typeof update.mutate>[0]) => update.mutate(p, { onError });
+  const patch = (p: Parameters<typeof update.mutate>[0]) =>
+    update.mutate(p, {
+      onError,
+      onSuccess: () => {
+        // a changed time or place is worth telling the team (D58)
+        const changed = 'start_time' in p || 'game_date' in p || 'location' in p || 'address' in p;
+        if (!changed || game.status === 'done') return;
+        const next = { ...game, ...p };
+        const when = `${fmtDate(next.game_date, true)}${next.start_time ? ` at ${fmtTime(next.start_time)}` : ''}`;
+        const where = [next.location, next.address].filter(Boolean).join(', ');
+        void offerPost(
+          'Game details changed',
+          `Game vs ${next.opponent}: ${when}${where ? ` at ${where}` : ''}.`,
+        );
+      },
+    });
 
   const calendar = () =>
     downloadIcs(

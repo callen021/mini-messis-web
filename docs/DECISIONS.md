@@ -561,3 +561,21 @@ router state rather than always to Team. vCards and .ics files share the same iO
 (navigate to the blob); it still needs a check on a real iPhone. pgTAP 12 covers shared vs private
 contacts for another parent, a guardian's edits, staff and the pending-link rule; nothing in the
 repo uses real names or numbers.
+
+### D58. A team board, text only, seen when the app is opened
+
+The board is two tables and three functions rather than a chat service: `board_posts` (text up to
+2000 characters, a staff-only announcement flag) and `board_comments` (one level, up to 1000),
+with `board_feed` supplying author names (profiles are private), `board_unread` driving the dot
+on the header icon from a per-user `board_reads` stamp, and `board_mark_read` set whenever the
+board is open and new activity arrives. Realtime on both tables refreshes the feed and the dot.
+Access is the team's: active members read, post and comment; pending members and non-members get
+nothing; authors edit and delete their own, coach, assistant and admin delete anything, and only
+staff can mark or unmark an announcement (a trigger, so the UI cannot be bypassed). An
+announcement pins to the top of the board and shows as a banner on the Schedule page and the
+parent home tab, dismissed per post per device. Links in text become tappable; there are no
+images. When staff cancel or restore a practice, or change a game's date, time or place, an
+action sheet offers "Post this to the board" with the message pre-filled as an announcement.
+There are no push notifications in this round, which docs/LAUNCH.md says plainly: the board is
+only seen when someone opens the app. pgTAP 13 covers posting, the announcement rule, editing and
+deleting by author, staff and admin, the pending member, and the unread flag.

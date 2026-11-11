@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, Navigate } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
+import { AnnouncementBanner } from '@/board/AnnouncementBanner';
 import { Badge } from '@/components/Badge';
 import { Button, Toolbar } from '@/components/Button';
 import { DirectionsIcon } from '@/components/icons';
@@ -92,6 +93,7 @@ export function HomePage() {
           options={mine.map((p) => ({ value: p.id, label: p.first_name }))}
         />
       )}
+      <AnnouncementBanner />
       <ChildHome key={child.id} child={child} />
     </Page>
   );

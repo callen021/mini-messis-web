@@ -23,6 +23,7 @@ import { PracticePage } from '@/games/PracticePage';
 import { GamesPage } from '@/games/GamesPage';
 import { LineupPage } from '@/games/LineupPage';
 import { StatsPage } from '@/games/StatsPage';
+import { BoardPage } from '@/board/BoardPage';
 import { HomePage } from '@/home/HomePage';
 import { FieldPage } from '@/lineups/FieldPage';
 import { PlayerPage } from '@/skills/PlayerPage';
@@ -129,6 +130,7 @@ export const routes: RouteObject[] = [
                     children: [
                       { index: true, element: <LandingRedirect /> },
                       { path: '/home', element: <HomePage /> },
+                      { path: '/board', element: <BoardPage /> },
                       { path: '/field', element: <FieldPage /> },
                       { path: '/lineup', element: <LineupPage /> },
                       { path: '/lineup/order', element: <BattingOrderPage /> },

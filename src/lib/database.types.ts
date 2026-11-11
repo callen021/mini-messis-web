@@ -5,7 +5,67 @@ export type Database = {
   
   "public": {
           Tables: {
-            "game_coach_notes": {
+            "board_comments": {
+                  Row: {
+                    "author_id": string,"body": string,"created_at": string,"edited_at": string | null,"id": string,"post_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author_id": string,"body": string,"created_at"?: string,"edited_at"?: string | null,"id"?: string,"post_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "author_id"?: string,"body"?: string,"created_at"?: string,"edited_at"?: string | null,"id"?: string,"post_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "board_comments_post_id_fkey"
+      columns: ["post_id"]
+isOneToOne: false
+      referencedRelation: "board_posts"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"board_posts": {
+                  Row: {
+                    "author_id": string,"body": string,"created_at": string,"edited_at": string | null,"id": string,"is_announcement": boolean,"team_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author_id": string,"body": string,"created_at"?: string,"edited_at"?: string | null,"id"?: string,"is_announcement"?: boolean,"team_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "author_id"?: string,"body"?: string,"created_at"?: string,"edited_at"?: string | null,"id"?: string,"is_announcement"?: boolean,"team_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "board_posts_team_id_fkey"
+      columns: ["team_id"]
+isOneToOne: false
+      referencedRelation: "teams"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"board_reads": {
+                  Row: {
+                    "last_read_at": string,"team_id": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "last_read_at"?: string,"team_id": string,"user_id": string
+                  }
+                  Update: {
+                    "last_read_at"?: string,"team_id"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "board_reads_team_id_fkey"
+      columns: ["team_id"]
+isOneToOne: false
+      referencedRelation: "teams"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"game_coach_notes": {
                   Row: {
                     "game_id": string,"notes": string,"updated_at": string,"updated_by": string | null
                   }
@@ -542,6 +602,17 @@ isOneToOne: false
 "archive_player":
 { Args: { "p_player_id": string }; Returns: undefined
                            },
+"board_feed":
+{ Args: { "p_team_id": string }; Returns: {
+              "author_id": string,"author_name": string,"body": string,"comments": Json,"created_at": string,"edited_at": string,"id": string,"is_announcement": boolean
+            }[]
+                           },
+"board_mark_read":
+{ Args: { "p_team_id": string }; Returns: undefined
+                           },
+"board_unread":
+{ Args: { "p_team_id": string }; Returns: boolean
+                           },
 "can_see_contact":
 { Args: { "p_player_id": string,"p_shared": boolean }; Returns: boolean
                            },
@@ -704,6 +775,9 @@ isOneToOne: false
                            },
 "team_of_player":
 { Args: { "p_player_id": string }; Returns: string
+                           },
+"team_of_post":
+{ Args: { "p_post_id": string }; Returns: string
                            },
 "team_of_skill_test":
 { Args: { "p_test_id": string }; Returns: string

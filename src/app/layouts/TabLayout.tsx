@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Outlet, ScrollRestoration } from 'react-router';
+import { BoardButton } from '@/board/BoardButton';
 import { SyncBanner } from '@/components/SyncBanner';
 import { Tabbar } from '@/components/Tabbar';
 import { useMyChildren, useTeamRealtime } from '@/lineups/api';
@@ -27,7 +28,10 @@ export function TabLayout() {
       <ProfileSync />
       <main className="app-main">
         <SyncBanner />
-        <TeamSwitcher />
+        <div className="topbar">
+          <TeamSwitcher />
+          <BoardButton />
+        </div>
         <Outlet />
       </main>
       <Tabbar tabs={tabs} />

@@ -71,6 +71,13 @@ export const PlusIcon = (p: IconProps) => (
     <path d="M12 5v14M5 12h14" />
   </Svg>
 );
+/** Team board: a speech bubble. */
+export const MessageIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M4 5.5h16v10H9l-5 4z" />
+    <path d="M8 9.5h8M8 12.5h5" />
+  </Svg>
+);
 /** The parent home tab (their child). */
 export const StarIcon = (p: IconProps) => (
   <Svg {...p}>

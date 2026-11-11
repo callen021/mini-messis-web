@@ -2232,3 +2232,162 @@ a.prow.dir {
 a.prow.dir .pname {
   line-height: 1.2;
 }
+
+/* team board (D58) */
+.topbar {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-right: 16px;
+}
+.topbar .teamswitch {
+  margin-right: 0;
+  flex: 1;
+}
+.boardbtn {
+  position: relative;
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 0;
+  background: var(--fill);
+  color: var(--tint);
+  display: grid;
+  place-items: center;
+  text-decoration: none;
+}
+.boardbtn svg {
+  width: 20px;
+  height: 20px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.boardbtn .dot {
+  position: absolute;
+  top: 6px;
+  right: 7px;
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: var(--red);
+  box-shadow: 0 0 0 2px var(--bg);
+}
+.boardbtn.active {
+  background: var(--tint-soft);
+}
+.banner {
+  margin: 0 16px 12px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--tint-soft);
+  color: var(--text);
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+  font-size: 14px;
+}
+.banner b {
+  display: block;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  color: var(--tint);
+}
+.banner .body {
+  flex: 1;
+  min-width: 0;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.banner .dismiss {
+  flex: none;
+  border: 0;
+  background: transparent;
+  color: var(--text3);
+  font-size: 18px;
+  line-height: 1;
+  padding: 2px 4px;
+}
+.post {
+  padding: 12px 16px;
+}
+.post + .post {
+  border-top: 0.5px solid var(--sep);
+}
+.post .who {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.post .who b {
+  color: var(--text);
+}
+.post .body {
+  margin: 6px 0 4px;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  font-size: 15px;
+  line-height: 1.4;
+}
+.post .body a {
+  color: var(--tint);
+  text-decoration: underline;
+}
+.post .comments {
+  margin: 8px 0 0 12px;
+  padding-left: 10px;
+  border-left: 2px solid var(--sep);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.post .comment .body {
+  margin: 2px 0;
+  font-size: 14px;
+}
+.post .tools {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 4px;
+}
+.post .tools button,
+.post .tools .linkbtn {
+  border: 0;
+  background: transparent;
+  color: var(--tint);
+  font-size: 13px;
+  padding: 4px 0;
+}
+.post .commentbox {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+.post .commentbox input {
+  flex: 1;
+  min-width: 0;
+}
+.composer {
+  padding: 12px 16px;
+}
+.composer textarea {
+  width: 100%;
+  min-height: 72px;
+  resize: vertical;
+}
+.composer .foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text2);
+}

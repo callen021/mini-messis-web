@@ -216,6 +216,16 @@ export function useTeamRealtime(teamId: string) {
         { event: '*', schema: 'public', table: 'teams', filter: `id=eq.${teamId}` },
         invalidate([qk.team(teamId), ['memberships']]),
       )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'board_posts', filter: `team_id=eq.${teamId}` },
+        invalidate([['team', teamId, 'board']]),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'board_comments' },
+        invalidate([['team', teamId, 'board']]),
+      )
       .subscribe();
     return () => {
       void supabase.removeChannel(channel);

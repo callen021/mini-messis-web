@@ -206,5 +206,8 @@ The database is not touched by deploys. If a bad release also wrote bad data, th
   and lacrosse still use the formula sizing. When you want: `npm run dev`, open `/dev/field`,
   switch on **Jersey tuner**, pick the sport, drag until it looks right, copy the snippet into
   `JERSEY_W` in `src/sports/field.ts`.
+- **Team board:** there are no push notifications. Parents see new posts, comments and
+  announcements only when they open the app (the header icon shows an unread dot). Tell them so
+  when you share the invite, or post anything urgent somewhere they already look.
 - **Offline:** changes made without signal queue in the open tab and send when it reconnects
   (the banner at the top counts them). Closing the tab before that loses them; the app warns first.

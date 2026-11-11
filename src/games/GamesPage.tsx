@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
+import { AnnouncementBanner } from '@/board/AnnouncementBanner';
 import { Scoreline } from '@/components/Badge';
 import { Button, Toolbar } from '@/components/Button';
 import { DirectionsIcon, PlusIcon } from '@/components/icons';
@@ -224,6 +225,7 @@ export function GamesPage() {
         ) : undefined
       }
     >
+      <AnnouncementBanner />
       {live && <LiveGameCard game={live} />}
       {events.length > 0 && (
         <Toolbar className={`noprint${live ? ' mt-3' : ''}`}>

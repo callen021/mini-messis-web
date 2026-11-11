@@ -1,5 +1,6 @@
 import { useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
+import { useOfferBoardPost } from '@/board/offer';
 import { Badge } from '@/components/Badge';
 import { Textarea } from '@/components/Form';
 import { DirectionsIcon } from '@/components/icons';
@@ -62,6 +63,7 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
   const toast = useToast();
   const sheet = useActionSheet();
   const update = useUpdatePractice(teamId, p.id);
+  const offerPost = useOfferBoardPost();
   const places = useTeamPlaces(teamId, isStaff);
   const onError = (e: unknown) => toast(errorMessage(e));
   const patch = (patch: Parameters<typeof update.mutate>[0]) => update.mutate(patch, { onError });
@@ -83,7 +85,17 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
     if (!ok) return;
     update.mutate(
       { status: cancelled ? 'scheduled' : 'cancelled' },
-      { onSuccess: () => toast(cancelled ? 'Practice restored' : 'Practice cancelled'), onError },
+      {
+        onSuccess: () => {
+          toast(cancelled ? 'Practice restored' : 'Practice cancelled');
+          const when = `${fmtDate(p.practice_date, true)}${p.start_time ? ` at ${fmtTime(p.start_time)}` : ''}`;
+          void offerPost(
+            cancelled ? 'Practice is back on' : 'Practice cancelled',
+            cancelled ? `Practice on ${when} is back on.` : `Practice on ${when} is cancelled.`,
+          );
+        },
+        onError,
+      },
     );
   };
 
