@@ -94,7 +94,7 @@ select is((select count(*)::int from public.player_details), 2, 'assistant reads
 select lives_ok($$delete from public.player_contacts where name = 'Yolanda'$$, 'assistant removes a contact');
 select pg_temp.logout();
 select pg_temp.login('f7000000-0000-0000-0000-000000000006');
-select is((select count(*)::int from public.player_contacts), 1, 'admin reads the remaining contact');
+select is((select count(*)::int from public.player_contacts where player_id in ('e7000000-0000-0000-0000-00000000000a', 'e7000000-0000-0000-0000-00000000000b')), 1, 'admin reads the remaining contact');
 select pg_temp.logout();
 
 select * from finish();
