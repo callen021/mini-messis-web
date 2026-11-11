@@ -72,7 +72,10 @@ jobs:
           node-version: 22
           cache: npm
       - run: npm ci
-      - run: npx playwright install --with-deps chromium
+      # --with-deps runs apt-get for fonts; when the runner image cannot reach the Ubuntu mirrors
+      # (seen 2026-11-11) fall back to the browser alone, which the GitHub image already supports.
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium || npx playwright install chromium
       # The coach/parent flows sign up real users, so they run against a local Supabase with the
       # migrations and seed applied (email confirmations are off in supabase/config.toml for local).
       - name: Start local Supabase and apply migrations + seed
