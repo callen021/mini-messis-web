@@ -1,7 +1,7 @@
 import { useLocation, useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { Page } from '@/components/Page';
-import { useMyChildren } from '@/lineups/api';
+import { useMyChildLinks } from '@/lineups/api';
 import { type PlayerBackState, playerBack } from './playerBack';
 import { DetailsSection } from '@/players/DetailsSection';
 import { PeopleSection } from '@/players/PeopleSection';
@@ -19,11 +19,13 @@ export function PlayerPage() {
   const S = SPORTS[sport];
   const isStaff = useIsStaff();
   const players = usePlayers(teamId);
-  const children = useMyChildren();
+  const links = useMyChildLinks();
 
   const player = players.data?.find((p) => p.id === playerId);
-  const isMine = children.data?.has(playerId) ?? false;
-  const canEdit = isStaff || isMine;
+  const link = links.data?.get(playerId);
+  // details and other people's contacts need a staff-confirmed link (D91); any link allows an own entry
+  const canEdit = isStaff || link === 'approved';
+  const selfLinked = !!link;
 
   if (players.isPending) return <LoadingScreen />;
   if (!player) {
@@ -62,6 +64,7 @@ export function PlayerPage() {
         childName={player.first_name}
         teamName={team.name}
         canEdit={canEdit}
+        selfLinked={selfLinked}
         isStaff={isStaff}
       />
       {canEdit && <DetailsSection playerId={playerId} playerName={player.first_name} canEdit={canEdit} />}

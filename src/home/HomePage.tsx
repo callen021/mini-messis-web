@@ -20,7 +20,7 @@ import { scheduleEvents } from '@/games/schedule-ics';
 import { formatStat, profileTiles } from '@/games/stats';
 import { countdown, timingLabel } from '@/games/timing';
 import { ChildClockRow } from '@/clock/ChildClockRow';
-import { useCurrentPlan, useFormations, useMyChildren } from '@/lineups/api';
+import { useCurrentPlan, useFormations, useMyChildLinks, useMyChildren } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
 import { DetailsSection } from '@/players/DetailsSection';
 import { SkillsBests } from '@/skills/SkillsBests';
@@ -64,7 +64,7 @@ export function HomePage() {
         <Group>
           <Row
             label="Ask the coach to link your child"
-            detail="Once a coach confirms the link, this tab shows their next game, positions, season and skills."
+            detail="Once you are linked to your child, this tab shows their next game, positions, season and skills."
           />
         </Group>
         <Footer>
@@ -110,6 +110,8 @@ function ChildHome({ child }: { child: Player }) {
   const plan = useCurrentPlan(teamId);
   const { formationFor } = useFormations();
   const stats = usePlayerStats(teamId, null);
+  const links = useMyChildLinks();
+  const confirmed = links.data?.get(child.id) === 'approved';
 
   const today = todayISO();
   const schedule = useMemo(
@@ -288,7 +290,16 @@ function ChildHome({ child }: { child: Player }) {
       </Footer>
 
       <Section>Details</Section>
-      <DetailsSection compact playerId={child.id} playerName={child.first_name} canEdit />
+      {confirmed ? (
+        <DetailsSection compact playerId={child.id} playerName={child.first_name} canEdit />
+      ) : (
+        <Group>
+          <Row
+            label={`Your coach will confirm your link to ${child.first_name} to show their details.`}
+            detail="Birthdate, shirt size and skill results appear here once a coach confirms you are their parent."
+          />
+        </Group>
+      )}
     </>
   );
 }

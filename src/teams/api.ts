@@ -203,6 +203,8 @@ export async function lookupJoinCode(code: string): Promise<JoinPreview | null> 
 /** What the invite link shows before an account exists (D49). Works signed out. */
 export interface InvitePreview extends JoinPreview {
   join_enabled: boolean;
+  /** The coach confirms before the parent sees anything (D91); off by default. */
+  require_approval: boolean;
   /** The caller's membership status on this team, when signed in and known. */
   membership: 'pending' | 'active' | 'removed' | null;
 }

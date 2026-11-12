@@ -137,23 +137,40 @@ export function useSavePlan(teamId: string, gameId: string | null) {
 }
 
 /** Player ids the signed-in user is an approved guardian of (highlighted for parents). */
-export function useMyChildren() {
+export type LinkStatus = 'approved' | 'pending';
+type LinkRow = { player_id: string; status: LinkStatus };
+
+const toIdSet = (rows: LinkRow[]) => new Set(rows.map((r) => r.player_id));
+const toStatusMap = (rows: LinkRow[]) => new Map(rows.map((r) => [r.player_id, r.status]));
+
+function useMyLinkRows<T>(select: (rows: LinkRow[]) => T) {
   const { user } = useAuth();
   return useQuery({
     queryKey: qk.guardians(user?.id ?? ''),
-    queryFn: async () => {
-      const rows = unwrap(
+    queryFn: async () =>
+      unwrap(
         await supabase
           .from('player_guardians')
-          .select('player_id')
-          .eq('user_id', user?.id ?? '')
-          .eq('status', 'approved'),
-      );
-      return new Set(rows.map((r) => r.player_id));
-    },
+          .select('player_id, status')
+          .eq('user_id', user?.id ?? ''),
+      ) as LinkRow[],
+    select,
     enabled: !!user,
     staleTime: 5 * 60_000,
   });
+}
+
+/**
+ * The players linked to my account, confirmed or not (D91): the star, the first tab and the
+ * own-child stats follow any link; details and skills wait for a confirmed one (useMyChildLinks).
+ */
+export function useMyChildren() {
+  return useMyLinkRows(toIdSet);
+}
+
+/** Link status per child: 'approved' once a coach confirmed it, 'pending' until then (D91). */
+export function useMyChildLinks() {
+  return useMyLinkRows(toStatusMap);
 }
 
 /**
@@ -162,6 +179,8 @@ export function useMyChildren() {
  */
 export function useTeamRealtime(teamId: string) {
   const qc = useQueryClient();
+  const { user } = useAuth();
+  const userId = user?.id ?? '';
   useEffect(() => {
     const invalidate = (keys: readonly (readonly unknown[])[]) => () => {
       for (const k of keys) void qc.invalidateQueries({ queryKey: k });
@@ -228,6 +247,17 @@ export function useTeamRealtime(teamId: string) {
         { event: '*', schema: 'public', table: 'teams', filter: `id=eq.${teamId}` },
         invalidate([qk.team(teamId), ['memberships']]),
       )
+      // my own child links (a coach confirms one) and my own membership (a role change, removal)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'player_guardians', filter: `user_id=eq.${userId}` },
+        invalidate([qk.guardians(userId), ['player']]),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'team_members', filter: `user_id=eq.${userId}` },
+        invalidate([['memberships'], ['pending-requests']]),
+      )
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'board_posts', filter: `team_id=eq.${teamId}` },
@@ -242,5 +272,5 @@ export function useTeamRealtime(teamId: string) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, [teamId, qc]);
+  }, [teamId, qc, userId]);
 }

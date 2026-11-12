@@ -60,12 +60,16 @@ export function PeopleSection({
   childName,
   teamName,
   canEdit,
+  selfLinked = false,
   isStaff,
 }: {
   playerId: string;
   childName: string;
   teamName: string;
+  /** Staff or a confirmed guardian: every contact, the details. */
   canEdit: boolean;
+  /** Linked to this child, confirmed or not: may add and edit one entry for themselves (D91). */
+  selfLinked?: boolean;
   isStaff: boolean;
 }) {
   const { user } = useAuth();
@@ -78,6 +82,8 @@ export function PeopleSection({
   const [editing, setEditing] = useState<Person | 'new' | null>(null);
   const onError = (e: unknown) => toast(errorMessage(e));
   const list = people.data ?? [];
+  const hasOwnEntry = list.some((p) => !!p.contact_id && p.user_id === user?.id);
+  const canAddSelf = !canEdit && selfLinked && !hasOwnEntry;
 
   const removeFlow = async (p: Person) => {
     if (!p.contact_id) return;
@@ -110,8 +116,8 @@ export function PeopleSection({
                 </>
               }
               detail={detail(p)}
-              onClick={canEdit && p.contact_id ? () => setEditing(p) : undefined}
-              chevron={canEdit && !!p.contact_id}
+              onClick={p.can_edit && p.contact_id ? () => setEditing(p) : undefined}
+              chevron={p.can_edit && !!p.contact_id}
             >
               <span className="badges">
                 {p.in_app && p.link_status !== 'pending' && <Badge status="live">In app</Badge>}
@@ -119,7 +125,7 @@ export function PeopleSection({
               </span>
             </Row>
             <PersonActions p={p} childName={childName} teamName={teamName} />
-            {canEdit && p.contact_id && (
+            {p.can_edit && p.contact_id && (
               <div className="share">
                 <span>Share with team parents</span>
                 <Switch
@@ -148,7 +154,13 @@ export function PeopleSection({
             }
           />
         )}
-        {canEdit && <Row link label="Add contact" onClick={() => setEditing('new')} />}
+        {(canEdit || canAddSelf) && (
+          <Row
+            link
+            label={canEdit ? 'Add contact' : 'Add my contact details'}
+            onClick={() => setEditing('new')}
+          />
+        )}
       </Group>
       <Footer>
         {canEdit
@@ -159,6 +171,7 @@ export function PeopleSection({
         <ContactSheet
           contact={editing === 'new' ? null : editing}
           selfId={user?.id ?? null}
+          forceSelf={!canEdit}
           onClose={() => setEditing(null)}
           onDelete={editing === 'new' || !editing.contact_id ? undefined : () => void removeFlow(editing)}
           onSave={async (input) => {

@@ -47,6 +47,8 @@ insert into ctx select 'team_a', public.create_team('Team A', 'soccer', 3, true,
 select pg_temp.logout();
 update public.profiles set is_platform_admin = false where id = 'a0000000-0000-0000-0000-000000000001';
 insert into txt select 'code_a', join_code from public.teams where name = 'Team A';
+-- this suite walks the approval flow, so team A asks for approval (off by default since D91)
+update public.teams set require_approval = true where id = (select v from ctx where k = 'team_a');
 
 -- players X and Y on team A (as postgres, bypassing RLS for setup)
 insert into public.players (id, team_id, first_name, jersey_number) values

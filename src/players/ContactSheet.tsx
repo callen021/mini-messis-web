@@ -12,12 +12,15 @@ const RELATIONSHIPS = ['Mother', 'Father', 'Parent', 'Guardian', 'Grandparent', 
 export function ContactSheet({
   contact,
   selfId,
+  forceSelf = false,
   onClose,
   onSave,
   onDelete,
 }: {
   contact: Person | null;
   selfId: string | null;
+  /** The entry can only be the signed-in parent's own (an unconfirmed link, D91). */
+  forceSelf?: boolean;
   onClose: () => void;
   onSave: (input: ContactInput) => Promise<void>;
   onDelete?: () => void;
@@ -26,7 +29,7 @@ export function ContactSheet({
   const [relationship, setRelationship] = useState(contact?.relationship ?? '');
   const [email, setEmail] = useState(contact?.email ?? '');
   const [phone, setPhone] = useState(contact?.phone ? formatPhone(contact.phone) : '');
-  const [isMe, setIsMe] = useState(!!contact && !!selfId && contact.user_id === selfId);
+  const [isMe, setIsMe] = useState(forceSelf || (!!contact && !!selfId && contact.user_id === selfId));
   const [shared, setShared] = useState(contact?.share_with_team ?? true);
   const [busy, setBusy] = useState(false);
   const phoneOk = !phone.trim() || normalizePhone(phone) !== null;
@@ -106,7 +109,7 @@ export function ContactSheet({
             <Switch label="Share with team parents" size="md" checked={shared} onChange={setShared} />
           </div>
         </FieldGroup>
-        {selfId && (
+        {selfId && !forceSelf && (
           <label className="checkrow">
             <input type="checkbox" checked={isMe} onChange={(e) => setIsMe(e.target.checked)} />
             <span>This is me (links the contact to my account)</span>

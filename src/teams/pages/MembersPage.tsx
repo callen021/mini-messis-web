@@ -27,6 +27,7 @@ import {
 } from '../api';
 import { inviteUrl, shareInvite } from '../invite';
 import { useCurrentTeam } from '../TeamContext';
+import { useSetRequireApproval } from '../teamMutations';
 
 const ROLE_LABEL: Record<MemberRole, string> = {
   coach: 'Coach',
@@ -57,6 +58,7 @@ function MembersAdmin() {
   const setRole = useSetMemberRole(teamId);
   const approveLink = useApproveGuardianLink(teamId);
   const transfer = useTransferOwnership(teamId);
+  const setRequireApproval = useSetRequireApproval(teamId);
   const [approving, setApproving] = useState<TeamMemberRow | null>(null);
 
   const rows = members.data ?? [];
@@ -230,10 +232,31 @@ function MembersAdmin() {
           </div>
         </div>
       </Group>
+      <Group style={{ marginTop: 12 }}>
+        <Row
+          label="Approve new parents before they join"
+          detail={
+            team.require_approval
+              ? 'A parent waits until you approve them; nothing is visible until then'
+              : 'Parents are in as soon as they use the link; you confirm the link to their child here'
+          }
+        >
+          <Switch
+            label="Approve new parents before they join"
+            checked={team.require_approval}
+            onChange={(on) =>
+              setRequireApproval.mutate(on, {
+                onSuccess: () =>
+                  toast(on ? 'New parents wait for your approval' : 'New parents join right away'),
+                onError: (e) => toast(errorMessage(e)),
+              })
+            }
+          />
+        </Row>
+      </Group>
       <Footer>
-        Send parents the link: it creates their account, picks their child and sends you the request in one
-        step. Typing the code by hand works too. Assistant coaches are made here by a coach, not through the
-        link.
+        Send parents the link: it creates their account and picks their child in one step. Typing the code by
+        hand works too. The link only ever makes parents; assistant coaches are made here by a coach.
       </Footer>
 
       {pending.length > 0 && (

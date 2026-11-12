@@ -135,7 +135,7 @@ function InviteForm({ code, preview, signedIn }: { code: string; preview: Previe
         phone: normalizePhone(phone),
       });
       if (r.status === 'active') {
-        toast(`You're already on ${r.name}`);
+        toast(preview.membership === 'active' ? `You're already on ${r.name}` : `Welcome to ${r.name}`);
         navigate('/', { replace: true });
       } else {
         navigate('/pending', { replace: true, state: { teamName: r.name } });
@@ -178,7 +178,7 @@ function InviteForm({ code, preview, signedIn }: { code: string; preview: Previe
       documentTitle={`Join ${preview.name}`}
       sub={
         signedIn
-          ? `${S.name} · pick your child to ask to join`
+          ? `${S.name} · pick your child to ${preview.require_approval ? 'ask to join' : 'join'}`
           : `${S.name} · create your account and pick your child`
       }
     >
@@ -255,7 +255,12 @@ function InviteForm({ code, preview, signedIn }: { code: string; preview: Previe
             />
           </div>
         </Group>
-        <Footer>You can pick more than one. The coach confirms the link before you see anything.</Footer>
+        <Footer>
+          You can pick more than one.{' '}
+          {preview.require_approval
+            ? 'The coach confirms the link before you see anything.'
+            : 'You’ll be on the team right away; the coach confirms the link to your child afterwards.'}
+        </Footer>
         <Section>Your phone (optional)</Section>
         <Group>
           <div className="form">
@@ -273,8 +278,8 @@ function InviteForm({ code, preview, signedIn }: { code: string; preview: Previe
           </div>
         </Group>
         <Footer>
-          Saved as a contact on your child’s card when the coach approves you, so the coaches can reach you.
-          You can turn sharing with other parents off afterwards.
+          Saved as a contact on your child’s card when the coach confirms your link, so the coaches can reach
+          you. You can turn sharing with other parents off afterwards.
         </Footer>
         {error && (
           <p className="form-error" role="alert" style={{ margin: '12px 16px 0' }}>
@@ -291,7 +296,13 @@ function InviteForm({ code, preview, signedIn }: { code: string; preview: Previe
         )}
         <div className="toolbar" style={{ marginTop: 18 }}>
           <Button type="submit" disabled={busy || request.isPending}>
-            {busy || request.isPending ? 'Joining…' : signedIn ? 'Ask to join' : 'Create account and join'}
+            {busy || request.isPending
+              ? 'Joining…'
+              : signedIn
+                ? preview.require_approval
+                  ? 'Ask to join'
+                  : 'Join team'
+                : 'Create account and join'}
           </Button>
         </div>
       </form>

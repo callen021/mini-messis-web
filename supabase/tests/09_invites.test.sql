@@ -46,6 +46,8 @@ insert into ctx select 'team', public.create_team('Invite FC', 'soccer', 3, true
 select public.admin_add_member((select v from ctx where k = 'team'), 'coach-i@test.com', 'coach');
 select public.admin_add_member((select v from ctx where k = 'team'), 'assistant-i@test.com', 'assistant');
 select pg_temp.logout();
+-- this suite walks the approval flow, so the team asks for approval (off by default since D91)
+update public.teams set require_approval = true where id = (select v from ctx where k = 'team');
 insert into txt select 'code', join_code from public.teams where id = (select v from ctx where k = 'team');
 insert into public.players (id, team_id, first_name, jersey_number) values
   ('e6000000-0000-0000-0000-000000000001', (select v from ctx where k = 'team'), 'Ava', '1'),

@@ -16,6 +16,9 @@ const PASSWORD = 'playwright-pass-1';
 const PLAYERS = ['Ava', 'Ben', 'Cal', 'Dee', 'Eli', 'Fay', 'Gus', 'Hal'];
 /** The demo coach from supabase/seed.sql, a platform admin (team creation is admin-only, D48). */
 const ADMIN_COACH = { email: 'coach@example.com', password: 'password123' };
+/** Team-setup controls save a moment after the tap (D88); wait for the request before reloading. */
+const teamSaved = (page: Page) =>
+  page.waitForResponse((r) => r.url().includes('/rest/v1/teams') && r.request().method() === 'PATCH');
 
 test.describe('coach and parent flows', () => {
   test.skip(!LOCAL, 'needs VITE_SUPABASE_URL pointing at a local Supabase (npx supabase start)');
@@ -24,8 +27,11 @@ test.describe('coach and parent flows', () => {
 
   let coachCtx: BrowserContext;
   let parentCtx: BrowserContext;
+  let danaCtx: BrowserContext;
   let coach: Page;
   let parent: Page;
+  /** A parent who joins with approval off (D91). */
+  let dana: Page;
   const run = Date.now().toString(36);
   const parentEmail = `parent-${run}@example.com`;
   const teamName = `Strikers ${run}`;
@@ -40,6 +46,7 @@ test.describe('coach and parent flows', () => {
   test.afterAll(async () => {
     await coachCtx?.close();
     await parentCtx?.close();
+    await danaCtx?.close();
   });
 
   test('a new sign-up without a team is told to ask the coach for an invite link', async () => {
@@ -80,8 +87,10 @@ test.describe('coach and parent flows', () => {
     const group = coach.getByRole('radiogroup', { name: 'Track playing time by' });
     await expect(group.getByRole('radio', { name: 'Clock' })).toHaveAttribute('aria-checked', 'true');
     await expect(coach.getByText('#E22400')).toHaveCount(4); // striker, midfield, defense, goalkeeper
+    const saved = teamSaved(coach);
     await group.getByRole('radio', { name: 'Periods' }).click();
     await expect(coach.getByRole('status').filter({ hasText: 'Playing time by periods' })).toBeVisible();
+    await saved;
     await coach.goto('/field');
     await expect(coach.locator('.qcard')).toHaveCount(4);
   });
@@ -196,6 +205,12 @@ test.describe('coach and parent flows', () => {
     await expect(code).toBeVisible();
     joinCode = (await code.textContent())?.trim() ?? '';
     expect(joinCode).toMatch(/^[A-Z2-9]{8}$/);
+    // approval is off by default (D91); this run keeps the approval flow (D49) under test by turning it on
+    const approve = coach.getByRole('switch', { name: 'Approve new parents before they join' });
+    await expect(approve).toHaveAttribute('aria-checked', 'false');
+    await approve.click();
+    await expect(approve).toHaveAttribute('aria-checked', 'true');
+    await expect(coach.getByRole('status').filter({ hasText: 'wait for your approval' })).toBeVisible();
   });
 
   test('parent opens the invite link, creates an account, picks a child and waits for approval', async () => {
@@ -311,6 +326,35 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByLabel('Shirt size')).toHaveCount(0);
     await parent.goto('/team/sheet');
     await expect(parent).toHaveURL(/\/team$/);
+  });
+
+  test('with approval off (the default) a parent joins straight in; the link waits for a coach to confirm it (D91)', async () => {
+    await coach.goto('/settings/members');
+    const approve = coach.getByRole('switch', { name: 'Approve new parents before they join' });
+    await approve.click();
+    await expect(approve).toHaveAttribute('aria-checked', 'false');
+    [danaCtx, dana] = await fresh(coach.context().browser() as Browser);
+    await dana.goto(`/join/${joinCode}`);
+    await expect(dana.getByText(/on the team right away/)).toBeVisible();
+    await dana.getByLabel('Your name').fill('Direct Dana');
+    await dana.getByLabel('Email').fill(`dana-${run}@example.com`);
+    await dana.getByLabel('Password').fill(PASSWORD);
+    await dana.getByRole('switch', { name: 'Ben is my child' }).click();
+    await dana.getByRole('button', { name: 'Create account and join' }).click();
+    // no pending screen: straight to the child's tab, starred and first
+    await expect(dana).toHaveURL(/\/home$/, { timeout: 20_000 });
+    await expect(dana.getByRole('heading', { level: 1, name: 'Ben' })).toBeVisible();
+    await expect(
+      dana.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Ben' }),
+    ).toBeVisible();
+    await expect(dana.getByText('Your coach will confirm your link to Ben')).toBeVisible();
+    // withheld until then: the details (and the card's details section)
+    await expect(dana.getByLabel('Shirt size')).toHaveCount(0);
+    await expect(dana.getByText('Season', { exact: true })).toBeVisible(); // own-child stats are granted
+    // the link is the staff's business now: opening the invite again changes nothing
+    await dana.goto(`/join/${joinCode}`);
+    await expect(dana.getByText('You’re already on this team')).toBeVisible();
+    await dana.goto('/home');
   });
 
   test('a scrolled player page at 375px keeps a solid strip behind the status bar (D63)', async () => {
@@ -593,16 +637,20 @@ test.describe('coach and parent flows', () => {
 
   test('coach switches the team to the clock in Team setup (D65)', async () => {
     await coach.goto('/settings/team');
+    const saved = teamSaved(coach);
     await coach
       .getByRole('radiogroup', { name: 'Track playing time by' })
       .getByRole('radio', { name: 'Clock' })
       .click();
     await expect(coach.getByRole('status').filter({ hasText: 'Playing time by the clock' })).toBeVisible();
     await expect(coach.getByRole('group', { name: 'Halves' })).toContainText('2');
+    await saved;
+    const saved2 = teamSaved(coach);
     const len = coach.getByLabel('Half length in minutes');
     await len.fill('20');
     await len.blur();
     await expect(coach.getByRole('status').filter({ hasText: '20-minute half' })).toBeVisible();
+    await saved2;
   });
 
   test('clock-mode Field at 375px: one field of starters, a bench row of small jerseys (D70)', async () => {
@@ -797,11 +845,13 @@ test.describe('coach and parent flows', () => {
 
   test('switching back to periods brings back the four quarter cards, untouched', async () => {
     await coach.goto('/settings/team');
+    const saved = teamSaved(coach);
     await coach
       .getByRole('radiogroup', { name: 'Track playing time by' })
       .getByRole('radio', { name: 'Periods' })
       .click();
     await expect(coach.getByRole('status').filter({ hasText: 'Playing time by periods' })).toBeVisible();
+    await saved;
     await coach.goto('/field');
     await expect(coach.locator('.qcard')).toHaveCount(4);
     await expect(coach.locator('.benchrow')).toHaveCount(4);

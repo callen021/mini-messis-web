@@ -43,6 +43,8 @@ select public.admin_add_member((select v from ctx where k = 'team'), 'assistant-
 select public.admin_add_member((select v from ctx where k = 'team'), 'parent-b1@test.com', 'parent');
 select public.admin_add_member((select v from ctx where k = 'team'), 'parent-b2@test.com', 'parent');
 select pg_temp.logout();
+-- a pending member is part of this suite, so the team asks for approval (off by default since D91)
+update public.teams set require_approval = true where id = (select v from ctx where k = 'team');
 insert into txt select 'code', join_code from public.teams where id = (select v from ctx where k = 'team');
 select pg_temp.login('fa000000-0000-0000-0000-000000000005');
 select public.request_join((select v from txt where k = 'code'), 'parent');
