@@ -41,6 +41,7 @@ import {
 } from './api';
 import { DirectionsIcon } from '@/components/icons';
 import { useGameClock } from '@/clock/api';
+import { PlayingTimeSection } from '@/clock/PlayingTimeSection';
 import { directionsUrl } from './directions';
 import { EditScoreSheet } from './EditScoreSheet';
 import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
@@ -147,7 +148,9 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const finishFlow = async () => {
     const ok = await sheet({
       title: `Finish game vs ${game.opponent}?`,
-      message: `Final: US ${game.us} – ${game.them} THEM. The lineups are saved with this game, and the final lineup becomes your plan for the next game.`,
+      message: clockMode
+        ? `Final: US ${game.us} – ${game.them} THEM. The clock stops, playing time is saved with this game, and the starting lineup stays your plan for the next game.`
+        : `Final: US ${game.us} – ${game.them} THEM. The lineups are saved with this game, and the final lineup becomes your plan for the next game.`,
       actions: [{ label: 'Finish game', value: true }],
     });
     if (ok)
@@ -542,50 +545,63 @@ function GameDetail({ game }: { game: GameWithScore }) {
         </>
       )}
 
-      <Section>{isLive ? 'Lineups · live' : 'Lineups'}</Section>
-      <Group>
-        {periods.map((q, qi) => (
-          <Row
-            key={q.lineupId}
-            className="lineuprow"
-            label={
-              <>
-                <b>
-                  {shortPeriod(S, periods.length, qi)}
-                  {forms.length > 1 ? ` · ${q.formation}` : ''}
-                </b>
-                <div className="lulist">
-                  {q.slots.map((id, i) => (
-                    <span key={i} className="lu">
-                      <b>{q.codes[i] ?? ''}</b> {id ? names.name(id) || '?' : <i>open</i>}
-                    </span>
-                  ))}
-                  {q.slots.length === 0 && <i>no positions</i>}
-                </div>
-              </>
-            }
-          />
-        ))}
-        {periods.length === 0 && !lineups.isPending && (
-          <Row
-            label={
-              isUpcoming
-                ? `The ${S.field} plan is copied into this game when it starts.`
-                : 'No lineups were saved with this game.'
-            }
-          />
-        )}
-        {isLive && isStaff && (
-          <Row
-            label={
-              <span style={{ color: 'var(--text2)', fontSize: 14 }}>
-                Edit this game’s lineup on the {S.field} or Team tab — it’s saved with the game when you
-                finish.
-              </span>
-            }
-          />
-        )}
-      </Group>
+      {clockMode && !isUpcoming ? (
+        <PlayingTimeSection
+          gameId={game.id}
+          status={isLive ? 'live' : 'done'}
+          players={roster}
+          names={names}
+          periods={periods}
+          canEdit={isStaff}
+        />
+      ) : (
+        <>
+          <Section>{isLive ? 'Lineups · live' : 'Lineups'}</Section>
+          <Group>
+            {periods.map((q, qi) => (
+              <Row
+                key={q.lineupId}
+                className="lineuprow"
+                label={
+                  <>
+                    <b>
+                      {shortPeriod(S, periods.length, qi)}
+                      {forms.length > 1 ? ` · ${q.formation}` : ''}
+                    </b>
+                    <div className="lulist">
+                      {q.slots.map((id, i) => (
+                        <span key={i} className="lu">
+                          <b>{q.codes[i] ?? ''}</b> {id ? names.name(id) || '?' : <i>open</i>}
+                        </span>
+                      ))}
+                      {q.slots.length === 0 && <i>no positions</i>}
+                    </div>
+                  </>
+                }
+              />
+            ))}
+            {periods.length === 0 && !lineups.isPending && (
+              <Row
+                label={
+                  isUpcoming
+                    ? `The ${S.field} plan is copied into this game when it starts.`
+                    : 'No lineups were saved with this game.'
+                }
+              />
+            )}
+            {isLive && isStaff && (
+              <Row
+                label={
+                  <span style={{ color: 'var(--text2)', fontSize: 14 }}>
+                    Edit this game’s lineup on the {S.field} or Team tab — it’s saved with the game when you
+                    finish.
+                  </span>
+                }
+              />
+            )}
+          </Group>
+        </>
+      )}
 
       {isStaff && (
         <>
