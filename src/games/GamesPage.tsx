@@ -316,7 +316,9 @@ function LiveGameCard({ game }: { game: GameWithScore }) {
   const finishFlow = async () => {
     const ok = await sheet({
       title: `Finish game vs ${game.opponent}?`,
-      message: `Final: US ${game.us} – ${game.them} THEM. The lineups are saved with this game, and the final lineup becomes your plan for the next game.`,
+      message: clockMode
+        ? `Final: US ${game.us} – ${game.them} THEM. The clock stops, playing time is saved with this game, and the starting lineup stays your plan for the next game.`
+        : `Final: US ${game.us} – ${game.them} THEM. The lineups are saved with this game, and the final lineup becomes your plan for the next game.`,
       actions: [{ label: 'Finish game', value: true }],
     });
     if (!ok) return;
