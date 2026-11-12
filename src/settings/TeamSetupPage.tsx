@@ -3,6 +3,7 @@ import { Navigate } from 'react-router';
 import { useIsCoach, useIsStaff } from '@/auth/guards';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
+import { Segmented } from '@/components/Segmented';
 import { Stepper } from '@/components/Stepper';
 import { Switch } from '@/components/Switch';
 import { useToast } from '@/components/Toast';
@@ -16,7 +17,21 @@ import { fixPeriods, resizePeriods } from '@/sports/lineup';
 import { type Team, usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 
-type Setup = Pick<Team, 'name' | 'side_size' | 'has_gk' | 'periods_count' | 'colors' | 'timezone'>;
+type Setup = Pick<
+  Team,
+  | 'name'
+  | 'side_size'
+  | 'has_gk'
+  | 'periods_count'
+  | 'colors'
+  | 'timezone'
+  | 'time_mode'
+  | 'clock_periods'
+  | 'period_minutes'
+>;
+
+/** Period counts a clock-mode game may have (D65): one period up to four quarters, six for innings. */
+const CLOCK_PERIOD_OPTIONS = [1, 2, 3, 4, 6] as const;
 
 /** IANA zones the browser knows, US ones first so the common picks are at the top (D50). */
 function timezoneOptions(current: string): string[] {
@@ -102,6 +117,7 @@ export function TeamSetupPage() {
   const isCoach = useIsCoach();
   const toast = useToast();
   const update = useUpdateSetup(teamId);
+  const live = useLiveGame(teamId);
 
   if (!isStaff) return <Navigate to="/settings" replace />;
 
@@ -109,10 +125,14 @@ export function TeamSetupPage() {
   const patch = (p: Partial<Setup>, msg?: string) =>
     update.mutate(p, { onError, onSuccess: () => msg && toast(msg) });
   const forms = S.formations({ size: team.side_size, gk: team.has_gk });
-  const N = team.periods_count;
+  const clock = team.time_mode === 'clock';
+  const N = clock ? team.clock_periods : team.periods_count;
   const noun = S.periodName(N);
   const sizeIdx = Math.max(0, S.sizes.indexOf(team.side_size));
-  const perIdx = Math.max(0, S.periodOptions.indexOf(N));
+  const perIdx = Math.max(0, S.periodOptions.indexOf(team.periods_count));
+  const clockPerIdx = Math.max(0, CLOCK_PERIOD_OPTIONS.indexOf(team.clock_periods as 1 | 2 | 3 | 4 | 6));
+  // the mode and the clock period count are locked while a game is live (the database refuses too)
+  const liveLock = !!live.data;
   const colors = (team.colors ?? {}) as Record<string, string>;
   const hint =
     sport === 'soccer'
@@ -170,19 +190,100 @@ export function TeamSetupPage() {
             <Switch label="Goalkeeper" checked={team.has_gk} onChange={(on) => patch({ has_gk: on })} />
           </Row>
         )}
-        <Row label={periodPlural(S, N, true)} detail={`${N} ${periodPlural(S, N)} per game`}>
-          <Stepper
-            label={periodPlural(S, N, true)}
-            value={perIdx}
-            min={0}
-            max={S.periodOptions.length - 1}
-            display={String(N)}
-            onChange={(i) => {
-              const n = S.periodOptions[i];
-              if (n !== undefined) patch({ periods_count: n });
+        <Row
+          label="Track playing time by"
+          detail={
+            liveLock
+              ? 'Finish the game in progress to change this'
+              : clock
+                ? 'A game clock with substitutions; minutes played come from the clock'
+                : `Lineups per ${noun.toLowerCase()}; playing time is counted in ${periodPlural(S, N)}`
+          }
+        >
+          <Segmented<'periods' | 'clock'>
+            label="Track playing time by"
+            value={team.time_mode}
+            onChange={(v) => {
+              if (liveLock || v === team.time_mode) return;
+              patch(
+                { time_mode: v },
+                v === 'clock' ? 'Playing time by the clock' : 'Playing time by periods',
+              );
             }}
+            style={{ width: 150, opacity: liveLock ? 0.5 : undefined }}
+            options={[
+              { value: 'periods', label: 'Periods' },
+              { value: 'clock', label: 'Clock' },
+            ]}
           />
         </Row>
+        {clock ? (
+          <>
+            <Row
+              label={periodPlural(S, N, true)}
+              detail={liveLock ? 'Locked while a game is live' : `${N} ${periodPlural(S, N)} per game`}
+            >
+              <Stepper
+                label={periodPlural(S, N, true)}
+                value={clockPerIdx}
+                min={0}
+                max={CLOCK_PERIOD_OPTIONS.length - 1}
+                display={String(N)}
+                disabled={liveLock}
+                onChange={(i) => {
+                  const n = CLOCK_PERIOD_OPTIONS[i];
+                  if (n !== undefined) patch({ clock_periods: n });
+                }}
+              />
+            </Row>
+            <Row
+              label={`${noun} length`}
+              detail={
+                team.period_minutes
+                  ? `The clock shows time remaining and alerts at zero; the ${noun.toLowerCase()} never ends on its own`
+                  : 'Optional · minutes; leave blank for a plain count-up clock'
+              }
+            >
+              <input
+                key={team.period_minutes ?? 'off'}
+                className="inline"
+                type="number"
+                inputMode="numeric"
+                aria-label={`${noun} length in minutes`}
+                placeholder="Off"
+                min={1}
+                max={90}
+                defaultValue={team.period_minutes ?? ''}
+                style={{ width: 64, textAlign: 'right' }}
+                onBlur={(e) => {
+                  const raw = e.target.value.trim();
+                  const n =
+                    raw === '' ? null : Math.min(90, Math.max(1, Math.round(Number(raw)) || 0)) || null;
+                  if (n !== team.period_minutes)
+                    patch(
+                      { period_minutes: n },
+                      n ? `${n}-minute ${noun.toLowerCase()}` : 'Period length off',
+                    );
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+              />
+            </Row>
+          </>
+        ) : (
+          <Row label={periodPlural(S, N, true)} detail={`${N} ${periodPlural(S, N)} per game`}>
+            <Stepper
+              label={periodPlural(S, N, true)}
+              value={perIdx}
+              min={0}
+              max={S.periodOptions.length - 1}
+              display={String(N)}
+              onChange={(i) => {
+                const n = S.periodOptions[i];
+                if (n !== undefined) patch({ periods_count: n });
+              }}
+            />
+          </Row>
+        )}
         <Row label="Timezone" detail="Calendar exports use the field's local time">
           <select
             className="inline"
@@ -214,8 +315,11 @@ export function TeamSetupPage() {
       </Group>
       <Footer>
         Changing the number of players keeps assigned players where their position still exists and moves the
-        rest to open spots. Each {noun.toLowerCase()} picks its own formation on the {S.field} tab. Completed
-        games are never changed.
+        rest to open spots.{' '}
+        {clock
+          ? `In clock mode the ${S.field} tab shows one field with the starters and a bench; substitutions run on the game clock and minutes played come from it.`
+          : `Each ${noun.toLowerCase()} picks its own formation on the ${S.field} tab.`}{' '}
+        Completed games are never changed.
       </Footer>
       <Section>{S.name} jersey colors</Section>
       <Group>
