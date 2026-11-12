@@ -27,9 +27,9 @@ import { useRenameTeam } from '@/teams/teamMutations';
 import { useClockAction, useGameClock, useSeasonMinutes, useServerTimeSync, useStints } from './api';
 import { fillByTime, rankFromStints, suggestStarters } from './autofill';
 import { type BenchEntry } from './BenchRow';
+import { benchAfterEdit, benchQueue, benchSwap } from './bench';
 import {
   PAUSED_CLOCK,
-  benchOrder,
   elapsedAt,
   formatClock,
   formatMinutes,
@@ -127,17 +127,23 @@ export function ClockFieldPage() {
         : null,
     [live, stints, clock, now, activePlayers],
   );
+  // the bench is a queue (D79): the lineup row's order, cleaned up client-side so it draws right before the server answers
+  const rosterIds = useMemo(() => activePlayers.map((p) => p.id), [activePlayers]);
+  const queue = useMemo(
+    () => benchQueue(shown?.bench ?? [], rosterIds, slots),
+    [shown?.bench, rosterIds, slots],
+  );
   const bench: BenchEntry[] = useMemo(() => {
-    const off = activePlayers.filter((p) => !slots.includes(p.id));
-    if (!times) return off.map((player) => ({ player }));
-    return benchOrder(off, times).map((player) => {
-      const t = times.get(player.id);
-      return {
-        player,
-        time: t ? `${formatMinutes(t.seconds)} · rest ${formatClock(t.restSeconds)}` : undefined,
-      };
+    const byId = new Map(activePlayers.map((p) => [p.id, p]));
+    return queue.flatMap((id) => {
+      const player = byId.get(id);
+      if (!player) return [];
+      const t = times?.get(id);
+      return [
+        { player, time: t ? `${formatMinutes(t.seconds)} · rest ${formatClock(t.restSeconds)}` : undefined },
+      ];
     });
-  }, [activePlayers, slots, times]);
+  }, [queue, activePlayers, times]);
   const slotTimes = useMemo(
     () => (times ? slots.map((id) => (id ? formatClock(times.get(id)?.shiftSeconds ?? 0) : '')) : undefined),
     [times, slots],
@@ -170,7 +176,8 @@ export function ClockFieldPage() {
 
   /* ---------- template edits (no live game) ---------- */
   const commitTemplate = (period: Period, message?: string) => {
-    saveStarters.mutate({ starters: period, count: Math.max(1, fixed.length) }, { onError });
+    const bench = benchAfterEdit(period.bench ?? queue, rosterIds, slots, period.slots);
+    saveStarters.mutate({ starters: { ...period, bench }, count: Math.max(1, fixed.length) }, { onError });
     if (message) toast(message);
   };
   const templateTap = (o: TapOutcome) => {
@@ -235,6 +242,25 @@ export function ClockFieldPage() {
     if (o.action === 'cancel') return;
     if (o.action === 'picker') {
       setPicking(o.slot);
+      return;
+    }
+    if (o.action === 'benchswap') {
+      flash([o.a, o.b]);
+      if (live)
+        act.mutate(
+          { kind: 'bench', a: o.a, b: o.b },
+          { onError, onSuccess: () => toast(`${nameOf(o.a)} and ${nameOf(o.b)} swap places in line`) },
+        );
+      else if (shown)
+        commitTemplate(
+          {
+            formation: formation.name,
+            slots: [...slots],
+            auto: [...shown.auto],
+            bench: benchSwap(queue, o.a, o.b),
+          },
+          `${nameOf(o.a)} and ${nameOf(o.b)} swap places in line`,
+        );
       return;
     }
     flash(o.action === 'swap' ? [o.a, o.b] : o.action === 'sub' ? [o.off, o.on] : [o.playerId]);
@@ -546,8 +572,8 @@ export function ClockFieldPage() {
         <>
           <Footer className="noprint" style={{ marginTop: 14 }}>
             {live
-              ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench shows minutes played and time resting, fewest minutes first. End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`
-              : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available. Auto-fill gives open spots to the players with the fewest minutes this season, rotating position groups; your own picks are never moved.`}
+              ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench is a queue, next in line on the left, with minutes played and time resting under each player; tap two bench jerseys to swap their places. End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`
+              : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available, in the order they will come on (tap two to swap places). Auto-fill gives open spots to the players with the fewest minutes this season, rotating position groups; your own picks are never moved.`}
           </Footer>
           {live ? (
             <Toolbar sticky className="mt-3 clockbar">

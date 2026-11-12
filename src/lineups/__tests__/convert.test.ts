@@ -10,6 +10,7 @@ const lineup = (id: string, idx: number, formation: string): LineupRow => ({
   formation_name: formation,
   created_at: '',
   updated_at: '',
+  bench_order: [],
 });
 const slot = (
   lineup_id: string,
@@ -88,7 +89,7 @@ describe('toEnginePeriods', () => {
   it('copies arrays', () => {
     const stored = rowsToPeriods([lineup('l1', 0, '3-3')], [slot('l1', 0, 'ST', 'LW', 'p1')]);
     const engine = toEnginePeriods(stored);
-    expect(engine[0]).toEqual({ formation: '3-3', slots: ['p1'], auto: [] });
+    expect(engine[0]).toEqual({ formation: '3-3', slots: ['p1'], auto: [], bench: [] });
     expect(engine[0]?.slots).not.toBe(stored[0]?.slots);
   });
 });

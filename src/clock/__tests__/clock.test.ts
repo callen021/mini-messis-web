@@ -2,7 +2,6 @@ import { describe, expect, it } from 'vitest';
 import {
   type ClockState,
   type Stint,
-  benchOrder,
   cumulativeSeconds,
   elapsedAt,
   formatClock,
@@ -122,24 +121,6 @@ describe('minutes derived from stints (D67)', () => {
     expect(t.get('c')).toMatchObject({ seconds: 200, shifts: 1, onField: false, restSeconds: 320 });
     // d never played: resting since kickoff
     expect(t.get('d')).toMatchObject({ seconds: 0, shifts: 0, onField: false, restSeconds: 720 });
-  });
-
-  it('bench order: fewest minutes, then longest rest, then name', () => {
-    const stints = [
-      stint({ player_id: 'x', clock_start: 0, clock_end: 300 }),
-      stint({ player_id: 'y', clock_start: 0, clock_end: 100 }),
-      stint({ player_id: 'z', clock_start: 200, clock_end: 300 }),
-    ];
-    const s: ClockState = { periodIndex: 0, clockSeconds: 400, runningSince: null, periodLengths: [] };
-    const players = [
-      { id: 'x', first_name: 'Xan' },
-      { id: 'y', first_name: 'Yul' },
-      { id: 'z', first_name: 'Zed' },
-      { id: 'w', first_name: 'Wes' },
-    ];
-    const t = playerTimes(stints, s, at(0), ['x', 'y', 'z', 'w']);
-    expect(benchOrder(players, t).map((p) => p.id)).toEqual(['w', 'y', 'z', 'x']);
-    // y and z both have 100 s: y rested longer (since 1:40 vs 5:00)
   });
 
   it('balance in minutes, starters and the on-field map', () => {

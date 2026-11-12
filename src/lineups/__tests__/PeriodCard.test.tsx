@@ -51,6 +51,8 @@ function renderCard(over: Partial<Parameters<typeof PeriodCard>[0]> = {}) {
     onFormationChange: vi.fn(),
     onAssign: vi.fn(),
     onSwap: vi.fn(),
+    benchOrder: ['p3'],
+    onBenchSwap: vi.fn(),
     onAutoFill: vi.fn(),
     onRedo: vi.fn(),
     ...over,
@@ -60,8 +62,12 @@ function renderCard(over: Partial<Parameters<typeof PeriodCard>[0]> = {}) {
 }
 
 describe('PeriodCard', () => {
-  it('shows the open count, a bench row of small jerseys (fewest periods first) and out players (D77)', () => {
-    renderCard({ activePlayers: [...active, mk('p5', 'Milo', '5')], counts: { p1: 2, p2: 1, p3: 1, p5: 0 } });
+  it('shows the open count, a bench row of small jerseys in queue order and out players (D77, D79)', () => {
+    renderCard({
+      activePlayers: [...active, mk('p5', 'Milo', '5')],
+      counts: { p1: 2, p2: 1, p3: 1, p5: 0 },
+      benchOrder: ['p5', 'p3'], // the queue, not a sort
+    });
     expect(screen.getByText('5 open', { selector: '.openpill' })).toBeInTheDocument();
     const bench = screen.getByRole('group', { name: 'Bench' });
     expect(bench).toHaveTextContent('Bench · 2');
@@ -113,6 +119,14 @@ describe('PeriodCard', () => {
     await userEvent.click(nolan);
     await userEvent.click(screen.getByRole('button', { name: 'Quarter 1, GOALIE: Teddy' }));
     expect(props.onSwap).toHaveBeenCalledWith(0, 6);
+  });
+
+  it('two bench jerseys swap places in the queue (D79)', async () => {
+    const props = renderCard({ activePlayers: [...active, mk('p5', 'Milo', '5')], benchOrder: ['p5', 'p3'] });
+    await userEvent.click(screen.getByRole('button', { name: /^Bench: Milo/ }));
+    await userEvent.click(screen.getByRole('button', { name: /^Bench: Jack/ }));
+    expect(props.onBenchSwap).toHaveBeenCalledWith('p5', 'p3');
+    expect(props.onAssign).not.toHaveBeenCalled();
   });
 
   it('a selected jersey can be opened with no replacement; the same jersey again cancels', async () => {

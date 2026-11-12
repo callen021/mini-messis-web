@@ -123,6 +123,7 @@ const stored = (slots: string[], i: number): StoredPeriod => ({
   formation: '3-3',
   slots,
   auto: [],
+  bench: [],
   codes: f33.positions.map((p) => p.code),
   roles: f33.positions.map((p) => p.role),
 });
@@ -223,7 +224,7 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     expect(arg.starters.slots[2]).toBe('p1');
   });
 
-  it('tapping the selected jersey again cancels; two bench jerseys does nothing', async () => {
+  it('tapping the selected jersey again cancels; two bench jerseys swap places in line (D79)', async () => {
     renderPage();
     await userEvent.click(field('Nolan'));
     await userEvent.click(field('Nolan'));
@@ -231,8 +232,9 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     expect(screen.queryByText(/Tap a player to swap/)).not.toBeInTheDocument();
     await userEvent.click(bench('Hal'));
     await userEvent.click(bench('Nick'));
-    expect(bench('Hal')).toHaveAttribute('aria-pressed', 'true');
-    expect(saveStarters).not.toHaveBeenCalled();
+    expect(bench('Hal')).toHaveAttribute('aria-pressed', 'false');
+    const arg = saveStarters.mock.calls[0]?.[0] as { starters: { bench: string[] } };
+    expect(arg.starters.bench).toEqual(['p9', 'p8']);
   });
 
   it('a selected starter can be taken off with nobody on (Open the spot)', async () => {
@@ -296,17 +298,21 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(act).toHaveBeenCalledWith({ kind: 'empty', off: 'p1' }, expect.anything());
   });
 
-  it('the bench is ordered by fewest minutes, then longest rest', () => {
+  it("the bench is the lineup row's queue, not a sort; minutes and rest stay as information (D79)", async () => {
     stints = [
       ...stints,
       stint({ player_id: 'p8', slot_index: 0, clock_start: 0, clock_end: 60 }), // Hal played a minute
     ];
+    periods = [{ ...stored(STARTERS, 0), bench: ['p8', 'p9'] }, stored(STARTERS, 1)];
     renderPage();
     const names = within(screen.getByRole('group', { name: 'Bench' }))
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label'));
-    expect(names[0]).toMatch(/^Bench: Nick/); // 0 min, resting since kickoff
-    expect(names[1]).toMatch(/^Bench: Hal #8, 1 min · rest 1:00/);
+    expect(names[0]).toMatch(/^Bench: Hal #8, 1 min · rest 1:00/); // first in line though he has played more
+    expect(names[1]).toMatch(/^Bench: Nick/);
+    await userEvent.click(bench('Hal'));
+    await userEvent.click(bench('Nick'));
+    expect(act).toHaveBeenCalledWith({ kind: 'bench', a: 'p8', b: 'p9' }, expect.anything());
   });
 
   it('a running clock reads from the timestamp and "Pause" is offered', () => {

@@ -36,6 +36,7 @@ export function useSaveStarters(teamId: string) {
         auto: starters.auto.filter((k) => !!starters.slots[k]),
         codes: f.positions.map((p) => p.code),
         roles: f.positions.map((p) => p.role),
+        bench: starters.bench ? [...starters.bench] : (previous?.[i]?.bench ?? []),
       }));
       qc.setQueryData(key, optimistic);
       return { previous };

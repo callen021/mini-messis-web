@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LoadingScreen, useIsCoach, useIsStaff } from '@/auth/guards';
+import { benchAfterEdit, benchQueue, benchSwap } from '@/clock/bench';
 import { ClockFieldPage } from '@/clock/ClockFieldPage';
 import { Button, Toolbar } from '@/components/Button';
 import { EditableTitle } from '@/components/EditableTitle';
@@ -136,11 +137,25 @@ function PeriodFieldPage() {
     );
   };
 
+  // every edit keeps each period's bench queue (D79): off joins the right end, on leaves
+  const rosterIds = useMemo(() => activePlayers.map((p) => p.id), [activePlayers]);
+  const queueOf = (i: number) => benchQueue(periods[i]?.bench ?? [], rosterIds, periods[i]?.slots ?? []);
   const commit = (next: Period[], message?: string) => {
-    save.mutate(next, {
+    const withBench = next.map((q, i) => ({
+      ...q,
+      bench: benchAfterEdit(q.bench ?? periods[i]?.bench ?? [], rosterIds, periods[i]?.slots ?? [], q.slots),
+    }));
+    save.mutate(withBench, {
       onError: (e) => toast(errorMessage(e)),
     });
     if (message) toast(message);
+  };
+  const onBenchSwap = (i: number, a: string, b: string) => {
+    const q = periods[i];
+    if (!q) return;
+    const next = [...periods];
+    next[i] = { ...q, bench: benchSwap(queueOf(i), a, b) };
+    commit(next, `${nameOf(a)} and ${nameOf(b)} swap places in line`);
   };
 
   const onFormationChange = (i: number, name: string) => {
@@ -276,6 +291,8 @@ function PeriodFieldPage() {
                 onFormationChange={(name) => onFormationChange(i, name)}
                 onAssign={(slot, pid) => onAssign(i, slot, pid)}
                 onSwap={(a, b) => onSwap(i, a, b)}
+                benchOrder={queueOf(i)}
+                onBenchSwap={(a, b) => onBenchSwap(i, a, b)}
                 onAutoFill={() => onAutoFill(i, false)}
                 onRedo={() => onAutoFill(i, true)}
                 headerExtra={scoreButton(i)}

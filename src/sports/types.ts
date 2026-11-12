@@ -132,6 +132,8 @@ export interface Period {
   slots: string[];
   /** Slot indexes that were filled by Auto-fill (never hand-picked). */
   auto: number[];
+  /** The bench queue, left to right (D79); absent when the caller does not track it. */
+  bench?: string[];
 }
 
 /** The minimum a player needs to be for the engine. */

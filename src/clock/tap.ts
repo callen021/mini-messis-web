@@ -24,7 +24,9 @@ export type TapOutcome =
   /** A bench player replaces an on-field player in their spot. */
   | { action: 'sub'; off: string; on: string }
   /** A bench player takes an empty spot. */
-  | { action: 'fill'; playerId: string; slot: number };
+  | { action: 'fill'; playerId: string; slot: number }
+  /** Two bench players change places in the queue (D79). */
+  | { action: 'benchswap'; a: string; b: string };
 
 export function resolveTap(selected: Selection, target: Target): TapOutcome {
   if (!selected) {
@@ -41,7 +43,9 @@ export function resolveTap(selected: Selection, target: Target): TapOutcome {
   }
   // a bench player is selected
   if (target.kind === 'bench') {
-    return target.playerId === selected.playerId ? { action: 'cancel' } : { action: 'none' };
+    return target.playerId === selected.playerId
+      ? { action: 'cancel' }
+      : { action: 'benchswap', a: selected.playerId, b: target.playerId };
   }
   if (target.playerId) return { action: 'sub', off: target.playerId, on: selected.playerId };
   return { action: 'fill', playerId: selected.playerId, slot: target.slot };

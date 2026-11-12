@@ -146,22 +146,6 @@ export function playerTimes(
   return out;
 }
 
-/** Bench order (D70): fewest minutes first, then the longest rest, then the name. */
-export function benchOrder<P extends { id: string; first_name: string }>(
-  bench: readonly P[],
-  times: ReadonlyMap<string, PlayerTime>,
-): P[] {
-  return [...bench].sort((a, b) => {
-    const ta = times.get(a.id);
-    const tb = times.get(b.id);
-    return (
-      (ta?.seconds ?? 0) - (tb?.seconds ?? 0) ||
-      (tb?.restSeconds ?? 0) - (ta?.restSeconds ?? 0) ||
-      a.first_name.localeCompare(b.first_name)
-    );
-  });
-}
-
 export interface MinutesBalance {
   min: number;
   max: number;

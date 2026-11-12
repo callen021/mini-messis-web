@@ -92,6 +92,7 @@ const stored = (q: Period, i: number): StoredPeriod => {
     lineupId: `l${i}`,
     codes: f.positions.map((p) => p.code),
     roles: f.positions.map((p) => p.role),
+    bench: [],
   };
 };
 

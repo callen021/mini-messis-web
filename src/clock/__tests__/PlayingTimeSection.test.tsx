@@ -60,6 +60,7 @@ const periods: StoredPeriod[] = [
     auto: [],
     codes: ['ST', 'SW', 'GK'],
     roles: ['ST', 'DEF', 'GK'],
+    bench: [],
   },
   {
     lineupId: 'l1',
@@ -68,6 +69,7 @@ const periods: StoredPeriod[] = [
     auto: [],
     codes: ['ST', 'SW', 'GK'],
     roles: ['ST', 'DEF', 'GK'],
+    bench: [],
   },
 ];
 const stint = (over: Partial<Stint>): Stint => ({

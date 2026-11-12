@@ -120,6 +120,7 @@ export function useSavePlan(teamId: string, gameId: string | null) {
           auto: q.auto.filter((k) => !!q.slots[k]),
           codes: f.positions.map((p) => p.code),
           roles: f.positions.map((p) => p.role),
+          bench: q.bench ? [...q.bench] : (previous?.[i]?.bench ?? []),
         };
       });
       qc.setQueryData(key, optimistic);

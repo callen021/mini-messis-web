@@ -98,7 +98,8 @@ export function fixPeriods(
       }
     }
     const slots = out.slots.map((id) => (okIds.has(id) ? id : ''));
-    return { formation: out.formation, slots, auto: cleanAuto(out.auto, slots) };
+    const fixed: Period = { formation: out.formation, slots, auto: cleanAuto(out.auto, slots) };
+    return q.bench ? { ...fixed, bench: [...q.bench] } : fixed;
   });
 }
 

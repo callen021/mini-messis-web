@@ -22,10 +22,10 @@ describe('select-then-target (D70)', () => {
     expect(resolveTap(bench('b'), field(2, ''))).toEqual({ action: 'fill', playerId: 'b', slot: 2 });
   });
 
-  it('tapping the selected jersey again cancels; two bench jerseys does nothing', () => {
+  it('tapping the selected jersey again cancels; two bench jerseys swap places in the queue (D79)', () => {
     expect(resolveTap(field(0, 'a'), field(0, 'a'))).toEqual({ action: 'cancel' });
     expect(resolveTap(bench('b'), bench('b'))).toEqual({ action: 'cancel' });
-    expect(resolveTap(bench('b'), bench('c'))).toEqual({ action: 'none' });
+    expect(resolveTap(bench('b'), bench('c'))).toEqual({ action: 'benchswap', a: 'b', b: 'c' });
   });
 
   it('hint line names the selected player', () => {

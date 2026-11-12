@@ -9,6 +9,8 @@ export interface StoredPeriod extends Period {
   lineupId: string;
   codes: string[];
   roles: string[];
+  /** The persisted bench queue of this lineup row (D79). */
+  bench: string[];
 }
 
 /** Rows → ordered periods (slot arrays sized to the stored slots). */
@@ -34,7 +36,15 @@ export function rowsToPeriods(lineups: readonly LineupRow[], slots: readonly Slo
         roles[s.slot_index] = s.position_role;
         if (s.auto_picked && s.player_id) auto.push(s.slot_index);
       }
-      return { lineupId: l.id, formation: l.formation_name, slots: slotsArr, auto, codes, roles };
+      return {
+        lineupId: l.id,
+        formation: l.formation_name,
+        slots: slotsArr,
+        auto,
+        codes,
+        roles,
+        bench: [...(l.bench_order ?? [])],
+      };
     });
 }
 
@@ -42,6 +52,8 @@ export interface SavePeriodPayload {
   period_index: number;
   formation_name: string;
   slots: { position_role: string; position_code: string; player_id: string | null; auto_picked: boolean }[];
+  /** Sent only when the period carries a queue; the server normalizes it (D79). */
+  bench_order?: string[];
 }
 
 /** Engine periods → `save_lineups` payload, taking roles/codes from the formation definitions. */
@@ -51,7 +63,7 @@ export function periodsToPayload(
 ): SavePeriodPayload[] {
   return periods.map((q, i) => {
     const f = formationFor(q.formation);
-    return {
+    const payload: SavePeriodPayload = {
       period_index: i,
       formation_name: f.name,
       slots: f.positions.map((pos, k) => ({
@@ -61,9 +73,16 @@ export function periodsToPayload(
         auto_picked: q.auto.includes(k) && !!q.slots[k],
       })),
     };
+    if (q.bench) payload.bench_order = [...q.bench];
+    return payload;
   });
 }
 
 /** Strip storage fields so engine functions get plain periods. */
 export const toEnginePeriods = (periods: readonly StoredPeriod[]): Period[] =>
-  periods.map((q) => ({ formation: q.formation, slots: [...q.slots], auto: [...q.auto] }));
+  periods.map((q) => ({
+    formation: q.formation,
+    slots: [...q.slots],
+    auto: [...q.auto],
+    bench: [...q.bench],
+  }));

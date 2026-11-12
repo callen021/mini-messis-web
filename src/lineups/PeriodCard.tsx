@@ -33,6 +33,10 @@ export interface PeriodCardProps {
   onAssign: (slotIndex: number, playerId: string) => void;
   /** Two on-field jerseys change places (D77). */
   onSwap: (slotA: number, slotB: number) => void;
+  /** The bench queue for this period, left to right (D79). */
+  benchOrder: readonly string[];
+  /** Two bench players change places in the queue (D79). */
+  onBenchSwap: (a: string, b: string) => void;
   onAutoFill: () => void;
   onRedo: () => void;
   /** Optional trailing control in the header (score button, Phase 5). */
@@ -64,6 +68,8 @@ export function PeriodCard({
   onFormationChange,
   onAssign,
   onSwap,
+  benchOrder,
+  onBenchSwap,
   onAutoFill,
   onRedo,
   headerExtra,
@@ -73,15 +79,13 @@ export function PeriodCard({
   const [flashing, flash] = useFlash();
   const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const openCount = period.slots.filter((s) => !s).length;
-  const sittingOut = useMemo(
-    () =>
-      activePlayers
-        .filter((p) => !period.slots.includes(p.id))
-        .sort(
-          (a, b) => (counts[a.id] ?? 0) - (counts[b.id] ?? 0) || a.first_name.localeCompare(b.first_name),
-        ),
-    [activePlayers, period.slots, counts],
-  );
+  const sittingOut = useMemo(() => {
+    const byId = new Map(activePlayers.map((p) => [p.id, p]));
+    return benchOrder.flatMap((id) => {
+      const p = byId.get(id);
+      return p && !period.slots.includes(id) ? [p] : [];
+    });
+  }, [activePlayers, period.slots, benchOrder]);
   const out = players.filter((p) => !p.is_available);
   const autoN = period.auto.filter((i) => period.slots[i]).length;
   const nameOf = (id: string) => byId.get(id)?.first_name ?? 'player';
@@ -104,6 +108,11 @@ export function PeriodCard({
     if (o.action === 'cancel') return;
     if (o.action === 'picker') {
       setPicking(o.slot);
+      return;
+    }
+    if (o.action === 'benchswap') {
+      flash([o.a, o.b]);
+      onBenchSwap(o.a, o.b);
       return;
     }
     if (o.action === 'swap') {
@@ -209,7 +218,7 @@ export function PeriodCard({
           <span>
             {selected
               ? selectionHint(selected, nameOf)
-              : 'Tap a jersey, then another, to swap them. Tap an open spot to pick a player.'}
+              : 'Tap a jersey, then another, to swap them. The bench is in order, next in line on the left.'}
           </span>
           {selected?.kind === 'field' && (
             <Button size="sm" variant="gray" onClick={openSelectedSpot}>

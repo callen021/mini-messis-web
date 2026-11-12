@@ -107,6 +107,7 @@ type ClockCall =
         auto_picked?: boolean;
       }[];
     }
+  | { kind: 'bench'; a: string; b: string }
   | { kind: 'undo' };
 
 /** One mutation for every clock action: each is a single atomic server function (D66, D67). */
@@ -149,6 +150,9 @@ export function useClockAction(teamId: string, gameId: string) {
               })
             ).error,
           );
+          return null;
+        case 'bench':
+          fail((await supabase.rpc('clock_bench_swap', { ...g, p_a: call.a, p_b: call.b })).error);
           return null;
         case 'undo': {
           const res = await supabase.rpc('clock_undo', g);
