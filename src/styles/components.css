@@ -943,7 +943,8 @@ button.row:disabled {
 .toast {
   position: fixed;
   left: 50%;
-  bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + 14px);
+  /* above the sticky action bar as well as the tab bar, so a toast never covers a control (D80) */
+  bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + 76px);
   transform: translate(-50%, 10px);
   z-index: 60;
   background: var(--toast-bg);
