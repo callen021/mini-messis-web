@@ -15,8 +15,7 @@ import { hapticTick } from '@/lib/haptics';
 import { errorMessage } from '@/lib/supabase';
 import { useUIStore } from '@/lib/ui-store';
 import { JerseyDefs } from '@/lineups/Jersey';
-import { PlayerPickerSheet } from '@/lineups/PlayerPickerSheet';
-import { playerName, toEnginePlayers, useCurrentPlan, useFormations, useMyChildren } from '@/lineups/api';
+import { toEnginePlayers, useCurrentPlan, useFormations, useMyChildren } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
 import { SPORTS, periodPlural, shortPeriod } from '@/sports/definitions';
 import { assignSlot, clearAll, fixPeriods } from '@/sports/lineup';
@@ -81,7 +80,6 @@ export function ClockFieldPage() {
   const seasonMinutes = useSeasonMinutes(teamId, isStaff);
   const [selected, setSelected] = useState<Selection>(null);
   const [flashing, flash] = useFlash();
-  const [picking, setPicking] = useState<number | null>(null);
   const [scoring, setScoring] = useState(false);
   const [starting, setStarting] = useState(false);
 
@@ -240,10 +238,6 @@ export function ClockFieldPage() {
     if (o.action === 'none') return;
     setSelected(null);
     if (o.action === 'cancel') return;
-    if (o.action === 'picker') {
-      setPicking(o.slot);
-      return;
-    }
     if (o.action === 'benchswap') {
       flash([o.a, o.b]);
       if (live)
@@ -269,7 +263,7 @@ export function ClockFieldPage() {
   };
   /** Take the selected on-field player off with nobody on: an injury in a live game, an open starter spot otherwise. */
   const openSpot = () => {
-    if (!selected || selected.kind !== 'field') return;
+    if (!selected || selected.kind !== 'field' || !selected.playerId) return;
     const { slot, playerId } = selected;
     setSelected(null);
     if (live)
@@ -277,25 +271,13 @@ export function ClockFieldPage() {
         { kind: 'empty', off: playerId },
         { onError, onSuccess: () => toast(`${nameOf(playerId)} off · spot open`) },
       );
-    else onPick(slot, '');
-  };
-
-  const onPick = (slot: number, playerId: string) => {
-    if (live) {
-      if (!playerId) return; // nothing to clear: the picker only opens on an empty spot during a game
-      liveTap({ action: 'fill', playerId, slot });
-      return;
+    else if (shown) {
+      const p: Period = { formation: formation.name, slots: [...slots], auto: [...shown.auto] };
+      commitTemplate(
+        assignSlot(p, slot, '').period,
+        `${S.label(formation.positions[slot]?.role ?? '')} is open`,
+      );
     }
-    if (!shown) return;
-    const p: Period = { formation: formation.name, slots: [...slots], auto: [...shown.auto] };
-    const r = assignSlot(p, slot, playerId);
-    const pos = formation.positions[slot];
-    const msg = !playerId
-      ? `${S.label(pos?.role ?? '')} is open`
-      : r.movedFrom !== null
-        ? `${nameOf(playerId)} moved`
-        : `${nameOf(playerId)} in at ${pos?.code ?? ''}`;
-    commitTemplate(r.period, msg);
   };
 
   const onFormationChange = (name: string) => {
@@ -447,7 +429,6 @@ export function ClockFieldPage() {
   const sub = live
     ? `Live vs ${live.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ' · tap a jersey, then another, to swap' : ''}`
     : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${N} ${periodPlural(S, N)} on the clock${isStaff ? ' · tap jerseys to set the starters · tap the score to start a game' : ''}`;
-  const pickSlot = picking !== null ? formation.positions[picking] : undefined;
   const periodNoun = S.periodName(N).toLowerCase();
   const atZero = !!live && elapsedAt(clock, now) === 0 && !isRunning(clock);
 
@@ -478,8 +459,12 @@ export function ClockFieldPage() {
           highlight={highlight}
           selected={selected}
           flashing={flashing}
-          hint={selectionHint(selected, nameOf)}
-          onOpenSpot={openSpot}
+          hint={selectionHint(
+            selected,
+            nameOf,
+            formation.positions.map((p) => p.code),
+          )}
+          onOpenSpot={selected?.kind === 'field' && selected.playerId ? openSpot : undefined}
           onFormationChange={onFormationChange}
           onTapSlot={(slot) => tap({ kind: 'field', slot, playerId: slots[slot] ?? '' })}
           onTapBench={(playerId) => tap({ kind: 'bench', playerId })}
@@ -499,27 +484,6 @@ export function ClockFieldPage() {
           benchEmptyText={`Everyone is ${S.unit}`}
         />
       </div>
-      {isStaff && (
-        <PlayerPickerSheet
-          open={picking !== null}
-          onClose={() => setPicking(null)}
-          title={pickSlot ? `${title} · ${S.label(pickSlot.role)}` : title}
-          bench={bench.map((b) => b.player)}
-          onField={activePlayers
-            .filter((p) => slots.includes(p.id))
-            .map((player) => ({ player, code: formation.positions[slots.indexOf(player.id)]?.code ?? '' }))}
-          assigned={null}
-          counts={{}}
-          periodNoun={periodNoun}
-          labelFor={(p) => {
-            const t = times?.get(p.id);
-            return `${p.jersey_number ? `#${p.jersey_number} ` : ''}${playerName(p)}${t ? ` · ${formatMinutes(t.seconds)}` : ''}`;
-          }}
-          onPick={(id) => {
-            if (picking !== null) onPick(picking, id);
-          }}
-        />
-      )}
       {isStaff && live && (
         <ScorePanel
           open={scoring}

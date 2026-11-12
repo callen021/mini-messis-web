@@ -5,10 +5,17 @@ const field = (slot: number, playerId: string) => ({ kind: 'field' as const, slo
 const bench = (playerId: string) => ({ kind: 'bench' as const, playerId });
 
 describe('select-then-target (D70)', () => {
-  it('first tap selects a jersey; an empty spot with nothing selected opens the picker', () => {
+  it('first tap selects a jersey, or an empty spot: there is no picker sheet (D86)', () => {
     expect(resolveTap(null, field(0, 'a'))).toEqual({ action: 'select', selection: field(0, 'a') });
     expect(resolveTap(null, bench('b'))).toEqual({ action: 'select', selection: bench('b') });
-    expect(resolveTap(null, field(3, ''))).toEqual({ action: 'picker', slot: 3 });
+    expect(resolveTap(null, field(3, ''))).toEqual({ action: 'select', selection: field(3, '') });
+  });
+
+  it('with an empty spot selected: a bench tap fills it, an on-field tap moves that player into it, another empty spot takes over', () => {
+    expect(resolveTap(field(3, ''), bench('b'))).toEqual({ action: 'fill', playerId: 'b', slot: 3 });
+    expect(resolveTap(field(3, ''), field(0, 'a'))).toEqual({ action: 'move', playerId: 'a', slot: 3 });
+    expect(resolveTap(field(3, ''), field(4, ''))).toEqual({ action: 'select', selection: field(4, '') });
+    expect(resolveTap(field(3, ''), field(3, ''))).toEqual({ action: 'cancel' });
   });
 
   it('field then bench, or bench then field, swaps those two players', () => {
@@ -28,8 +35,9 @@ describe('select-then-target (D70)', () => {
     expect(resolveTap(bench('b'), bench('c'))).toEqual({ action: 'benchswap', a: 'b', b: 'c' });
   });
 
-  it('hint line names the selected player', () => {
+  it('hint line names the selected player, or the position of a selected empty spot', () => {
     expect(selectionHint(field(0, 'a'), () => 'Nolan')).toBe('Tap a player to swap with Nolan');
+    expect(selectionHint(field(2, ''), () => 'x', ['GK', 'RS', 'LS'])).toBe('Tap a bench player for LS');
     expect(selectionHint(null, () => 'x')).toBe('');
   });
 });

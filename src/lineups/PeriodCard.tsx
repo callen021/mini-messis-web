@@ -11,7 +11,6 @@ import { playerName } from './api';
 import { FieldStage } from './FieldStage';
 import { Jersey } from './Jersey';
 import { periodsPlayed } from './captions';
-import { PlayerPickerSheet } from './PlayerPickerSheet';
 
 export interface PeriodCardProps {
   sport: SportKey;
@@ -47,9 +46,9 @@ export interface PeriodCardProps {
 
 /**
  * One period of the plan: the field, then the bench row of small jerseys (sitting out, fewest
- * periods first) and the Auto-fill / Redo buttons. Changes are select-then-target (D77): the
- * first tap selects a jersey, the second completes the change; an open spot with nothing selected
- * opens the picker sheet as before.
+ * periods first) and the Auto-fill / Redo buttons. Changes are select-then-target (D77, D86): the
+ * first tap selects a jersey or an open spot, the second completes the change; there is no picker
+ * sheet.
  */
 export function PeriodCard({
   sport,
@@ -76,7 +75,6 @@ export function PeriodCard({
   onRedo,
   headerExtra,
 }: PeriodCardProps) {
-  const [picking, setPicking] = useState<number | null>(null);
   const [selected, setSelected] = useState<Selection>(null);
   const [flashing, flash] = useFlash();
   const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
@@ -91,12 +89,6 @@ export function PeriodCard({
   const out = players.filter((p) => !p.is_available);
   const autoN = period.auto.filter((i) => period.slots[i]).length;
   const nameOf = (id: string) => byId.get(id)?.first_name ?? 'player';
-
-  const pickSlot = picking !== null ? formation.positions[picking] : undefined;
-  const assignedId = picking !== null ? (period.slots[picking] ?? '') : '';
-  const onField = activePlayers
-    .filter((p) => period.slots.includes(p.id) && p.id !== assignedId)
-    .map((p) => ({ player: p, code: formation.positions[period.slots.indexOf(p.id)]?.code ?? '' }));
   const benchColor = colors[S.groups[0]?.[0] ?? ''] ?? '#888';
 
   const tap = (target: Parameters<typeof resolveTap>[1]) => {
@@ -108,10 +100,6 @@ export function PeriodCard({
     if (o.action === 'none') return;
     setSelected(null);
     if (o.action === 'cancel') return;
-    if (o.action === 'picker') {
-      setPicking(o.slot);
-      return;
-    }
     if (o.action === 'benchswap') {
       flash([o.a, o.b]);
       onBenchSwap(o.a, o.b);
@@ -137,7 +125,7 @@ export function PeriodCard({
     }
   };
   const openSelectedSpot = () => {
-    if (!selected || selected.kind !== 'field') return;
+    if (!selected || selected.kind !== 'field' || !selected.playerId) return;
     setSelected(null);
     onAssign(selected.slot, '');
   };
@@ -219,10 +207,14 @@ export function PeriodCard({
         <div className={`taphint${selected ? ' on' : ''}`} aria-live="polite">
           <span>
             {selected
-              ? selectionHint(selected, nameOf)
+              ? selectionHint(
+                  selected,
+                  nameOf,
+                  formation.positions.map((p) => p.code),
+                )
               : 'Tap a jersey, then another, to swap them. The bench is a line: next in on the right.'}
           </span>
-          {selected?.kind === 'field' && (
+          {selected?.kind === 'field' && !!selected.playerId && (
             <Button size="sm" variant="gray" onClick={openSelectedSpot}>
               Open the spot
             </Button>
@@ -248,21 +240,6 @@ export function PeriodCard({
             </Button>
           )}
         </div>
-      )}
-      {canEdit && (
-        <PlayerPickerSheet
-          open={picking !== null}
-          onClose={() => setPicking(null)}
-          title={pickSlot ? `${title} · ${S.label(pickSlot.role)}` : title}
-          bench={sittingOut}
-          onField={onField}
-          assigned={assignedId ? (byId.get(assignedId) ?? null) : null}
-          counts={counts}
-          periodNoun={S.periodName(periodCount).toLowerCase()}
-          onPick={(id) => {
-            if (picking !== null) onAssign(picking, id);
-          }}
-        />
       )}
     </article>
   );

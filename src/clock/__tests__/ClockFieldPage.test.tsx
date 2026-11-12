@@ -246,12 +246,13 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     expect(arg.starters.slots[0]).toBe('');
   });
 
-  it('an empty spot still opens the picker sheet', async () => {
+  it('an empty spot is selected by a tap and filled by the next bench tap; no picker sheet (D86)', async () => {
     periods = [stored(['', ...STARTERS.slice(1)], 0)];
     renderPage();
     await userEvent.click(screen.getByRole('button', { name: 'STRIKER: open' }));
-    const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: /Hal/ }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(screen.getByText('Tap a bench player for LW')).toBeInTheDocument();
+    await userEvent.click(bench('Hal'));
     const arg = saveStarters.mock.calls[0]?.[0] as { starters: { slots: string[] } };
     expect(arg.starters.slots[0]).toBe('p8');
   });

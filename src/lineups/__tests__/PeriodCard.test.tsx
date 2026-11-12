@@ -104,22 +104,20 @@ describe('PeriodCard', () => {
     expect(bench.textContent).not.toMatch(/halfs/);
   });
 
-  it('tapping an open jersey lists the bench first, then moves, and assigns the pick', async () => {
+  it('tapping an open jersey selects it with a hint, then a bench tap fills it; an on-field tap moves there (D86)', async () => {
     const props = renderCard();
-    await userEvent.click(
-      screen.getAllByRole('button', { name: 'Quarter 1, STRIKER: open' })[0] as HTMLElement,
-    );
-    const dialog = await screen.findByRole('dialog');
-    expect(dialog).toHaveTextContent('Q1 · STRIKER');
-    // bench: Jack (0 quarters); on field: LW · Nolan, GK · Teddy
-    const buttons = within(dialog)
-      .getAllByRole('button')
-      .map((b) => b.textContent);
-    expect(buttons[0]).toContain('#3 Jack · 0 quarters');
-    expect(buttons).toContain('LW · Nolan');
-    expect(buttons).toContain('GK · Teddy');
-    await userEvent.click(within(dialog).getByRole('button', { name: /Jack/ }));
+    const open = screen.getAllByRole('button', { name: 'Quarter 1, STRIKER: open' })[0] as HTMLElement;
+    await userEvent.click(open);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(open).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Tap a bench player for ST')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Open the spot' })).not.toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: /^Bench: Jack/ }));
     expect(props.onAssign).toHaveBeenCalledWith(1, 'p3');
+    // the other way round: an on-field player moves into the selected open spot
+    await userEvent.click(open);
+    await userEvent.click(screen.getByRole('button', { name: 'Quarter 1, STRIKER: Nolan' }));
+    expect(props.onAssign).toHaveBeenLastCalledWith(1, 'p1');
   });
 
   it('select-then-target: field then bench substitutes, two jerseys swap, both get the gold outline (D77)', async () => {

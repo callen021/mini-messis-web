@@ -144,7 +144,8 @@ export function ClockCard({
       {canEdit && (
         <div className={`taphint${hint ? ' on' : ''}`} aria-live="polite">
           <span>
-            {hint || 'Tap a jersey, then another, to swap them. Tap an open spot to pick a player.'}
+            {hint ||
+              'Tap a jersey, then another, to swap them. Tap an open spot, then a bench player, to fill it.'}
           </span>
           {selected?.kind === 'field' && onOpenSpot && (
             <Button size="sm" variant="gray" onClick={onOpenSpot}>
