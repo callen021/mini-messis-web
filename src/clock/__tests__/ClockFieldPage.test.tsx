@@ -1,0 +1,317 @@
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { ActionSheetProvider } from '@/components/Sheet';
+import { ToastProvider } from '@/components/Toast';
+import type * as Guards from '@/auth/guards';
+import type * as LineupsApi from '@/lineups/api';
+import type * as TeamsApi from '@/teams/api';
+import { type StoredPeriod } from '@/lineups/convert';
+import { SPORTS, formationByName } from '@/sports/definitions';
+import { type Player, type Team } from '@/teams/api';
+import { TeamProviderForTests, type TeamContextValue } from '@/teams/TeamContext';
+import { ClockFieldPage } from '../ClockFieldPage';
+import { type ClockState, type Stint } from '../clock';
+
+const S = SPORTS.soccer;
+const forms = S.formations({ size: 7, gk: true });
+const f33 = formationByName(forms, '3-3');
+
+const saveStarters = vi.fn();
+const act = vi.fn();
+let staff = true;
+let liveGame: { id: string; opponent: string } | null = null;
+let periods: StoredPeriod[] = [];
+let clock: ClockState = { periodIndex: 0, clockSeconds: 0, runningSince: null, periodLengths: [] };
+let stints: Stint[] = [];
+
+vi.mock('@/auth/guards', async () => {
+  const actual = await vi.importActual<typeof Guards>('@/auth/guards');
+  return { ...actual, useIsStaff: () => staff, useIsCoach: () => staff };
+});
+vi.mock('@/lineups/api', async () => {
+  const actual = await vi.importActual<typeof LineupsApi>('@/lineups/api');
+  return {
+    ...actual,
+    useCurrentPlan: () => ({
+      gameId: liveGame?.id ?? null,
+      liveGame,
+      periods,
+      isPending: false,
+      error: null,
+    }),
+    useFormations: () => ({ forms, formationFor: (n: string) => formationByName(forms, n) }),
+    useMyChildren: () => ({ data: new Set<string>(['p2']), isPending: false }),
+  };
+});
+vi.mock('@/teams/api', async () => {
+  const actual = await vi.importActual<typeof TeamsApi>('@/teams/api');
+  return { ...actual, usePlayers: () => ({ data: players, isPending: false }) };
+});
+vi.mock('@/teams/teamMutations', () => ({ useRenameTeam: () => ({ mutate: vi.fn() }) }));
+vi.mock('@/games/api', () => ({
+  useScoreEvents: () => ({ data: [] }),
+  useAddScoreEvent: () => ({ mutate: vi.fn() }),
+  useDeleteScoreEvent: () => ({ mutate: vi.fn() }),
+  useCreateGame: () => ({ mutate: vi.fn(), isPending: false }),
+}));
+vi.mock('../api', () => ({
+  useClockAction: () => ({ mutate: act, isPending: false }),
+  useGameClock: () => ({ data: clock, isPending: false }),
+  useStints: () => ({ data: stints, isPending: false }),
+  useServerTimeSync: () => undefined,
+}));
+vi.mock('../template', () => ({ useSaveStarters: () => ({ mutate: saveStarters, isPending: false }) }));
+vi.mock('../useNow', () => ({ useServerNow: () => Date.parse('2026-11-12T15:00:00Z') }));
+vi.mock('../useWakeLock', () => ({ useWakeLock: () => undefined }));
+
+const mk = (id: string, first_name: string, n: string, is_available = true): Player => ({
+  id,
+  team_id: 't1',
+  first_name,
+  last_name: null,
+  jersey_number: n,
+  is_available,
+  batting_order: null,
+  sort_order: 0,
+  archived_at: null,
+  created_at: '',
+  updated_at: '',
+  updated_by: null,
+});
+const players = [
+  mk('p1', 'Nolan', '1'),
+  mk('p2', 'Teddy', '2'),
+  mk('p3', 'Jack', '3'),
+  mk('p4', 'Weston', '4'),
+  mk('p5', 'Sam', '5'),
+  mk('p6', 'Milo', '6'),
+  mk('p7', 'Quincy', '7'),
+  mk('p8', 'Hal', '8'),
+  mk('p9', 'Nick', '9'),
+  mk('p10', 'Atlas', '10', false),
+];
+const team: Team = {
+  id: 't1',
+  name: 'Strikers',
+  sport: 'soccer',
+  owner_id: 'u1',
+  join_code: 'ABCD2345',
+  join_code_rotated_at: '',
+  join_enabled: true,
+  timezone: 'America/Chicago',
+  parent_stats: 'own',
+  time_mode: 'clock',
+  clock_periods: 2,
+  period_minutes: 25,
+  side_size: 7,
+  has_gk: true,
+  periods_count: 4,
+  colors: S.defaultColors,
+  last_batter_player_id: null,
+  archived_at: null,
+  created_at: '',
+  updated_at: '',
+  updated_by: null,
+};
+const stored = (slots: string[], i: number): StoredPeriod => ({
+  lineupId: `l${i}`,
+  formation: '3-3',
+  slots,
+  auto: [],
+  codes: f33.positions.map((p) => p.code),
+  roles: f33.positions.map((p) => p.role),
+});
+const stint = (over: Partial<Stint>): Stint => ({
+  id: Math.random().toString(36),
+  player_id: 'p',
+  period_index: 0,
+  slot_index: 0,
+  position_role: 'ST',
+  position_code: 'LW',
+  clock_start: 0,
+  clock_end: null,
+  ...over,
+});
+const STARTERS = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
+
+function renderPage() {
+  const ctx: TeamContextValue = {
+    teamId: 't1',
+    team,
+    sport: 'soccer',
+    role: staff ? 'coach' : 'parent',
+    isOwner: staff,
+    memberships: [],
+    switchTeam: () => undefined,
+    adminActing: false,
+  };
+  render(
+    <QueryClientProvider client={new QueryClient()}>
+      <ToastProvider>
+        <ActionSheetProvider>
+          <MemoryRouter>
+            <TeamProviderForTests value={ctx}>
+              <ClockFieldPage />
+            </TeamProviderForTests>
+          </MemoryRouter>
+        </ActionSheetProvider>
+      </ToastProvider>
+    </QueryClientProvider>,
+  );
+}
+const field = (name: string) => screen.getByRole('button', { name: new RegExp(`^[A-Z ]+: ${name}`) });
+const bench = (name: string) => screen.getByRole('button', { name: new RegExp(`^Bench: ${name}`) });
+
+describe('ClockFieldPage · starters on the template (D70)', () => {
+  beforeEach(() => {
+    saveStarters.mockReset();
+    act.mockReset();
+    staff = true;
+    liveGame = null;
+    periods = [stored(STARTERS, 0), stored(STARTERS, 1), stored(STARTERS, 2), stored(STARTERS, 3)];
+  });
+
+  it('shows one field of starters and a bench row of the other available players, two-thirds size', () => {
+    renderPage();
+    expect(screen.getByRole('heading', { level: 2, name: 'Starters' })).toBeInTheDocument();
+    expect(screen.getAllByRole('button', { name: /^[A-Z ]+: / })).toHaveLength(7);
+    const benchRow = screen.getByRole('group', { name: 'Bench' });
+    expect(benchRow).toHaveTextContent('Bench · 2');
+    expect(within(benchRow).getByRole('button', { name: /Bench: Hal #8/ })).toBeInTheDocument();
+    expect(within(benchRow).getByRole('button', { name: /Bench: Nick #9/ })).toBeInTheDocument();
+    // marked out: not on the bench
+    expect(screen.queryByRole('button', { name: /Atlas/ })).not.toBeInTheDocument();
+    expect(document.querySelectorAll('.bslot')).toHaveLength(2);
+  });
+
+  it('field then bench swaps those two players; the hint names the selected player', async () => {
+    renderPage();
+    await userEvent.click(field('Nolan'));
+    expect(field('Nolan')).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Tap a player to swap with Nolan')).toBeInTheDocument();
+    await userEvent.click(bench('Hal'));
+    expect(saveStarters).toHaveBeenCalledTimes(1);
+    const arg = saveStarters.mock.calls[0]?.[0] as { starters: { slots: string[] }; count: number };
+    expect(arg.starters.slots[0]).toBe('p8');
+    expect(arg.starters.slots).not.toContain('p1');
+    expect(arg.count).toBe(4);
+  });
+
+  it('bench then field works the same way; two on-field jerseys swap positions', async () => {
+    renderPage();
+    await userEvent.click(bench('Nick'));
+    await userEvent.click(field('Teddy'));
+    let arg = saveStarters.mock.calls[0]?.[0] as { starters: { slots: string[] } };
+    expect(arg.starters.slots[1]).toBe('p9');
+    saveStarters.mockReset();
+    await userEvent.click(field('Nolan'));
+    await userEvent.click(field('Jack'));
+    arg = saveStarters.mock.calls[0]?.[0] as { starters: { slots: string[] } };
+    expect(arg.starters.slots[0]).toBe('p3');
+    expect(arg.starters.slots[2]).toBe('p1');
+  });
+
+  it('tapping the selected jersey again cancels; two bench jerseys does nothing', async () => {
+    renderPage();
+    await userEvent.click(field('Nolan'));
+    await userEvent.click(field('Nolan'));
+    expect(field('Nolan')).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByText(/Tap a player to swap/)).not.toBeInTheDocument();
+    await userEvent.click(bench('Hal'));
+    await userEvent.click(bench('Nick'));
+    expect(bench('Hal')).toHaveAttribute('aria-pressed', 'true');
+    expect(saveStarters).not.toHaveBeenCalled();
+  });
+
+  it('an empty spot still opens the picker sheet', async () => {
+    periods = [stored(['', ...STARTERS.slice(1)], 0)];
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: 'STRIKER: open' }));
+    const dialog = await screen.findByRole('dialog');
+    await userEvent.click(within(dialog).getByRole('button', { name: /Hal/ }));
+    const arg = saveStarters.mock.calls[0]?.[0] as { starters: { slots: string[] } };
+    expect(arg.starters.slots[0]).toBe('p8');
+  });
+});
+
+describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
+  beforeEach(() => {
+    act.mockReset();
+    staff = true;
+    liveGame = { id: 'g1', opponent: 'Tigers' };
+    periods = [stored(STARTERS, 0), stored(STARTERS, 1)];
+    clock = { periodIndex: 0, clockSeconds: 120, runningSince: null, periodLengths: [] };
+    stints = STARTERS.map((id, i) =>
+      stint({ player_id: id, slot_index: i, position_code: f33.positions[i]?.code ?? '' }),
+    );
+  });
+
+  it('shows the period, the clock, each shift and the bench with minutes and rest', () => {
+    renderPage();
+    expect(screen.getByRole('heading', { level: 2, name: 'H1' })).toBeInTheDocument();
+    // 25-minute halves, 2:00 played and paused → 23:00 left
+    expect(screen.getByLabelText('23:00 left, paused')).toHaveTextContent('23:00');
+    expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'End H1' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo last sub' })).toBeInTheDocument();
+    expect(field('Nolan')).toHaveAccessibleName(/2:00 this shift/);
+    expect(bench('Hal')).toHaveAccessibleName(/0 min · rest 2:00/);
+  });
+
+  it('a substitution and a swap are single server calls', async () => {
+    renderPage();
+    await userEvent.click(bench('Hal'));
+    await userEvent.click(field('Nolan'));
+    expect(act).toHaveBeenCalledWith({ kind: 'sub', off: 'p1', on: 'p8' }, expect.anything());
+    await userEvent.click(field('Teddy'));
+    await userEvent.click(field('Jack'));
+    expect(act).toHaveBeenCalledWith({ kind: 'swap', a: 'p2', b: 'p3' }, expect.anything());
+    await userEvent.click(screen.getByRole('button', { name: 'Resume' }));
+    expect(act).toHaveBeenCalledWith({ kind: 'start' }, expect.anything());
+    await userEvent.click(screen.getByRole('button', { name: 'Undo last sub' }));
+    expect(act).toHaveBeenCalledWith({ kind: 'undo' }, expect.anything());
+  });
+
+  it('the bench is ordered by fewest minutes, then longest rest', () => {
+    stints = [
+      ...stints,
+      stint({ player_id: 'p8', slot_index: 0, clock_start: 0, clock_end: 60 }), // Hal played a minute
+    ];
+    renderPage();
+    const names = within(screen.getByRole('group', { name: 'Bench' }))
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label'));
+    expect(names[0]).toMatch(/^Bench: Nick/); // 0 min, resting since kickoff
+    expect(names[1]).toMatch(/^Bench: Hal #8, 1 min · rest 1:00/);
+  });
+
+  it('a running clock reads from the timestamp and "Pause" is offered', () => {
+    clock = { ...clock, clockSeconds: 0, runningSince: '2026-11-12T14:58:30Z' };
+    renderPage();
+    expect(screen.getByLabelText('23:30 left, running')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pause' })).toBeInTheDocument();
+  });
+
+  it('parents see the clock and the bench read-only, with their child starred', () => {
+    staff = false;
+    renderPage();
+    expect(screen.getByLabelText('23:00 left, paused')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Resume|Pause|End H1|Undo/ })).not.toBeInTheDocument();
+    expect(field('Nolan')).toBeDisabled();
+    expect(bench('Hal')).toBeDisabled();
+    expect(field('Teddy')).toHaveClass('highlight');
+    expect(screen.queryByText(/Tap a jersey/)).not.toBeInTheDocument();
+  });
+
+  it('full time: FT, no clock controls, a link to finish', () => {
+    clock = { periodIndex: 2, clockSeconds: 0, runningSince: null, periodLengths: [1500, 1500] };
+    renderPage();
+    expect(screen.getByRole('heading', { level: 2, name: 'Full time' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Full time')).toHaveTextContent('FT');
+    expect(screen.getByRole('button', { name: 'Finish on the game page' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /End H/ })).not.toBeInTheDocument();
+  });
+});

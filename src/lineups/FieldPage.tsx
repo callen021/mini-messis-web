@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LoadingScreen, useIsCoach, useIsStaff } from '@/auth/guards';
+import { ClockFieldPage } from '@/clock/ClockFieldPage';
 import { Button, Toolbar } from '@/components/Button';
 import { EditableTitle } from '@/components/EditableTitle';
 import { Footer } from '@/components/List';
@@ -42,7 +43,14 @@ import { toEnginePeriods } from './convert';
 import { JerseyDefs } from './Jersey';
 import { PeriodCard } from './PeriodCard';
 
+/** The Field tab: period cards, or the clock-mode field for teams that track time by the clock (D70). */
 export function FieldPage() {
+  const { team } = useCurrentTeam();
+  if (team.time_mode === 'clock') return <ClockFieldPage />;
+  return <PeriodFieldPage />;
+}
+
+function PeriodFieldPage() {
   const { teamId, team, sport } = useCurrentTeam();
   const S = SPORTS[sport];
   const isStaff = useIsStaff();

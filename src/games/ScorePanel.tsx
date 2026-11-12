@@ -24,6 +24,8 @@ export interface ScorePanelProps {
   events: readonly ScoreEvent[];
   onAdd: (ev: NewScoreEvent) => void;
   onUndo: (ev: ScoreEvent) => void;
+  /** Clock mode (D68): the period comes from the game clock, so the picker is hidden. */
+  lockPeriod?: boolean;
 }
 
 /**
@@ -43,6 +45,7 @@ export function ScorePanel({
   events,
   onAdd,
   onUndo,
+  lockPeriod = false,
 }: ScorePanelProps) {
   const lastOurs = [...events].reverse().find((e) => e.side === 'us');
   const [period, setPeriod] = useState(initialPeriod);
@@ -97,7 +100,7 @@ export function ScorePanel({
 
   return (
     <FormSheet open={open} onClose={onClose} title={title}>
-      <PeriodPicker S={S} count={periodCount} value={period} onChange={setPeriod} />
+      {!lockPeriod && <PeriodPicker S={S} count={periodCount} value={period} onChange={setPeriod} />}
       <Field label={scorerLabel}>
         <Select value={scorer} onChange={(e) => setScorer(e.target.value)}>
           <option value="">Unknown / not recorded</option>

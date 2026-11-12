@@ -24,6 +24,8 @@ export interface PlayerPickerSheetProps {
   periodNoun: string;
   /** '' clears the slot. */
   onPick: (playerId: string) => void;
+  /** Clock mode (D70): the hint next to a bench name ("12 min · rest 3:20") instead of the period count. */
+  labelFor?: (p: Player) => string;
 }
 
 const label = (p: Player, counts: Record<string, number>, noun: string) =>
@@ -41,6 +43,7 @@ export function PlayerPickerSheet({
   counts,
   periodNoun,
   onPick,
+  labelFor,
 }: PlayerPickerSheetProps) {
   const pick = (id: string) => {
     onPick(id);
@@ -55,7 +58,7 @@ export function PlayerPickerSheet({
         />
         {bench.map((p) => (
           <SheetButton key={p.id} onClick={() => pick(p.id)}>
-            {label(p, counts, periodNoun)}
+            {labelFor ? labelFor(p) : label(p, counts, periodNoun)}
           </SheetButton>
         ))}
       </SheetGroup>
