@@ -141,7 +141,14 @@ function useCoalescedSetup(teamId: string) {
     });
   }, []);
 
-  useEffect(() => flush, [flush]); // leaving the page sends what is still queued
+  // leaving the page (in-app navigation, a reload or the app being put away) sends what is queued
+  useEffect(() => {
+    window.addEventListener('pagehide', flush);
+    return () => {
+      window.removeEventListener('pagehide', flush);
+      flush();
+    };
+  }, [flush]);
 
   const patch = (p: Partial<Setup>, msg?: string) => {
     const undo = patchTeamCaches(qc, teamId, p);
