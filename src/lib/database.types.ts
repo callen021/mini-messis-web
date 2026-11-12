@@ -67,14 +67,14 @@ isOneToOne: false
                   ]
                 },"clock_ops": {
                   Row: {
-                    "created_at": string,"created_by": string | null,"deleted_stints": NonNullable<Json>,"game_id": string,"id": string,"kind": string,"period_index": number,"seq": number,"undone_at": string | null
+                    "bench_before": (string)[] | null,"created_at": string,"created_by": string | null,"deleted_stints": NonNullable<Json>,"game_id": string,"id": string,"kind": string,"period_index": number,"seq": number,"undone_at": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"created_by"?: string | null,"deleted_stints"?: NonNullable<Json>,"game_id": string,"id"?: string,"kind": string,"period_index": number,"seq"?: never,"undone_at"?: string | null
+                    "bench_before"?: (string)[] | null,"created_at"?: string,"created_by"?: string | null,"deleted_stints"?: NonNullable<Json>,"game_id": string,"id"?: string,"kind": string,"period_index": number,"seq"?: never,"undone_at"?: string | null
                   }
                   Update: {
-                    "created_at"?: string,"created_by"?: string | null,"deleted_stints"?: NonNullable<Json>,"game_id"?: string,"id"?: string,"kind"?: string,"period_index"?: number,"seq"?: never,"undone_at"?: string | null
+                    "bench_before"?: (string)[] | null,"created_at"?: string,"created_by"?: string | null,"deleted_stints"?: NonNullable<Json>,"game_id"?: string,"id"?: string,"kind"?: string,"period_index"?: number,"seq"?: never,"undone_at"?: string | null
                   }
                   Relationships: [
                     {
@@ -217,14 +217,14 @@ isOneToOne: false
                   ]
                 },"lineups": {
                   Row: {
-                    "created_at": string,"formation_name": string,"game_id": string | null,"id": string,"period_index": number,"team_id": string,"updated_at": string
+                    "bench_order": (string)[],"created_at": string,"formation_name": string,"game_id": string | null,"id": string,"period_index": number,"team_id": string,"updated_at": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "created_at"?: string,"formation_name": string,"game_id"?: string | null,"id"?: string,"period_index": number,"team_id": string,"updated_at"?: string
+                    "bench_order"?: (string)[],"created_at"?: string,"formation_name": string,"game_id"?: string | null,"id"?: string,"period_index": number,"team_id": string,"updated_at"?: string
                   }
                   Update: {
-                    "created_at"?: string,"formation_name"?: string,"game_id"?: string | null,"id"?: string,"period_index"?: number,"team_id"?: string,"updated_at"?: string
+                    "bench_order"?: (string)[],"created_at"?: string,"formation_name"?: string,"game_id"?: string | null,"id"?: string,"period_index"?: number,"team_id"?: string,"updated_at"?: string
                   }
                   Relationships: [
                     {
@@ -660,6 +660,12 @@ isOneToOne: false
 "archive_player":
 { Args: { "p_player_id": string }; Returns: undefined
                            },
+"bench_apply":
+{ Args: { "p_append": (string)[],"p_lineup_id": string,"p_remove": (string)[] }; Returns: undefined
+                           },
+"bench_normalize":
+{ Args: { "p_lineup_id": string }; Returns: undefined
+                           },
 "board_feed":
 { Args: { "p_team_id": string }; Returns: {
               "author_id": string,"author_name": string,"body": string,"comments": Json,"created_at": string,"edited_at": string,"id": string,"is_announcement": boolean
@@ -682,6 +688,9 @@ isOneToOne: false
                            },
 "clear_player_from_plans":
 { Args: { "p_player_id": string }; Returns: undefined
+                           },
+"clock_bench_swap":
+{ Args: { "p_a": string,"p_b": string,"p_game_id": string }; Returns: undefined
                            },
 "clock_check_bench":
 { Args: { "p_game": Omit<Database["public"]['Tables']["games"]['Row'], Database["public"]['Tables']["games"]['ComputedFields']>,"p_player": string }; Returns: undefined
@@ -846,6 +855,9 @@ isOneToOne: false
                            },
 "is_staff":
 { Args: { "p_team_id": string }; Returns: boolean
+                           },
+"lineup_of":
+{ Args: { "p_game_id": string,"p_period": number }; Returns: string
                            },
 "list_team_members":
 { Args: { "p_team_id": string }; Returns: {
