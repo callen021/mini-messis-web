@@ -289,6 +289,8 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
       renderPage();
       await userEvent.click(screen.getByRole('button', { name: /Add a goal/ }));
       const dialog = await screen.findByRole('dialog', { name: 'Goal · vs Tigers' });
+      // the trap's one initial focus (an animation frame after open) lands first; then the coach moves on
+      await waitFor(() => expect(dialog.contains(document.activeElement)).toBe(true));
       const assist = within(within(dialog).getByRole('radiogroup', { name: 'Assist' })).getByRole('radio', {
         name: '#3 Jack',
       });
