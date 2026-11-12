@@ -806,6 +806,9 @@ isOneToOne: false
 "default_skill_tests":
 { Args: { "p_sport": Database["public"]['Enums']["sport"] }; Returns: Json
                            },
+"duplicate_team":
+{ Args: { "p_name": string,"p_owner"?: string,"p_source": string }; Returns: string
+                           },
 "email_confirmed":
 { Args: { "p_user_id": string }; Returns: boolean
                            },
