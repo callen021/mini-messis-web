@@ -1011,3 +1011,48 @@ stats start empty. Stats → Season gets a season picker (results and the player
 a game of a past season opens read-only. The admin console lists seasons and can make an earlier
 one current again (`set_current_season`) for a season started by mistake. pgTAP 19 proves each
 rule and that past-season games and stats are byte-for-byte unchanged.
+
+## 2026-11-12 — Live-game goal sheet and single periods
+
+### D95. The ticking clock never touches an open sheet
+
+Opening the Scorer or Assist select during a live clock game showed the native menu, which closed
+a second later with focus back on Scorer. Cause, confirmed by a failing test: the clock page
+re-rendered every second and handed the goal sheet a new `onClose` closure; `useFocusTrap` had
+that handler in its effect dependencies, so every tick re-ran the trap, restored focus to the
+previously focused element and set initial focus again on the first control. The trap now reads
+its escape handler through a ref and sets initial focus once per open. The page itself no longer
+ticks: the clock display, the per-shift and bench times (computed inside `ClockCard`), the stamp in
+the goal sheet (`ClockStamp`) and the period-over alert (`PeriodOverAlert`) each tick on their own,
+so an open sheet's subtree is never re-rendered or remounted by the clock and its controls keep
+their identity and values. Audit of everything that can be open during a live clock game: the
+edit-goal sheet and the undo confirmation sit on pages that do not tick (the game page does not
+poll the clock); the stint-corrections sheet opens only on finished games; the skill-result and
+board sheets live on pages without a clock; all of them go through the same trap. Tests: a trap
+re-render keeps focus; the clock page ticks three times with an Assist control focused and the
+sheet node, the control node and the focus are unchanged; a Playwright flow at 375px keeps the
+sheet open for three seconds with a scorer focused.
+
+### D96. Player buttons instead of selects in the goal sheet
+
+Scorer and Assist are rows of tappable buttons, number and first name on each: the players on the
+field right now first (field order), the bench behind "Show bench players" for the rare goal
+credited to someone who just came off, then Unknown / No assist. The selected button turns green,
+the scorer is greyed out in the assist row (a kid cannot assist their own goal), picking a player
+as scorer clears them as assist, and the last scorer is preselected as before. In clock mode the
+sheet shows the period and clock time the goal is stamped with. The edit-goal sheet uses the same
+buttons (everyone in one group, removed players kept selectable). A goal with an assist is three
+taps one-handed at 375px and nothing opens that the clock could close.
+
+### D97. A single period
+
+Team setup allows one period in both modes for every sport where it makes sense (soccer,
+basketball, lacrosse and football; baseball keeps its innings). `periodName(1)` is "Game": the
+Field shows a single card called Game, the Rotation column is headed Game, and no copy says
+"1 half" or "1 quarter" (`periodCountText` says "one period", `periodsNoun` "period", the totals
+column is "Played"). In clock mode with one period: one continuous clock with Start and Pause, no
+End control, a Finish game button that goes to the game page, the optional period length is the
+whole game, score events show the minute only with no period label, and Suggest starters is not
+offered. Existing teams keep their count. pgTAP 20 plays a full one-period clock game with a
+pause, a goal and a sub, and a one-period game in period mode; a flow switches a team to one
+period and back.
