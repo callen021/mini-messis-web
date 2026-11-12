@@ -1,6 +1,7 @@
 import { useIsPlatformAdmin } from '@/admin/useIsPlatformAdmin';
 import { useAuth } from '@/auth/AuthProvider';
 import { STAFF_ROLES, RoleGate } from '@/auth/guards';
+import { Badge } from '@/components/Badge';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
@@ -11,7 +12,7 @@ import { useSkillTests } from '@/skills/api';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
 import { DataSection } from './DataSection';
-import { signOut } from '@/teams/api';
+import { signOut, unconfirmedLinkCount, useTeamMembers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useSetParentStats } from '@/teams/teamMutations';
 
@@ -28,6 +29,8 @@ export function SettingsPage() {
   const setFieldView = useUIStore((s) => s.setFieldView);
   const S = SPORTS[team.sport];
   const tests = useSkillTests(team.id);
+  const members = useTeamMembers(STAFF_ROLES.includes(role) ? team.id : undefined);
+  const unconfirmed = unconfirmedLinkCount(members.data ?? []);
   const shownTests = (tests.data ?? []).filter((t) => t.is_active).length;
   const hiddenTests = (tests.data ?? []).length - shownTests;
   const skillsSummary = tests.data
@@ -55,9 +58,21 @@ export function SettingsPage() {
           <Row
             to="/settings/members"
             label="Members & join code"
-            detail={role === 'coach' ? 'Approve requests, roles, rotate the code' : 'See who is on the team'}
+            detail={
+              unconfirmed
+                ? `${unconfirmed} child link${unconfirmed === 1 ? '' : 's'} to confirm`
+                : role === 'coach'
+                  ? 'New parents, roles, the invite link'
+                  : 'New parents and their children'
+            }
             chevron
-          />
+          >
+            {unconfirmed > 0 && (
+              <Badge status="upcoming" aria-label={`${unconfirmed} unconfirmed`}>
+                {unconfirmed}
+              </Badge>
+            )}
+          </Row>
         </RoleGate>
         <RoleGate allow={STAFF_ROLES}>
           <Row

@@ -2540,3 +2540,14 @@ a.prow.dir .pname {
   background: var(--panel);
   pointer-events: none;
 }
+
+/* Members → New this week (D92): a child link badge with its one-tap actions */
+.newmember .linkrow {
+  gap: 6px 10px;
+}
+.childlink {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}

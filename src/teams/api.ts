@@ -270,8 +270,25 @@ export interface TeamMemberRow {
   is_owner: boolean;
   created_at: string;
   approved_at: string | null;
+  /** When an active member got in (approval or a direct join); null while pending (D92). */
+  joined_at: string | null;
   children: ChildLink[];
   unlisted: string[];
+}
+
+/** Members who joined in the last seven days, newest first (D92). */
+export function newThisWeek(rows: readonly TeamMemberRow[], now = Date.now()): TeamMemberRow[] {
+  const cutoff = now - 7 * 24 * 60 * 60 * 1000;
+  return rows
+    .filter((m) => m.status === 'active' && !!m.joined_at && Date.parse(m.joined_at) >= cutoff)
+    .sort((a, b) => Date.parse(b.joined_at ?? '') - Date.parse(a.joined_at ?? ''));
+}
+
+/** Unconfirmed child links across the active members, for the badge on the Members row (D92). */
+export function unconfirmedLinkCount(rows: readonly TeamMemberRow[]): number {
+  return rows
+    .filter((m) => m.status === 'active')
+    .reduce((n, m) => n + m.children.filter((c) => c.status === 'pending').length, 0);
 }
 
 export function useTeamMembers(teamId: string | undefined) {
@@ -343,6 +360,17 @@ export function useSetMemberRole(teamId: string) {
     ),
   );
 }
+/** Staff replace a member's set of children on the team; every link in the set is confirmed (D92). */
+export function useSetMemberChildren(teamId: string) {
+  return useTeamMutation(teamId, async (a: { memberId: string; playerIds: string[] }) =>
+    unwrap(
+      await supabase
+        .rpc('set_member_children', { p_member_id: a.memberId, p_player_ids: a.playerIds })
+        .then((r) => ({ data: true, error: r.error })),
+    ),
+  );
+}
+
 export function useApproveGuardianLink(teamId: string) {
   return useTeamMutation(teamId, async (a: { linkId: string; approve: boolean }) =>
     unwrap(

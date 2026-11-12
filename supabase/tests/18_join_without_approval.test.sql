@@ -1,7 +1,7 @@
--- Joining without approval and unconfirmed links (pgTAP, D91).
+-- Joining without approval, unconfirmed links and staff link management (pgTAP, D91, D92).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(36);
+select plan(47);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -125,6 +125,27 @@ delete from public.player_guardians where user_id = 'fc000000-0000-0000-0000-000
 select is((select count(*)::int from public.player_guardians where user_id = 'fc000000-0000-0000-0000-000000000004'), 1, 'nor remove their link (RLS no-op)');
 select is((select (public.request_join((select v from txt where k = 'code'), 'parent', array['ec000000-0000-0000-0000-00000000000b'::uuid])) ->> 'status'), 'active', 'opening the link again as a member changes nothing');
 select is((select count(*)::int from public.player_guardians where user_id = 'fc000000-0000-0000-0000-000000000004'), 1, 'no new link from a second submit');
+select pg_temp.logout();
+
+-- ---------- P2 joins with two children; staff see them as new this week ----------
+select pg_temp.login('fc000000-0000-0000-0000-000000000005');
+select public.request_join((select v from txt where k = 'code'), 'parent', array['ec000000-0000-0000-0000-00000000000a'::uuid, 'ec000000-0000-0000-0000-00000000000b'::uuid], 'Unlisted Kid');
+select pg_temp.logout();
+select pg_temp.login('fc000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from public.list_team_members((select v from ctx where k = 'team')) where joined_at >= now() - interval '7 days' and role = 'parent'), 2, 'the assistant sees two parents who joined this week');
+select is((select string_agg(c ->> 'first_name' || ':' || (c ->> 'status'), ',' order by c ->> 'first_name') from public.list_team_members((select v from ctx where k = 'team')) m, jsonb_array_elements(m.children) c where m.user_id = 'fc000000-0000-0000-0000-000000000005'), 'Ann:pending,Bo:pending', 'with each child link and whether it is confirmed');
+select is((select unlisted ->> 0 from public.list_team_members((select v from ctx where k = 'team')) where user_id = 'fc000000-0000-0000-0000-000000000005'), 'Unlisted Kid', 'and the unlisted child name');
+select is((select string_agg(c ->> 'status', ',') from public.list_team_members((select v from ctx where k = 'team')) m, jsonb_array_elements(m.children) c where m.user_id = 'fc000000-0000-0000-0000-000000000007'), 'approved', 'a parent approved before stays confirmed');
+-- staff confirm one link (one tap), change the set for P2, and the parent gets the private data
+select lives_ok($$select public.approve_guardian_link((select id from public.player_guardians where user_id = 'fc000000-0000-0000-0000-000000000004'))$$, 'the assistant confirms P1''s link to Ann');
+select is((select count(*)::int from public.player_contacts where player_id = 'ec000000-0000-0000-0000-00000000000a' and user_id = 'fc000000-0000-0000-0000-000000000004'), 1, 'confirming keeps their one contact row (no duplicate)');
+select lives_ok($$select public.set_member_children((select id from public.team_members where user_id = 'fc000000-0000-0000-0000-000000000005'), array['ec000000-0000-0000-0000-00000000000b'::uuid])$$, 'the assistant changes P2''s links to Bo only');
+select is((select string_agg(player_id::text || '/' || status::text, ',') from public.player_guardians where user_id = 'fc000000-0000-0000-0000-000000000005'), 'ec000000-0000-0000-0000-00000000000b/approved', 'P2 is linked to Bo, confirmed, and no longer to Ann');
+select is((select count(*)::int from public.player_contacts where player_id = 'ec000000-0000-0000-0000-00000000000b' and user_id = 'fc000000-0000-0000-0000-000000000005'), 1, 'a staff-made link makes the parent a contact on the child (D57)');
+select pg_temp.logout();
+select pg_temp.login('fc000000-0000-0000-0000-000000000004');
+select is((select shirt_size::text from public.player_details where player_id = 'ec000000-0000-0000-0000-00000000000a'), 'YM', 'once confirmed, P1 reads the details');
+select is((select count(*)::int from public.skill_results where player_id = 'ec000000-0000-0000-0000-00000000000a'), 1, 'and the skill results');
 select pg_temp.logout();
 
 -- ---------- with approval on, the old flow applies unchanged ----------

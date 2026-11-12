@@ -31,7 +31,7 @@ test.describe('coach and parent flows', () => {
   let coach: Page;
   let parent: Page;
   /** A parent who joins with approval off (D91). */
-  let dana: Page;
+  let danaPage: Page;
   const run = Date.now().toString(36);
   const parentEmail = `parent-${run}@example.com`;
   const teamName = `Strikers ${run}`;
@@ -333,7 +333,8 @@ test.describe('coach and parent flows', () => {
     const approve = coach.getByRole('switch', { name: 'Approve new parents before they join' });
     await approve.click();
     await expect(approve).toHaveAttribute('aria-checked', 'false');
-    [danaCtx, dana] = await fresh(coach.context().browser() as Browser);
+    [danaCtx, danaPage] = await fresh(coach.context().browser() as Browser);
+    const dana = danaPage;
     await dana.goto(`/join/${joinCode}`);
     await expect(dana.getByText(/on the team right away/)).toBeVisible();
     await dana.getByLabel('Your name').fill('Direct Dana');
@@ -355,6 +356,33 @@ test.describe('coach and parent flows', () => {
     await dana.goto(`/join/${joinCode}`);
     await expect(dana.getByText('You’re already on this team')).toBeVisible();
     await dana.goto('/home');
+  });
+
+  test('Members shows who joined this week; one tap confirms the link and the parent sees the details live (D92)', async () => {
+    // the Settings row carries the count of unconfirmed links
+    await coach.goto('/settings');
+    await expect(coach.getByRole('link', { name: /Members & join code/ })).toContainText(
+      '1 child link to confirm',
+    );
+    await coach.goto('/settings/members');
+    await expect(coach.getByText('New this week')).toBeVisible();
+    const dana = coach.locator('.newmember').filter({ hasText: 'Direct Dana' });
+    await expect(dana).toContainText('joined today');
+    await expect(dana).toContainText('Ben · unconfirmed');
+    // Parent Pat joined this week too, confirmed by approval
+    await expect(coach.locator('.newmember').filter({ hasText: 'Parent Pat' })).toContainText(
+      'Ava · confirmed',
+    );
+    await dana.getByRole('button', { name: 'Confirm Ben' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Link to Ben confirmed' })).toBeVisible();
+    await expect(dana).toContainText('Ben · confirmed');
+    // Realtime on the parent's own link: the line goes, the details come
+    await expect(danaPage.getByText('Your coach will confirm your link to Ben')).toHaveCount(0, {
+      timeout: 15_000,
+    });
+    await expect(danaPage.getByLabel('Shirt size')).toBeVisible();
+    await coach.goto('/settings');
+    await expect(coach.getByRole('link', { name: /Members & join code/ })).not.toContainText('to confirm');
   });
 
   test('a scrolled player page at 375px keeps a solid strip behind the status bar (D63)', async () => {

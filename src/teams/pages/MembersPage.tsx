@@ -12,8 +12,10 @@ import { Switch } from '@/components/Switch';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
 import {
+  type ChildLink,
   type MemberRole,
   type TeamMemberRow,
+  newThisWeek,
   useApproveGuardianLink,
   useApproveMember,
   useDeclineMember,
@@ -21,6 +23,7 @@ import {
   useRemoveMember,
   useRotateJoinCode,
   useSetJoinEnabled,
+  useSetMemberChildren,
   useSetMemberRole,
   useTeamMembers,
   useTransferOwnership,
@@ -57,13 +60,16 @@ function MembersAdmin() {
   const remove = useRemoveMember(teamId);
   const setRole = useSetMemberRole(teamId);
   const approveLink = useApproveGuardianLink(teamId);
+  const setChildren = useSetMemberChildren(teamId);
   const transfer = useTransferOwnership(teamId);
+  const [changing, setChanging] = useState<TeamMemberRow | null>(null);
   const setRequireApproval = useSetRequireApproval(teamId);
   const [approving, setApproving] = useState<TeamMemberRow | null>(null);
 
   const rows = members.data ?? [];
   const pending = rows.filter((m) => m.status === 'pending');
   const active = rows.filter((m) => m.status === 'active');
+  const recent = newThisWeek(rows);
 
   const enabled = team.join_enabled;
   const link = inviteUrl(team.join_code);
@@ -163,18 +169,69 @@ function MembersAdmin() {
     }
   };
 
+  /** One tap each (D92): confirm, or remove, a child link; "Change" opens the picker. */
+  const confirmLink = async (c: ChildLink) => {
+    try {
+      await approveLink.mutateAsync({ linkId: c.link_id, approve: true });
+      toast(`Link to ${c.first_name} confirmed`);
+    } catch (e) {
+      toast(errorMessage(e));
+    }
+  };
+  const removeLink = async (m: TeamMemberRow, c: ChildLink) => {
+    const ok = await sheet({
+      title: `Remove the link between ${m.display_name} and ${c.first_name}?`,
+      actions: [{ label: 'Remove link', value: true, destructive: true }],
+    });
+    if (!ok) return;
+    try {
+      await approveLink.mutateAsync({ linkId: c.link_id, approve: false });
+      toast('Link removed');
+    } catch (e) {
+      toast(errorMessage(e));
+    }
+  };
+  const removeMember = async (m: TeamMemberRow) => {
+    const ok = await sheet({
+      title: `Remove ${m.display_name}?`,
+      message: 'They lose access right away. Past games and stats are not affected.',
+      actions: [{ label: 'Remove', value: true, destructive: true }],
+    });
+    if (!ok) return;
+    try {
+      await remove.mutateAsync(m.member_id);
+      toast('Member removed');
+    } catch (e) {
+      toast(errorMessage(e));
+    }
+  };
+  const changeRole = async (m: TeamMemberRow) => {
+    const actions: { label: string; value: MemberRole }[] = [];
+    if (m.role !== 'parent') actions.push({ label: 'Make parent (read-only)', value: 'parent' });
+    if (m.role !== 'assistant') actions.push({ label: 'Make assistant coach', value: 'assistant' });
+    if (m.role !== 'coach') actions.push({ label: 'Make coach', value: 'coach' });
+    const choice = await sheet<MemberRole>({ title: m.display_name, message: 'Change role', actions });
+    if (!choice) return;
+    try {
+      await setRole.mutateAsync({ memberId: m.member_id, role: choice });
+      toast(`${m.display_name} is now ${ROLE_LABEL[choice].toLowerCase()}`);
+    } catch (e) {
+      toast(errorMessage(e));
+    }
+  };
+
   const childLinkAction = async (m: TeamMemberRow, linkId: string, name: string) => {
     const choice = await sheet<'approve' | 'decline'>({
       title: `Link ${m.display_name} to ${name}?`,
       actions: [
-        { label: 'Approve link', value: 'approve' },
-        { label: 'Decline link', value: 'decline', destructive: true },
+        { label: 'Confirm link', value: 'approve' },
+        { label: 'Remove link', value: 'decline', destructive: true },
       ],
     });
     if (!choice) return;
     try {
       await approveLink.mutateAsync({ linkId, approve: choice === 'approve' });
-      toast(choice === 'approve' ? 'Link approved' : 'Link declined');
+      toast(choice === 'approve' ? 'Link confirmed' : 'Link removed');
     } catch (e) {
       toast(errorMessage(e));
     }
@@ -287,6 +344,63 @@ function MembersAdmin() {
         </>
       )}
 
+      {recent.length > 0 && (
+        <>
+          <Section>New this week</Section>
+          <Group>
+            {recent.map((m) => (
+              <div
+                key={m.member_id}
+                className="row newmember"
+                style={{ alignItems: 'flex-start', flexWrap: 'wrap' }}
+              >
+                <span className="lbl">
+                  {m.display_name}
+                  <small>
+                    {ROLE_LABEL[m.role]} · joined {m.joined_at ? fmtJoined(m.joined_at) : ''}
+                    {m.children.length === 0 && ' · no child picked'}
+                    {m.unlisted.length > 0 && ` · not on roster: ${m.unlisted.join(', ')}`}
+                  </small>
+                </span>
+                <div className="toolbar linkrow" style={{ margin: 0, flexBasis: '100%' }}>
+                  {m.children.map((c) => (
+                    <span key={c.link_id} className="childlink">
+                      <Badge status={c.status === 'approved' ? 'live' : 'upcoming'}>
+                        {c.first_name} · {c.status === 'approved' ? 'confirmed' : 'unconfirmed'}
+                      </Badge>
+                      {c.status === 'pending' && (
+                        <Button size="sm" onClick={() => void confirmLink(c)}>
+                          Confirm {c.first_name}
+                        </Button>
+                      )}
+                      <Button size="sm" variant="gray" onClick={() => void removeLink(m, c)}>
+                        Remove link
+                      </Button>
+                    </span>
+                  ))}
+                  <Button size="sm" variant="gray" onClick={() => setChanging(m)}>
+                    {m.children.length ? 'Change child' : 'Pick child'}
+                  </Button>
+                  {isCoach && !m.is_owner && (
+                    <Button size="sm" variant="gray" onClick={() => void changeRole(m)}>
+                      Change role
+                    </Button>
+                  )}
+                  {isCoach && !m.is_owner && (
+                    <Button size="sm" variant="gray" onClick={() => void removeMember(m)}>
+                      Remove
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </Group>
+          <Footer>
+            Confirming a link shows the parent their child’s details and makes them a contact on the card.
+          </Footer>
+        </>
+      )}
+
       <Section>Members</Section>
       <Group>
         {active.map((m) => {
@@ -316,8 +430,8 @@ function MembersAdmin() {
               {pendingLinks.map((c) => (
                 <Row
                   key={c.link_id}
-                  label={`Link request: ${c.first_name}`}
-                  detail="Tap to approve or decline"
+                  label={`Unconfirmed link: ${c.first_name}`}
+                  detail="Tap to confirm or remove"
                   link
                   chevron
                   onClick={() => childLinkAction(m, c.link_id, c.first_name)}
@@ -333,6 +447,22 @@ function MembersAdmin() {
         everything but change nothing. A team always keeps at least one coach.
       </Footer>
 
+      {changing && (
+        <ChildrenSheet
+          member={changing}
+          players={players.data ?? []}
+          onClose={() => setChanging(null)}
+          onSave={async (playerIds) => {
+            try {
+              await setChildren.mutateAsync({ memberId: changing.member_id, playerIds });
+              toast(playerIds.length ? 'Child links saved and confirmed' : 'Child links removed');
+              setChanging(null);
+            } catch (e) {
+              toast(errorMessage(e));
+            }
+          }}
+        />
+      )}
       {approving && (
         <ApproveSheet
           member={approving}
@@ -432,6 +562,74 @@ function ApproveSheet({
         }}
       >
         {busy ? 'Approving…' : `Approve as ${ROLE_LABEL[role].toLowerCase()}`}
+      </Button>
+    </FormSheet>
+  );
+}
+
+/** "today", "yesterday", "3 days ago" for the New-this-week line. */
+function fmtJoined(iso: string, now = Date.now()): string {
+  const days = Math.floor((now - Date.parse(iso)) / 86_400_000);
+  if (days <= 0) return 'today';
+  if (days === 1) return 'yesterday';
+  return `${days} days ago`;
+}
+
+/** Staff pick which players a member is the parent of; every link saved here is confirmed (D92). */
+function ChildrenSheet({
+  member,
+  players,
+  onClose,
+  onSave,
+}: {
+  member: TeamMemberRow;
+  players: { id: string; first_name: string; jersey_number: string | null }[];
+  onClose: () => void;
+  onSave: (playerIds: string[]) => Promise<void>;
+}) {
+  const [kids, setKids] = useState<Set<string>>(new Set(member.children.map((c) => c.player_id)));
+  const [busy, setBusy] = useState(false);
+  const toggle = (id: string, on: boolean) =>
+    setKids((prev) => {
+      const next = new Set(prev);
+      if (on) next.add(id);
+      else next.delete(id);
+      return next;
+    });
+  return (
+    <FormSheet open onClose={onClose} title={`${member.display_name}’s children`}>
+      <FieldGroup label="Their children">
+        <div className="checklist">
+          {players.map((p) => (
+            <label key={p.id} className="checkrow">
+              <span>
+                {p.first_name}
+                {p.jersey_number ? ` · #${p.jersey_number}` : ''}
+              </span>
+              <Switch
+                label={`${p.first_name} is their child`}
+                size="sm"
+                checked={kids.has(p.id)}
+                onChange={(on) => toggle(p.id, on)}
+              />
+            </label>
+          ))}
+          {member.unlisted.length > 0 && (
+            <p className="hint">
+              Asked for: {member.unlisted.join(', ')} — add them to the roster first if needed.
+            </p>
+          )}
+        </div>
+      </FieldGroup>
+      <Button
+        disabled={busy}
+        onClick={async () => {
+          setBusy(true);
+          await onSave([...kids]);
+          setBusy(false);
+        }}
+      >
+        {busy ? 'Saving…' : 'Save and confirm'}
       </Button>
     </FormSheet>
   );
