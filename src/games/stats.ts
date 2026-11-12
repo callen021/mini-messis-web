@@ -75,6 +75,8 @@ export interface PlayerStatRow {
   rbi: number;
   walks: number;
   strikeouts: number;
+  /** Clock mode (D69): seconds on the field, derived from stints. */
+  seconds_played: number;
 }
 
 /** Numeric value of a column (AVG is derived). */

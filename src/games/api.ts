@@ -266,6 +266,8 @@ export interface NewScoreEvent {
   points: number;
   scorer_player_id: string | null;
   assist_player_id: string | null;
+  /** Clock mode (D68): the clock second; the server stamps it during a live clock game when absent. */
+  clock_seconds?: number | null;
 }
 
 /** Keys that show a game's score somewhere else (list, live card, stats). */
@@ -310,6 +312,7 @@ export function useAddScoreEvent(teamId: string, gameId: string) {
         created_at: new Date().toISOString(),
         updated_at: new Date().toISOString(),
         updated_by: null,
+        clock_seconds: ev.clock_seconds ?? null,
       },
     ],
     scoreDependents(teamId, gameId),

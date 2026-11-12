@@ -88,6 +88,7 @@ describe('LineScore', () => {
     created_at: '',
     updated_at: '',
     updated_by: null,
+    clock_seconds: null,
   });
   it('renders one column per inning plus totals', () => {
     render(

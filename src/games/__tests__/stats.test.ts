@@ -35,6 +35,7 @@ const row = (over: Partial<PlayerStatRow>): PlayerStatRow => ({
   rbi: 0,
   walks: 0,
   strikeouts: 0,
+  seconds_played: 0,
   ...over,
 });
 
@@ -106,6 +107,7 @@ describe('line score', () => {
     created_at: '',
     updated_at: '',
     updated_by: null,
+    clock_seconds: null,
   });
   it('sums points per side per period and grows for extra innings', () => {
     const ls = lineScore([ev('us', 0), ev('us', 0), ev('them', 1), ev('us', 6, 2)], 6);

@@ -38,6 +38,7 @@ const ev = (over: Partial<ScoreEvent>): ScoreEvent => ({
   created_at: '',
   updated_at: '',
   updated_by: null,
+  clock_seconds: null,
   ...over,
 });
 
