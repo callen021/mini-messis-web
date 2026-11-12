@@ -1,21 +1,22 @@
 import { cn } from '@/lib/cn';
 import { type ClockState, elapsedAt, formatClock, isRunning, remainingAt } from './clock';
+import { useServerNow } from './useNow';
 
 /**
  * The clock in a card header (D66): "12:05" counting up, or "7:55" left with a period length,
- * red once over. The label says which it is for screen readers and tiny screens.
+ * red once over. The label says which it is for screen readers and tiny screens. It ticks on
+ * its own (D95), so the page and any open sheet around it are not re-rendered every second.
  */
 export function ClockDisplay({
   state,
   periodMinutes,
-  nowMs,
   fullTime,
 }: {
   state: ClockState;
   periodMinutes: number | null;
-  nowMs: number;
   fullTime: boolean;
 }) {
+  const nowMs = useServerNow(!fullTime && isRunning(state));
   if (fullTime) {
     return (
       <span className="gclock done" aria-label="Full time">

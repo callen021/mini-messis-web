@@ -1,4 +1,4 @@
-import { type ReactNode } from 'react';
+import { type ReactNode, useMemo } from 'react';
 import { OpenPill } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { FieldStage } from '@/lineups/FieldStage';
@@ -8,7 +8,9 @@ import { type FieldView } from '@/sports/field';
 import { type Formation, type SportDefinition, type SportKey } from '@/sports/types';
 import { type Player } from '@/teams/api';
 import { type BenchEntry, BenchRow } from './BenchRow';
+import { type ClockState, type Stint, formatClock, formatMinutes, isRunning, playerTimes } from './clock';
 import { type Selection } from './tap';
+import { useServerNow } from './useNow';
 
 export interface ClockCardProps {
   sport: SportKey;
@@ -20,10 +22,13 @@ export interface ClockCardProps {
   forms: readonly Formation[];
   /** Player id per spot ('' = empty). */
   slots: readonly string[];
-  /** Time line per spot while on the field ("4:12"); empty on the template. */
-  slotTimes?: readonly string[];
   players: readonly Player[];
-  bench: readonly BenchEntry[];
+  /** The bench queue, next in first (D79). */
+  bench: readonly Player[];
+  /** A live game: shift times and minutes · rest come from the stints and tick here (D95). */
+  live: boolean;
+  clock: ClockState;
+  stints: readonly Stint[];
   colors: Record<string, string>;
   canEdit: boolean;
   /** The formation select is live only while the lineup may be rewritten (template, or the clock at zero). */
@@ -52,9 +57,11 @@ export function ClockCard({
   formation,
   forms,
   slots,
-  slotTimes,
   players,
   bench,
+  live,
+  clock,
+  stints,
   colors,
   canEdit,
   canChangeFormation,
@@ -70,6 +77,27 @@ export function ClockCard({
   benchEmptyText,
 }: ClockCardProps) {
   const byId = new Map(players.map((p) => [p.id, p]));
+  // the only thing on the page that re-renders every second (D95)
+  const now = useServerNow(live && isRunning(clock));
+  const times = useMemo(() => {
+    if (!live) return null;
+    return playerTimes(stints, clock, now, [...slots.filter(Boolean), ...bench.map((p) => p.id)]);
+  }, [live, stints, clock, now, slots, bench]);
+  const benchEntries: BenchEntry[] = useMemo(
+    () =>
+      bench.map((player) => {
+        const t = times?.get(player.id);
+        return {
+          player,
+          time: t ? `${formatMinutes(t.seconds)} · rest ${formatClock(t.restSeconds)}` : undefined,
+        };
+      }),
+    [bench, times],
+  );
+  const slotTimes = useMemo(
+    () => (times ? slots.map((id) => (id ? formatClock(times.get(id)?.shiftSeconds ?? 0) : '')) : undefined),
+    [times, slots],
+  );
   const openCount = slots.filter((s) => !s).length;
   const benchColor = colors[S.groups[0]?.[0] ?? ''] ?? '#888';
   return (
@@ -134,7 +162,7 @@ export function ClockCard({
       <BenchRow
         S={S}
         color={benchColor}
-        entries={bench}
+        entries={benchEntries}
         canEdit={canEdit}
         selectedId={selected?.kind === 'bench' ? selected.playerId : null}
         flashing={flashing}

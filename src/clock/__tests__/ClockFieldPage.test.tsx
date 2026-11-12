@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { render, screen, within } from '@testing-library/react';
+import { act as reactAct, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,6 +8,7 @@ import { ToastProvider } from '@/components/Toast';
 import type * as Guards from '@/auth/guards';
 import type * as LineupsApi from '@/lineups/api';
 import type * as TeamsApi from '@/teams/api';
+import type * as UseNow from '../useNow';
 import { type StoredPeriod } from '@/lineups/convert';
 import { SPORTS, formationByName } from '@/sports/definitions';
 import { type Player, type Team } from '@/teams/api';
@@ -66,7 +67,11 @@ vi.mock('../api', () => ({
   useSeasonMinutes: () => ({ data: seasonMinutes, isPending: false }),
 }));
 vi.mock('../template', () => ({ useSaveStarters: () => ({ mutate: saveStarters, isPending: false }) }));
-vi.mock('../useNow', () => ({ useServerNow: () => Date.parse('2026-11-12T15:00:00Z') }));
+const FIXED_NOW = Date.parse('2026-11-12T15:00:00Z');
+let useNowImpl: (active: boolean, stepMs?: number) => number = () => FIXED_NOW;
+vi.mock('../useNow', () => ({
+  useServerNow: (active: boolean, stepMs?: number) => useNowImpl(active, stepMs),
+}));
 vi.mock('../useWakeLock', () => ({ useWakeLock: () => undefined }));
 
 const mk = (id: string, first_name: string, n: string, is_available = true): Player => ({
@@ -269,6 +274,34 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     stints = STARTERS.map((id, i) =>
       stint({ player_id: id, slot_index: i, position_code: f33.positions[i]?.code ?? '' }),
     );
+  });
+
+  it('a ticking clock never moves focus out of the open goal sheet, nor remounts it (D95)', async () => {
+    const real = await vi.importActual<typeof UseNow>('../useNow');
+    useNowImpl = real.useServerNow;
+    try {
+      clock = {
+        periodIndex: 0,
+        clockSeconds: 120,
+        runningSince: new Date().toISOString(),
+        periodLengths: [],
+      };
+      renderPage();
+      await userEvent.click(screen.getByRole('button', { name: /Add a goal/ }));
+      const dialog = await screen.findByRole('dialog', { name: 'Goal · vs Tigers' });
+      const assist = within(dialog).getByRole('combobox', { name: 'Assist' });
+      assist.focus();
+      expect(assist).toHaveFocus();
+      // three clock ticks while the sheet is open
+      await reactAct(async () => {
+        await new Promise((r) => setTimeout(r, 1300));
+      });
+      expect(screen.getByRole('dialog', { name: 'Goal · vs Tigers' })).toBe(dialog);
+      expect(within(dialog).getByRole('combobox', { name: 'Assist' })).toBe(assist);
+      expect(assist).toHaveFocus();
+    } finally {
+      useNowImpl = () => FIXED_NOW;
+    }
   });
 
   it('shows the period, the clock, each shift and the bench with minutes and rest', () => {

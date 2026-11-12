@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LoadingScreen, useIsCoach, useIsStaff } from '@/auth/guards';
 import { Button, Toolbar } from '@/components/Button';
@@ -11,7 +11,6 @@ import { makeNameLookup } from '@/games/names';
 import { NewGameSheet } from '@/games/NewGameSheet';
 import { ScorePanel } from '@/games/ScorePanel';
 import { describeEvent, scoreNoun as scoreNounFor } from '@/games/scoring';
-import { hapticTick } from '@/lib/haptics';
 import { errorMessage } from '@/lib/supabase';
 import { useUIStore } from '@/lib/ui-store';
 import { JerseyDefs } from '@/lineups/Jersey';
@@ -20,30 +19,27 @@ import { toEnginePeriods } from '@/lineups/convert';
 import { SPORTS, periodPlural, shortPeriod } from '@/sports/definitions';
 import { assignSlot, clearAll, fixPeriods } from '@/sports/lineup';
 import { type Period } from '@/sports/types';
-import { usePlayers } from '@/teams/api';
+import { type Player, usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useRenameTeam } from '@/teams/teamMutations';
 import { useClockAction, useGameClock, useSeasonMinutes, useServerTimeSync, useStints } from './api';
 import { fillByTime, rankFromStints, suggestStarters } from './autofill';
-import { type BenchEntry } from './BenchRow';
 import { benchAfterEdit, benchQueue, benchSwap } from './bench';
 import {
   PAUSED_CLOCK,
   elapsedAt,
   formatClock,
-  formatMinutes,
   isFullTime,
   isRunning,
   onFieldBySlot,
-  playerTimes,
-  remainingAt,
   stintSeconds,
 } from './clock';
 import { ClockCard } from './ClockCard';
 import { ClockDisplay } from './ClockDisplay';
+import { PeriodOverAlert } from './PeriodOverAlert';
 import { type Selection, type TapOutcome, resolveTap, selectionHint } from './tap';
 import { useFlash } from './useFlash';
-import { useServerNow } from './useNow';
+import { serverNow } from './serverTime';
 import { useSaveStarters } from './template';
 import { useWakeLock } from './useWakeLock';
 
@@ -86,7 +82,8 @@ export function ClockFieldPage() {
   const clock = clockQ.data ?? PAUSED_CLOCK;
   const running = !!live && isRunning(clock);
   useServerTimeSync(!!live);
-  const now = useServerNow(running);
+  // the page never ticks (D95): the clock, the shift times and the period alert tick on their own
+  // inside leaf components, so an open sheet is never re-rendered or remounted by the clock
   useWakeLock(!!live && isStaff);
 
   const allPlayers = useMemo(() => players.data ?? [], [players.data]);
@@ -113,53 +110,19 @@ export function ClockFieldPage() {
     return formation.positions.map((_, i) => on.get(i)?.player_id ?? '');
   }, [live, formation, shown, stints, periodIndex]);
 
-  const times = useMemo(
-    () =>
-      live
-        ? playerTimes(
-            stints,
-            clock,
-            now,
-            activePlayers.map((p) => p.id),
-          )
-        : null,
-    [live, stints, clock, now, activePlayers],
-  );
   // the bench is a queue (D79): the lineup row's order, cleaned up client-side so it draws right before the server answers
   const rosterIds = useMemo(() => activePlayers.map((p) => p.id), [activePlayers]);
   const queue = useMemo(
     () => benchQueue(shown?.bench ?? [], rosterIds, slots),
     [shown?.bench, rosterIds, slots],
   );
-  const bench: BenchEntry[] = useMemo(() => {
+  const bench: Player[] = useMemo(() => {
     const byId = new Map(activePlayers.map((p) => [p.id, p]));
     return queue.flatMap((id) => {
       const player = byId.get(id);
-      if (!player) return [];
-      const t = times?.get(id);
-      return [
-        { player, time: t ? `${formatMinutes(t.seconds)} · rest ${formatClock(t.restSeconds)}` : undefined },
-      ];
+      return player ? [player] : [];
     });
-  }, [queue, activePlayers, times]);
-  const slotTimes = useMemo(
-    () => (times ? slots.map((id) => (id ? formatClock(times.get(id)?.shiftSeconds ?? 0) : '')) : undefined),
-    [times, slots],
-  );
-
-  // alert once when a timed period reaches zero (never ends it, D66)
-  const left = live ? remainingAt(clock, team.period_minutes, now) : null;
-  const wasOver = useRef(false);
-  useEffect(() => {
-    const over = left !== null && left <= 0;
-    if (over && !wasOver.current && live) {
-      hapticTick();
-      window.setTimeout(hapticTick, 150);
-      window.setTimeout(hapticTick, 300);
-      toast(`Time · ${shortPeriod(S, N, periodIndex)} is over`);
-    }
-    wasOver.current = over;
-  }, [left, live, toast, S, N, periodIndex]);
+  }, [queue, activePlayers]);
 
   const log = events.data ?? [];
   const score = log.reduce(
@@ -334,7 +297,7 @@ export function ClockFieldPage() {
       stints.map((st) => ({
         player_id: st.player_id,
         position_role: st.position_role,
-        seconds: stintSeconds(st, clock, now),
+        seconds: stintSeconds(st, clock, serverNow()),
       })),
       S.group,
     );
@@ -352,7 +315,7 @@ export function ClockFieldPage() {
 
   const endPeriod = async () => {
     const last = clock.periodIndex >= N - 1;
-    const title = `End ${shortPeriod(S, N, periodIndex)} at ${formatClock(elapsedAt(clock, now))}?`;
+    const title = `End ${shortPeriod(S, N, periodIndex)} at ${formatClock(elapsedAt(clock, serverNow()))}?`;
     const ok = await sheet({
       title,
       message: last
@@ -430,7 +393,7 @@ export function ClockFieldPage() {
     ? `Live vs ${live.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ' · tap a jersey, then another, to swap' : ''}`
     : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${N} ${periodPlural(S, N)} on the clock${isStaff ? ' · tap jerseys to set the starters · tap the score to start a game' : ''}`;
   const periodNoun = S.periodName(N).toLowerCase();
-  const atZero = !!live && elapsedAt(clock, now) === 0 && !isRunning(clock);
+  const atZero = !!live && clock.clockSeconds === 0 && !isRunning(clock);
 
   return (
     <section className="page">
@@ -441,6 +404,14 @@ export function ClockFieldPage() {
       <span className="sr-only" aria-live="polite">
         {saveStarters.isPending || act.isPending ? 'Saving' : ''}
       </span>
+      {live && (
+        <PeriodOverAlert
+          clock={clock}
+          periodMinutes={team.period_minutes}
+          active={!!live && !fullTime}
+          label={shortPeriod(S, N, periodIndex)}
+        />
+      )}
       <div className="quarters">
         <ClockCard
           sport={sport}
@@ -450,9 +421,11 @@ export function ClockFieldPage() {
           formation={formation}
           forms={forms}
           slots={slots}
-          slotTimes={slotTimes}
           players={allPlayers}
           bench={bench}
+          live={!!live}
+          clock={clock}
+          stints={stints}
           colors={colors}
           canEdit={isStaff && !fullTime}
           canChangeFormation={!live || atZero}
@@ -470,14 +443,7 @@ export function ClockFieldPage() {
           onTapBench={(playerId) => tap({ kind: 'bench', playerId })}
           headerExtra={
             <>
-              {live && (
-                <ClockDisplay
-                  state={clock}
-                  periodMinutes={team.period_minutes}
-                  nowMs={now}
-                  fullTime={fullTime}
-                />
-              )}
+              {live && <ClockDisplay state={clock} periodMinutes={team.period_minutes} fullTime={fullTime} />}
               {scoreButton()}
             </>
           }
@@ -500,8 +466,8 @@ export function ClockFieldPage() {
             addEvent.mutate({ ...ev, period_index: periodIndex }, { onError });
             toast(
               ev.side === 'them'
-                ? `${live.opponent} scored · ${shortPeriod(S, N, periodIndex)} ${formatClock(elapsedAt(clock, now))}`
-                : `${S.scoring.events[0]?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'} · ${shortPeriod(S, N, periodIndex)} ${formatClock(elapsedAt(clock, now))}`,
+                ? `${live.opponent} scored · ${shortPeriod(S, N, periodIndex)} ${formatClock(elapsedAt(clock, serverNow()))}`
+                : `${S.scoring.events[0]?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'} · ${shortPeriod(S, N, periodIndex)} ${formatClock(elapsedAt(clock, serverNow()))}`,
             );
           }}
           onUndo={(ev) => {
@@ -547,7 +513,7 @@ export function ClockFieldPage() {
                   disabled={act.isPending}
                   onClick={() => act.mutate({ kind: running ? 'pause' : 'start' }, { onError })}
                 >
-                  {running ? 'Pause' : elapsedAt(clock, now) > 0 ? 'Resume' : 'Start clock'}
+                  {running ? 'Pause' : clock.clockSeconds > 0 ? 'Resume' : 'Start clock'}
                 </Button>
               )}
               {!fullTime && (
