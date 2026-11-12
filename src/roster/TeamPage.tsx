@@ -9,9 +9,11 @@ import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { RosterView } from './RosterView';
 import { RotationView } from './RotationView';
+import { ClockRotationView } from '@/clock/ClockRotationView';
 
 export function TeamPage() {
-  const { teamId, sport } = useCurrentTeam();
+  const { teamId, team, sport } = useCurrentTeam();
+  const clockMode = team.time_mode === 'clock';
   const S = SPORTS[sport];
   const isStaff = useIsStaff();
   const view = useUIStore((s) => s.teamView);
@@ -29,7 +31,9 @@ export function TeamPage() {
   const N = plan.periods.length;
   const sub =
     view === 'rotation'
-      ? `${periodPlural(S, N, true)} each player is scheduled for${isStaff ? ' · tap a box to assign' : ''}`
+      ? clockMode
+        ? `Minutes each player has played${isStaff ? ' · substitutions on the Field tab' : ''}`
+        : `${periodPlural(S, N, true)} each player is scheduled for${isStaff ? ' · tap a box to assign' : ''}`
       : `${S.emoji} ${S.name} roster · ${active} active${outCount ? ` · ${outCount} out` : ''}`;
 
   return (
@@ -45,7 +49,11 @@ export function TeamPage() {
         ]}
       />
       {view === 'rotation' ? (
-        <RotationView players={list} canEdit={isStaff} highlight={highlight} />
+        clockMode ? (
+          <ClockRotationView players={list} canEdit={isStaff} highlight={highlight} />
+        ) : (
+          <RotationView players={list} canEdit={isStaff} highlight={highlight} />
+        )
       ) : (
         <RosterView players={list} canEdit={isStaff} highlight={highlight} />
       )}
