@@ -40,6 +40,8 @@ insert into ctx select 'team', public.create_team('Strikers', 'soccer', 3, true,
     {"formation_name":"1-1","slots":[{"position_role":"ST","position_code":"ST"},{"position_role":"DEF","position_code":"SW"},{"position_role":"GK","position_code":"GK"}]}]'::jsonb);
 select pg_temp.logout();
 update public.profiles set is_platform_admin = false where id = 'd0000000-0000-0000-0000-000000000001';
+-- a new soccer team starts on the clock (D87); this suite is about period mode
+update public.teams set time_mode = 'periods' where id = (select v from ctx where k = 'team');
 select pg_temp.login('d0000000-0000-0000-0000-000000000001');
 
 select matches((select join_code from public.teams where id = (select v from ctx where k = 'team')), '^[A-HJ-KM-NP-TV-Z2-9]{8}$', 'join code is 8 unambiguous base32 chars');

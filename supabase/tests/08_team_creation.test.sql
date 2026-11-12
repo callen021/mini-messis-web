@@ -2,7 +2,7 @@
 -- an ordinary user; an admin creates the team and becomes its owner and coach.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(10);
+select plan(13);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -56,6 +56,11 @@ select lives_ok(
 select is((select owner_id from public.teams where id = (select v from ctx where k = 'team')), 'f5000000-0000-0000-0000-000000000002', 'the admin owns the new team');
 select is((select role::text || '/' || status::text from public.team_members where team_id = (select v from ctx where k = 'team')), 'coach/active', 'the admin is its active coach');
 select is((select count(*)::int from public.seasons where team_id = (select v from ctx where k = 'team') and is_current), 1, 'one current season');
+-- defaults for new teams (D87): the clock wherever it applies, periods for baseball; approval off
+select is((select time_mode::text from public.teams where id = (select v from ctx where k = 'team')), 'clock', 'a new soccer team tracks playing time by the clock');
+select is((select require_approval from public.teams where id = (select v from ctx where k = 'team')), false, 'and does not ask for approval before parents join (D91)');
+insert into ctx select 'bb', public.create_team('Sluggers', 'baseball', 6, false, 1, '{}'::jsonb, '[{"formation_name":"6","slots":[{"position_role":"P","position_code":"P"}]}]'::jsonb);
+select is((select time_mode::text from public.teams where id = (select v from ctx where k = 'bb')), 'periods', 'a new baseball team stays on periods (the clock does not apply)');
 select throws_ok($$select public.create_team('Gridiron', 'football', 11, false, 4, '{}'::jsonb, '[]'::jsonb)$$, '22023', null, 'football teams cannot be created even by an admin (disabled sport)');
 select lives_ok(
   $$select public.admin_add_member((select v from ctx where k = 'team'), 'wannabe-coach@test.com', 'coach')$$,

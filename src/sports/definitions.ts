@@ -112,6 +112,9 @@ const FOOTBALL_SCORING: ScoringRules = {
 };
 
 /** Sport definitions, ported 1:1 from the legacy `SPORTS` object. Rules live here, never in the database. */
+/** Every jersey colour group of a new team starts as this red, goalkeeper included (D87). */
+export const DEFAULT_JERSEY = '#E22400';
+
 export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
   soccer: {
     key: 'soccer',
@@ -132,7 +135,7 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
       ['DEF', 'Defenders'],
       ['GK', 'Goalkeeper'],
     ],
-    defaultColors: { ST: '#7b3fe4', MID: '#7b3fe4', DEF: '#7b3fe4', GK: '#14b8a6' },
+    defaultColors: { ST: DEFAULT_JERSEY, MID: DEFAULT_JERSEY, DEF: DEFAULT_JERSEY, GK: DEFAULT_JERSEY },
     defaultFormation: '3-3',
     group: (r) => r,
     label: lookup({ ST: 'STRIKER', MID: 'MIDFIELD', DEF: 'DEFENDER', GK: 'GOALIE' }),
@@ -175,7 +178,7 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
       ['IF', 'Infielders'],
       ['OF', 'Outfielders'],
     ],
-    defaultColors: { P: '#1f3a93', C: '#c0392b', IF: '#2e86c1', OF: '#27ae60' },
+    defaultColors: { P: DEFAULT_JERSEY, C: DEFAULT_JERSEY, IF: DEFAULT_JERSEY, OF: DEFAULT_JERSEY },
     group: (r) =>
       r === 'P' ? 'P' : r === 'C' ? 'C' : ['LF', 'CF', 'RF', 'LCF', 'RCF'].includes(r) ? 'OF' : 'IF',
     label: lookup({
@@ -227,7 +230,7 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
       ['F', 'Forwards'],
       ['C', 'Center'],
     ],
-    defaultColors: { G: '#6c3fc5', F: '#e67e22', C: '#16a085' },
+    defaultColors: { G: DEFAULT_JERSEY, F: DEFAULT_JERSEY, C: DEFAULT_JERSEY },
     group: (r) => (['PG', 'SG', 'G'].includes(r) ? 'G' : r === 'C' ? 'C' : 'F'),
     label: lookup({
       PG: 'POINT',
@@ -265,13 +268,13 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
       ['DB', 'Defensive backs'],
     ],
     defaultColors: {
-      QB: '#c0392b',
-      RB: '#e67e22',
-      OL: '#34495e',
-      REC: '#27ae60',
-      DL: '#8e44ad',
-      LB: '#2980b9',
-      DB: '#16a085',
+      QB: DEFAULT_JERSEY,
+      RB: DEFAULT_JERSEY,
+      OL: DEFAULT_JERSEY,
+      REC: DEFAULT_JERSEY,
+      DL: DEFAULT_JERSEY,
+      LB: DEFAULT_JERSEY,
+      DB: DEFAULT_JERSEY,
     },
     group: (r) =>
       r === 'QB'
@@ -326,7 +329,7 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
       ['DEF', 'Defense'],
       ['GK', 'Goalie'],
     ],
-    defaultColors: { ATT: '#7b3fe4', MID: '#7b3fe4', DEF: '#7b3fe4', GK: '#14b8a6' },
+    defaultColors: { ATT: DEFAULT_JERSEY, MID: DEFAULT_JERSEY, DEF: DEFAULT_JERSEY, GK: DEFAULT_JERSEY },
     defaultFormation: '3-3-3',
     group: (r) => r,
     label: lookup({ ATT: 'ATTACK', MID: 'MIDFIELD', DEF: 'DEFENSE', GK: 'GOALIE' }),

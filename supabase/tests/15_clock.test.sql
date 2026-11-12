@@ -57,6 +57,7 @@ insert into ctx select 'ptemplate', public.create_team('Tock FC', 'soccer', 3, t
 select public.admin_add_member((select v from ctx where k = 'team'), 'parent-ck@test.com', 'parent');
 select pg_temp.logout();
 update public.profiles set is_platform_admin = false where id = 'f9000000-0000-0000-0000-000000000001';
+update public.teams set time_mode = 'periods' where id = (select v from ctx where k = 'ptemplate');  -- new teams start on the clock (D87)
 select pg_temp.login('f9000000-0000-0000-0000-000000000001');
 update public.teams set time_mode = 'clock', clock_periods = 2, period_minutes = 20 where id = (select v from ctx where k = 'team');
 

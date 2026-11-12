@@ -73,6 +73,19 @@ test.describe('coach and parent flows', () => {
     await expect(coach.getByRole('textbox', { name: 'Team name' })).toHaveText(teamName);
   });
 
+  test('a new team starts on the clock with red jerseys (D87); the coach switches to periods for the period-mode flows', async () => {
+    // clock mode: one card of starters instead of period cards
+    await expect(coach.getByRole('heading', { level: 2, name: 'Starters' })).toBeVisible();
+    await coach.goto('/settings/team');
+    const group = coach.getByRole('radiogroup', { name: 'Track playing time by' });
+    await expect(group.getByRole('radio', { name: 'Clock' })).toHaveAttribute('aria-checked', 'true');
+    await expect(coach.getByText('#E22400')).toHaveCount(4); // striker, midfield, defense, goalkeeper
+    await group.getByRole('radio', { name: 'Periods' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Playing time by periods' })).toBeVisible();
+    await coach.goto('/field');
+    await expect(coach.locator('.qcard')).toHaveCount(4);
+  });
+
   test('coach adds eight players on the roster', async () => {
     await coach.goto('/team');
     await coach.getByRole('radio', { name: 'Roster' }).click();
@@ -603,7 +616,9 @@ test.describe('coach and parent flows', () => {
     const benchShirt = await coach.locator('.bslot .shirt').first().boundingBox();
     // smaller than a field jersey, but big enough for five to a row at 375px (D85)
     expect(fieldShirt && benchShirt && benchShirt.width < fieldShirt.width).toBe(true);
-    expect(benchShirt && benchShirt.height >= 44 && benchShirt.width >= 56 && benchShirt.width <= 76).toBe(true);
+    expect(benchShirt && benchShirt.height >= 44 && benchShirt.width >= 56 && benchShirt.width <= 76).toBe(
+      true,
+    );
     // no horizontal scroll
     const overflow = await coach.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

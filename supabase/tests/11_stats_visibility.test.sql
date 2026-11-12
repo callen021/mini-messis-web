@@ -35,6 +35,7 @@ grant all on ctx to authenticated;
 select pg_temp.login('f8000000-0000-0000-0000-000000000004');
 insert into ctx select 'team', public.create_team('Visible FC', 'soccer', 3, true, 1, '{}'::jsonb,
   '[{"formation_name":"1-1","slots":[{"position_role":"ST","position_code":"ST"},{"position_role":"DEF","position_code":"SW"},{"position_role":"GK","position_code":"GK"}]}]'::jsonb);
+update public.teams set time_mode = 'periods' where id = (select v from ctx where k = 'team');  -- new teams start on the clock (D87); this suite is period mode
 select public.admin_add_member((select v from ctx where k = 'team'), 'coach-v@test.com', 'coach');
 select public.admin_add_member((select v from ctx where k = 'team'), 'parent-vx@test.com', 'parent');
 select pg_temp.logout();

@@ -563,14 +563,14 @@ isOneToOne: false
                   ]
                 },"teams": {
                   Row: {
-                    "archived_at": string | null,"clock_periods": number,"colors": NonNullable<Json>,"created_at": string,"has_gk": boolean,"id": string,"join_code": string,"join_code_rotated_at": string,"join_enabled": boolean,"last_batter_player_id": string | null,"name": string,"owner_id": string,"parent_stats": Database["public"]['Enums']["parent_stats"],"period_minutes": number | null,"periods_count": number,"side_size": number,"sport": Database["public"]['Enums']["sport"],"time_mode": Database["public"]['Enums']["time_mode"],"timezone": string,"updated_at": string,"updated_by": string | null
+                    "archived_at": string | null,"clock_periods": number,"colors": NonNullable<Json>,"created_at": string,"has_gk": boolean,"id": string,"join_code": string,"join_code_rotated_at": string,"join_enabled": boolean,"last_batter_player_id": string | null,"name": string,"owner_id": string,"parent_stats": Database["public"]['Enums']["parent_stats"],"period_minutes": number | null,"periods_count": number,"require_approval": boolean,"side_size": number,"sport": Database["public"]['Enums']["sport"],"time_mode": Database["public"]['Enums']["time_mode"],"timezone": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code": string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name": string,"owner_id": string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count": number,"side_size": number,"sport": Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code": string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name": string,"owner_id": string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count": number,"require_approval"?: boolean,"side_size": number,"sport": Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code"?: string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name"?: string,"owner_id"?: string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count"?: number,"side_size"?: number,"sport"?: Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code"?: string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name"?: string,"owner_id"?: string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count"?: number,"require_approval"?: boolean,"side_size"?: number,"sport"?: Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -660,6 +660,9 @@ isOneToOne: false
 "archive_player":
 { Args: { "p_player_id": string }; Returns: undefined
                            },
+"archive_player_core":
+{ Args: { "p_player_id": string }; Returns: undefined
+                           },
 "bench_apply":
 { Args: { "p_append": (string)[],"p_lineup_id": string,"p_remove": (string)[] }; Returns: undefined
                            },
@@ -685,6 +688,9 @@ isOneToOne: false
                            },
 "can_see_player_stats":
 { Args: { "p_player_id": string }; Returns: boolean
+                           },
+"can_write_contact":
+{ Args: { "p_player_id": string,"p_user_id": string }; Returns: boolean
                            },
 "clear_player_from_plans":
 { Args: { "p_player_id": string }; Returns: undefined
@@ -838,6 +844,9 @@ isOneToOne: false
 "generate_join_code":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
+"guardian_contact_row":
+{ Args: { "p_player_id": string,"p_user_id": string }; Returns: undefined
+                           },
 "import_legacy_backup":
 { Args: { "p_data": Json,"p_team_id": string }; Returns: Json
                            },
@@ -848,6 +857,9 @@ isOneToOne: false
 { Args: { "p_team_id": string }; Returns: boolean
                            },
 "is_guardian_of":
+{ Args: { "p_player_id": string }; Returns: boolean
+                           },
+"is_linked_to":
 { Args: { "p_player_id": string }; Returns: boolean
                            },
 "is_owner":
@@ -864,7 +876,7 @@ isOneToOne: false
                            },
 "list_team_members":
 { Args: { "p_team_id": string }; Returns: {
-              "approved_at": string,"children": Json,"created_at": string,"display_name": string,"email": string,"is_owner": boolean,"member_id": string,"requested_role": Database["public"]['Enums']["member_role"],"role": Database["public"]['Enums']["member_role"],"status": Database["public"]['Enums']["member_status"],"unlisted": Json,"user_id": string
+              "approved_at": string,"children": Json,"created_at": string,"display_name": string,"email": string,"is_owner": boolean,"joined_at": string,"member_id": string,"requested_role": Database["public"]['Enums']["member_role"],"role": Database["public"]['Enums']["member_role"],"status": Database["public"]['Enums']["member_status"],"unlisted": Json,"user_id": string
             }[]
                            },
 "lookup_invite":
@@ -883,6 +895,11 @@ isOneToOne: false
                            },
 "normalize_join_code":
 { Args: { "p_code": string }; Returns: string
+                           },
+"parents_losing_access":
+{ Args: { "p_player_ids": (string)[] }; Returns: {
+              "children": (string)[],"display_name": string,"user_id": string
+            }[]
                            },
 "player_people":
 { Args: { "p_player_id": string }; Returns: {
@@ -937,8 +954,14 @@ isOneToOne: false
 "set_batting_order":
 { Args: { "p_player_ids": (string)[],"p_team_id": string }; Returns: undefined
                            },
+"set_current_season":
+{ Args: { "p_season_id": string,"p_team_id": string }; Returns: undefined
+                           },
 "set_join_enabled":
 { Args: { "p_enabled": boolean,"p_team_id": string }; Returns: undefined
+                           },
+"set_member_children":
+{ Args: { "p_member_id": string,"p_player_ids": (string)[] }; Returns: undefined
                            },
 "set_member_role":
 { Args: { "p_member_id": string,"p_role": Database["public"]['Enums']["member_role"] }; Returns: undefined
@@ -954,6 +977,9 @@ isOneToOne: false
                            },
 "start_game":
 { Args: { "p_game_id": string }; Returns: undefined
+                           },
+"start_season":
+{ Args: { "p_ends_on"?: string,"p_name": string,"p_not_returning"?: (string)[],"p_starts_on"?: string,"p_team_id": string }; Returns: string
                            },
 "stint_add":
 { Args: { "p_code": string,"p_end": number,"p_game_id": string,"p_period": number,"p_player": string,"p_start": number }; Returns: string

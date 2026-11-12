@@ -36,9 +36,10 @@ select pg_temp.logout();
 update public.profiles set is_platform_admin = false where id = 'f8000000-0000-0000-0000-000000000001';
 
 -- ---------- defaults ----------
-select is((select time_mode::text from public.teams where id = (select v from ctx where k = 'team')), 'periods', 'a team starts in period mode');
+select is((select time_mode::text from public.teams where id = (select v from ctx where k = 'team')), 'clock', 'a new soccer team starts on the clock (D87)');
 select is((select clock_periods from public.teams where id = (select v from ctx where k = 'team')), 2, 'clock mode defaults to two halves');
 select is((select period_minutes from public.teams where id = (select v from ctx where k = 'team')), null, 'no period length by default');
+update public.teams set time_mode = 'periods' where id = (select v from ctx where k = 'team');  -- the rest walks the switch from periods
 select is(public.team_period_count((select v from ctx where k = 'team')), 4, 'period count follows the mode (periods)');
 
 -- ---------- staff set it; parents cannot ----------
