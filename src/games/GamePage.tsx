@@ -18,6 +18,7 @@ import { emptyPeriod } from '@/sports/lineup';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import {
+  useCurrentSeason,
   type GameWithScore,
   type HomeAway,
   type PlateAppearance,
@@ -80,6 +81,10 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const sheet = useActionSheet();
   const navigate = useNavigate();
   const { formationFor, forms } = useFormations();
+  const currentSeason = useCurrentSeason(teamId);
+  // a game of a past season is viewable, never editable (D94)
+  const pastSeason = !!currentSeason.data && game.season_id !== currentSeason.data.id;
+  const canEdit = isStaff && !pastSeason;
 
   const players = usePlayers(teamId);
   const snapshots = useGamePlayers(game.id);
@@ -292,7 +297,12 @@ function GameDetail({ game }: { game: GameWithScore }) {
       back={{ to: '/games', label: 'Schedule' }}
     >
       {!isUpcoming && <Scoreline big us={game.us} them={game.them} />}
-      {isStaff && (
+      {isStaff && pastSeason && (
+        <Footer className="noprint">
+          Past season · read-only. A platform admin can switch the current season back.
+        </Footer>
+      )}
+      {canEdit && (
         <Toolbar className="noprint">
           {isUpcoming && (
             <Button onClick={startFlow} disabled={anotherLive || start.isPending}>
@@ -319,7 +329,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
 
       <Section>Details</Section>
       <Group>
-        {isStaff ? (
+        {canEdit ? (
           <>
             <Row label="Opponent">
               <input
@@ -431,7 +441,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
       </Group>
       <Section>Note for parents</Section>
       <Group>
-        {isStaff ? (
+        {canEdit ? (
           <Textarea
             className="notes"
             aria-label="Note for parents"
@@ -488,7 +498,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
               return (
                 <Row
                   key={ev.id}
-                  onClick={isStaff ? () => setEditing(ev) : undefined}
+                  onClick={canEdit ? () => setEditing(ev) : undefined}
                   label={
                     <>
                       <PeriodTag>{eventTag(periodName, ev)}</PeriodTag>
@@ -497,12 +507,12 @@ function GameDetail({ game }: { game: GameWithScore }) {
                   }
                   detail={detail}
                   value={S.scoring.panel === 'points' ? `+${ev.points}` : undefined}
-                  chevron={isStaff}
+                  chevron={canEdit}
                 />
               );
             })}
             {sortedLog.length === 0 && <Row label={`No ${unit.toLowerCase()} recorded.`} />}
-            {isStaff && lastEvent && (
+            {canEdit && lastEvent && (
               <Row
                 link
                 onClick={() => void undoLast()}
@@ -522,7 +532,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
               <Row
                 key={pa.id}
                 onClick={
-                  isStaff && pa.player_id
+                  canEdit && pa.player_id
                     ? () => setPaEditing({ ...pa, player_id: pa.player_id as string })
                     : undefined
                 }
@@ -534,13 +544,13 @@ function GameDetail({ game }: { game: GameWithScore }) {
                 }
                 detail={`${paResultLabel(pa.result)}${pa.rbi ? ` · ${pa.rbi} RBI` : ''}`}
                 value={paResultShort(pa.result)}
-                chevron={isStaff}
+                chevron={canEdit}
               />
             ))}
             {paList.length === 0 && (
               <Row label="No at-bats recorded. Tap a batter on the Lineup tab during the game." />
             )}
-            {isStaff && <Row link onClick={() => setPaAdding(true)} label="Add at-bat" />}
+            {canEdit && <Row link onClick={() => setPaAdding(true)} label="Add at-bat" />}
           </Group>
         </>
       )}
@@ -552,7 +562,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
           players={roster}
           names={names}
           periods={periods}
-          canEdit={isStaff}
+          canEdit={canEdit}
         />
       ) : (
         <>
@@ -589,7 +599,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
                 }
               />
             )}
-            {isLive && isStaff && (
+            {isLive && canEdit && (
               <Row
                 label={
                   <span style={{ color: 'var(--text2)', fontSize: 14 }}>
@@ -603,7 +613,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
         </>
       )}
 
-      {isStaff && (
+      {canEdit && (
         <>
           <Section>Coaching notes</Section>
           <Group>
@@ -630,7 +640,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
         </>
       )}
 
-      {isStaff && (
+      {canEdit && (
         <>
           <ScorePanel
             open={scoring}

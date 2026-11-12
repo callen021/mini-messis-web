@@ -8,6 +8,7 @@ import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
 import { FormSheet, useActionSheet } from '@/components/Sheet';
 import { useToast } from '@/components/Toast';
+import { useSeasons, useSetCurrentSeason } from '@/games/api';
 import { fmtDate } from '@/games/format';
 import { errorMessage } from '@/lib/supabase';
 import { ENABLED_SPORTS, SPORTS, periodPlural } from '@/sports/definitions';
@@ -57,6 +58,8 @@ export function AdminTeamPage() {
   const approve = useApproveMember(teamId);
   const decline = useDeclineMember(teamId);
   const setActAs = useActAs((s) => s.setTeamId);
+  const seasons = useSeasons(teamId);
+  const setCurrentSeason = useSetCurrentSeason(teamId);
   const [adding, setAdding] = useState(false);
 
   if (team.isPending || members.isPending) return <LoadingScreen />;
@@ -150,6 +153,15 @@ export function AdminTeamPage() {
     }
   };
 
+  const switchSeason = async (seasonId: string, name: string) => {
+    const ok = await sheet({
+      title: `Make ${name} the current season?`,
+      message: 'The schedule and stats show that season again. Nothing is deleted.',
+      actions: [{ label: 'Make current', value: true, destructive: true }],
+    });
+    if (ok) setCurrentSeason.mutate(seasonId, { onSuccess: () => toast(`${name} is current`), onError });
+  };
+
   const approveReq = async (m: TeamMemberRow) => {
     const role = m.requested_role ?? m.role;
     try {
@@ -221,6 +233,36 @@ export function AdminTeamPage() {
           value={`${t.side_size} ${S.unit} · ${t.periods_count} ${periodPlural(S, t.periods_count)} · ${row?.players ?? 0} players`}
         />
       </Group>
+
+      <Section>Seasons</Section>
+      <Group>
+        {(seasons.data ?? []).map((s) => (
+          <Row
+            key={s.id}
+            label={s.name}
+            detail={[s.starts_on ? fmtDate(s.starts_on) : null, s.ends_on ? fmtDate(s.ends_on) : null]
+              .filter(Boolean)
+              .join(' – ')}
+          >
+            {s.is_current ? (
+              <Badge status="live">Current</Badge>
+            ) : (
+              <Button
+                size="sm"
+                variant="gray"
+                disabled={setCurrentSeason.isPending}
+                onClick={() => void switchSeason(s.id, s.name)}
+              >
+                Make current
+              </Button>
+            )}
+          </Row>
+        ))}
+      </Group>
+      <Footer>
+        Making an earlier season current again undoes a season started by mistake: its games and stats are the
+        team's again. Nothing is deleted either way (D94).
+      </Footer>
 
       {pending.length > 0 && (
         <>

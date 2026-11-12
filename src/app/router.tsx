@@ -9,6 +9,7 @@ import { ResetPage } from '@/auth/pages/ResetPage';
 import { SignInPage } from '@/auth/pages/SignInPage';
 import { SignUpPage } from '@/auth/pages/SignUpPage';
 import { ProfilePage } from '@/settings/ProfilePage';
+import { NewSeasonPage } from '@/settings/NewSeasonPage';
 import { SettingsPage } from '@/settings/SettingsPage';
 import { CreateTeamPage } from '@/teams/pages/CreateTeamPage';
 import { InvitePage } from '@/teams/pages/InvitePage';
@@ -147,6 +148,7 @@ export const routes: RouteObject[] = [
                       { path: '/settings', element: <SettingsPage /> },
                       { path: '/settings/members', element: <MembersPage /> },
                       { path: '/settings/team', element: <TeamSetupPage /> },
+                      { path: '/settings/season', element: <NewSeasonPage /> },
                       { path: '/settings/skills', element: <SkillsSettingsPage /> },
                       { path: '/profile', element: <ProfilePage /> },
                     ],

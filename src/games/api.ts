@@ -58,16 +58,71 @@ const tempId = () => `temp-${Math.random().toString(36).slice(2)}`;
 
 /* ---------- seasons ---------- */
 
-export function useCurrentSeason(teamId: string) {
+function useSeasonRows<T>(teamId: string, select: (rows: Season[]) => T) {
   return useQuery({
     queryKey: qk.seasons(teamId),
-    queryFn: async () => {
-      const rows = unwrap(
-        await supabase.from('seasons').select('*').eq('team_id', teamId).order('created_at'),
-      );
-      return rows.find((s) => s.is_current) ?? rows[rows.length - 1] ?? null;
-    },
+    queryFn: async () =>
+      unwrap(await supabase.from('seasons').select('*').eq('team_id', teamId).order('created_at')),
+    select,
     staleTime: 5 * 60_000,
+  });
+}
+const pickCurrent = (rows: Season[]) => rows.find((s) => s.is_current) ?? rows[rows.length - 1] ?? null;
+const newestFirst = (rows: Season[]) => [...rows].reverse();
+
+export function useCurrentSeason(teamId: string) {
+  return useSeasonRows(teamId, pickCurrent);
+}
+
+/** Every season of the team, newest first (the picker on Stats, the admin's switch, D94). */
+export function useSeasons(teamId: string) {
+  return useSeasonRows(teamId, newestFirst);
+}
+
+/** The season whose games and stats are being looked at: a past one, or the current one. */
+export function seasonLabel(seasons: readonly Season[], seasonId: string | null): string {
+  const s = seasonId ? seasons.find((x) => x.id === seasonId) : seasons.find((x) => x.is_current);
+  return s?.name ?? '';
+}
+
+export interface StartSeasonInput {
+  name: string;
+  startsOn: string | null;
+  endsOn: string | null;
+  notReturning: string[];
+}
+
+/** Start a new season on the same team (coach or admin, D94): one transaction on the server. */
+export function useStartSeason(teamId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: StartSeasonInput) =>
+      unwrap(
+        await supabase.rpc('start_season', {
+          p_team_id: teamId,
+          p_name: input.name,
+          p_starts_on: input.startsOn ?? undefined,
+          p_ends_on: input.endsOn ?? undefined,
+          p_not_returning: input.notReturning,
+        }),
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['team', teamId] });
+      void qc.invalidateQueries({ queryKey: ['memberships'] });
+      void qc.invalidateQueries({ queryKey: ['guardians'] });
+    },
+  });
+}
+
+/** Admin only: make an earlier season current again (D94). */
+export function useSetCurrentSeason(teamId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (seasonId: string) =>
+      fail((await supabase.rpc('set_current_season', { p_team_id: teamId, p_season_id: seasonId })).error),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['team', teamId] });
+    },
   });
 }
 
@@ -474,15 +529,21 @@ export function useSaveCoachNotes(gameId: string) {
 
 /* ---------- stats ---------- */
 
-/** Per-player stats for the current season (`scope: null`) or one game. */
-export function usePlayerStats(teamId: string, gameId: string | null, enabled = true) {
+/** Per-player stats for a season (the current one unless `seasonId` is given, D94) or one game. */
+export function usePlayerStats(
+  teamId: string,
+  gameId: string | null,
+  enabled = true,
+  seasonId: string | null = null,
+) {
   return useQuery({
-    queryKey: qk.stats(teamId, gameId ?? 'season'),
+    queryKey: qk.stats(teamId, gameId ?? (seasonId ? `season:${seasonId}` : 'season')),
     queryFn: async () =>
       unwrap(
         await supabase.rpc('player_season_stats', {
           p_team_id: teamId,
           p_game_id: gameId ?? undefined,
+          p_season_id: seasonId ?? undefined,
         }),
       ) as PlayerStatRow[],
     enabled,

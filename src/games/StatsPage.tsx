@@ -15,7 +15,7 @@ import { SPORTS } from '@/sports/definitions';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { SkillsMatrix } from '@/skills/SkillsMatrix';
 import { usePlayers } from '@/teams/api';
-import { useGames, usePlayerStats } from './api';
+import { seasonLabel, useGames, usePlayerStats, useSeasons } from './api';
 import { fmtDate } from './format';
 import { GameBadge } from './GameBadge';
 import { completedGames, formatStat, signed, sortRows, statColumns, teamRecord } from './stats';
@@ -33,8 +33,15 @@ export function StatsPage() {
   const isStaff = useIsStaff();
   const children = useMyChildren();
   const [allResults, setAllResults] = useState(false);
+  const seasons = useSeasons(teamId);
+  // null = the current season; a past season's games and stats are viewable, never editable (D94)
+  const [seasonId, setSeasonId] = useState<string | null>(null);
+  const seasonRows = seasons.data ?? [];
+  const current = seasonRows.find((s) => s.is_current) ?? null;
+  const chosen = seasonId ? (seasonRows.find((s) => s.id === seasonId) ?? current) : current;
+  const pastSeason = !!chosen && !chosen.is_current;
 
-  const all = games.data ?? [];
+  const all = (games.data ?? []).filter((g) => !chosen || g.season_id === chosen.id);
   const results = completedGames(all);
   const shownResults = allResults ? results : results.slice(0, RECENT_RESULTS);
   // legacy seasonGames: live + done, oldest first
@@ -48,6 +55,7 @@ export function StatsPage() {
     teamId,
     view === 'season' ? null : (recent?.id ?? null),
     view === 'season' || !!recent,
+    view === 'season' && pastSeason ? (chosen?.id ?? null) : null,
   );
 
   if (games.isPending) return <LoadingScreen />;
@@ -65,7 +73,7 @@ export function StatsPage() {
   const rows = isStaff ? sorted : pinFirst(sorted, (r) => mine.has(r.player_id));
   const sub =
     view === 'season'
-      ? `${season.length} game${season.length === 1 ? '' : 's'} this season${live ? ' incl. the game in progress' : ''}`
+      ? `${season.length} game${season.length === 1 ? '' : 's'} in ${seasonLabel(seasonRows, chosen?.id ?? null) || 'this season'}${live ? ' incl. the game in progress' : ''}${pastSeason ? ' · past season, read-only' : ''}`
       : view === 'skills'
         ? 'Personal bests per test'
         : recent
@@ -85,6 +93,24 @@ export function StatsPage() {
           { value: 'skills', label: 'Skills' },
         ]}
       />
+      {view === 'season' && seasonRows.length > 1 && (
+        <div className="seasonpick">
+          <label htmlFor="season-pick">Season</label>
+          <select
+            id="season-pick"
+            className="inline"
+            value={chosen?.id ?? ''}
+            onChange={(e) => setSeasonId(e.target.value === current?.id ? null : e.target.value)}
+          >
+            {seasonRows.map((s) => (
+              <option key={s.id} value={s.id}>
+                {s.name}
+                {s.is_current ? ' · current' : ''}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       {view === 'skills' ? (
         <SkillsMatrix players={players.data ?? []} />
       ) : (

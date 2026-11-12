@@ -887,6 +887,52 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByRole('heading', { level: 1, name: 'Ava' })).toBeVisible({ timeout: 20_000 });
   });
 
+  test('a new season: roster review, parents of leavers lose access, clean template, past season read-only, admin switches back (D94)', async () => {
+    await coach.goto('/settings');
+    await coach.getByRole('link', { name: /Start new season/ }).click();
+    await expect(coach.getByRole('heading', { level: 1, name: 'Start new season' })).toBeVisible();
+    await coach.getByLabel('Name').fill('Spring next');
+    await coach.getByRole('button', { name: /Next/ }).click();
+    // Ava is not returning: Parent Pat's only child
+    await coach.getByRole('switch', { name: 'Ava returning' }).click();
+    await coach.getByRole('button', { name: 'Start Spring next' }).click();
+    const confirm = coach.getByRole('dialog', { name: 'Start Spring next?' });
+    await expect(confirm).toContainText('1 not returning (Ava)');
+    await expect(confirm).toContainText('Parent Pat loses access to the team');
+    await confirm.getByRole('button', { name: 'Start Spring next' }).click();
+    await expect(coach).toHaveURL(/\/field$/, { timeout: 20_000 });
+    // a clean template on the Field, Ava gone from the roster
+    await expect(coach.locator('.qcard').first().locator('.slot .shirt.open')).toHaveCount(7);
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await expect(coach.locator('.group').getByRole('link', { name: /Ava/ })).toHaveCount(0);
+    // Stats: the new season is empty; the past season is still there, read-only
+    await coach.goto('/stats');
+    await coach.getByRole('radio', { name: 'Season' }).click();
+    await expect(coach.getByText(/0 games in Spring next/)).toBeVisible();
+    await coach.getByLabel('Season', { exact: true }).selectOption({ index: 1 }); // newest first: the past season
+    await expect(coach.getByText(/past season, read-only/)).toBeVisible();
+    await expect(coach.getByRole('link', { name: /vs Lions/ })).toBeVisible();
+    await coach.getByRole('link', { name: /vs Lions/ }).click();
+    await expect(coach.getByText('Past season · read-only', { exact: false })).toBeVisible();
+    await expect(coach.getByRole('button', { name: /Add goal|Add score/ })).toHaveCount(0);
+    // Parent Pat is out; the admin can switch the season back
+    await parent.goto('/home');
+    await expect(parent).toHaveURL(/\/welcome$/, { timeout: 20_000 });
+    await coach.goto('/admin');
+    await coach
+      .getByRole('link', { name: new RegExp(teamName) })
+      .first()
+      .click();
+    await expect(coach.getByText('Seasons')).toBeVisible();
+    await coach.getByRole('button', { name: 'Make current' }).first().click();
+    const sheet = coach.getByRole('dialog', { name: /the current season\?/ });
+    await sheet.getByRole('button', { name: 'Make current' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'is current' })).toBeVisible();
+    await coach.goto('/stats');
+    await expect(coach.getByText(/2 games in \d{4} season/)).toBeVisible();
+  });
+
   test('switching back to periods brings back the four quarter cards, untouched', async () => {
     await coach.goto('/settings/team');
     const saved = teamSaved(coach);

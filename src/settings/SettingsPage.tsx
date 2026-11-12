@@ -8,6 +8,8 @@ import { Segmented } from '@/components/Segmented';
 import { useActionSheet } from '@/components/Sheet';
 import { type FieldView, type Theme, useUIStore } from '@/lib/ui-store';
 import { SPORTS, periodPlural } from '@/sports/definitions';
+import { useCurrentSeason } from '@/games/api';
+import { useLiveGame } from '@/lineups/api';
 import { useSkillTests } from '@/skills/api';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
@@ -29,6 +31,8 @@ export function SettingsPage() {
   const setFieldView = useUIStore((s) => s.setFieldView);
   const S = SPORTS[team.sport];
   const tests = useSkillTests(team.id);
+  const season = useCurrentSeason(team.id);
+  const live = useLiveGame(team.id);
   const members = useTeamMembers(STAFF_ROLES.includes(role) ? team.id : undefined);
   const unconfirmed = unconfirmedLinkCount(members.data ?? []);
   const shownTests = (tests.data ?? []).filter((t) => t.is_active).length;
@@ -84,6 +88,20 @@ export function SettingsPage() {
         </RoleGate>
         <RoleGate allow={STAFF_ROLES}>
           <Row to="/settings/skills" label="Skills tests" detail={skillsSummary} chevron />
+        </RoleGate>
+        <RoleGate allow={['coach']}>
+          <Row
+            to="/settings/season"
+            label="Start new season"
+            detail={
+              live.data
+                ? 'Finish the game in progress first'
+                : season.data
+                  ? `Now in ${season.data.name} · roster review, then a clean schedule`
+                  : 'Roster review, then a clean schedule'
+            }
+            chevron
+          />
         </RoleGate>
         <RoleGate allow={STAFF_ROLES}>
           <Row
