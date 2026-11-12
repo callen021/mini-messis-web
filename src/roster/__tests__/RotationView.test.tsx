@@ -116,13 +116,14 @@ describe('RotationView', () => {
     ];
   });
 
-  it('renders a chip per period with codes, auto marks, "n of N" totals and the balance meter', () => {
+  it('renders a chip per period with codes, auto marks, number totals and the balance meter', () => {
     renderView();
     expect(screen.getByRole('button', { name: 'Nolan, Quarter 1: Left wing' })).toHaveClass('on');
     expect(screen.getByRole('button', { name: 'Teddy, Quarter 1: Striker' })).toHaveClass('auto');
     expect(screen.getByRole('button', { name: 'Jack, Quarter 2: sitting out' })).toHaveClass('empty');
     expect(screen.getByLabelText('2 of 4 quarters')).toHaveClass('good'); // Nolan: 2 of 4
-    expect(screen.getByLabelText('2 of 4 quarters')).toHaveTextContent('2 of 4');
+    // the bubble shows just the number; "of 4" lives in the column header and the label (D64)
+    expect(screen.getByLabelText('2 of 4 quarters')).toHaveTextContent(/^2$/);
     expect(screen.getAllByLabelText('1 of 4 quarters')[0]).toHaveClass('low'); // under half
     expect(document.querySelector('.rothead .total')).toHaveTextContent('Qtrs');
     expect(screen.getByText(/Range/)).toHaveTextContent('1–2');

@@ -160,7 +160,7 @@ export function RotationView({
             className={`total ${totalLevel(c[p.id] ?? 0, N)}`}
             aria-label={`${c[p.id] ?? 0} of ${N} ${periodPlural(S, N)}`}
           >
-            {c[p.id] ?? 0} <small>of {N}</small>
+            {c[p.id] ?? 0}
           </div>
         </>
       )}
