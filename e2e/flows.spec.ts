@@ -94,6 +94,38 @@ test.describe('coach and parent flows', () => {
     await expect(coach.locator('.group').getByRole('link', { name: /Ava/ })).toBeVisible();
   });
 
+  test('the bench is a queue: roster order, two bench taps swap places, the order survives a reload (D79)', async () => {
+    await coach.goto('/field');
+    const card = coach.locator('.qcard').first();
+    const names = () => card.locator('.bslot .shirt .name').allTextContents();
+    await expect(card.locator('.bslot')).toHaveCount(PLAYERS.length);
+    expect((await names()).map((n) => n.toLowerCase())).toEqual(PLAYERS.map((n) => n.toLowerCase()));
+    // Ava (leftmost, next in line) and Cal change places
+    await card.locator('.bslot .shirt').nth(0).click();
+    await card.locator('.bslot .shirt').nth(2).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'swap places in line' })).toBeVisible();
+    await expect(card.locator('.bslot .shirt .name').nth(0)).toHaveText('Cal', { ignoreCase: true });
+    await expect(card.locator('.bslot .shirt .name').nth(2)).toHaveText('Ava', { ignoreCase: true });
+    await coach.reload();
+    await expect(coach.locator('.qcard').first().locator('.bslot .shirt .name').nth(0)).toHaveText('Cal', {
+      ignoreCase: true,
+    });
+    // the other cards keep their own queues
+    await expect(coach.locator('.qcard').nth(1).locator('.bslot .shirt .name').nth(0)).toHaveText('Ava', {
+      ignoreCase: true,
+    });
+    // a bench player who goes on leaves the queue and the gap closes
+    const first = coach.locator('.qcard').first();
+    await first.locator('.bslot .shirt').nth(0).click(); // Cal
+    await first.locator('.slot .shirt.open').first().click();
+    await expect(first.locator('.bslot')).toHaveCount(PLAYERS.length - 1);
+    await expect(first.locator('.bslot .shirt .name').nth(0)).toHaveText('Ben', { ignoreCase: true });
+    // put the queue back to roster order for the tests that follow
+    await first.locator('.slot .shirt').first().click();
+    await coach.getByRole('button', { name: 'Open the spot' }).first().click();
+    await expect(first.locator('.bslot .shirt .name').last()).toHaveText('Cal', { ignoreCase: true });
+  });
+
   test('Field empty state at 375px: open jerseys show the code and a plus, never "Select" (D63)', async () => {
     await coach.setViewportSize({ width: 375, height: 760 });
     await coach.goto('/field');
@@ -631,7 +663,13 @@ test.describe('coach and parent flows', () => {
     const offName = (await target.locator('.name').textContent())?.trim() ?? '';
     await benchShirt.click();
     await target.click();
-    await expect(coach.getByRole('status').filter({ hasText: `on for ${offName}` })).toBeVisible();
+    const toastEl = coach.getByRole('status').filter({ hasText: `on for ${offName}` });
+    await expect(toastEl).toBeVisible();
+    await expect(toastEl).toHaveCSS('opacity', '1'); // settled, not mid-animation
+    // the toast sits above the sticky toolbar, never over a control (D80)
+    const toastBox = await toastEl.boundingBox();
+    const barBox = await coach.locator('.actionbar').boundingBox();
+    expect(toastBox && barBox && toastBox.y + toastBox.height <= barBox.y + 1).toBe(true);
     await expect(coach.locator('.slot .shirt').first().locator('.name')).toHaveText(benchName, {
       ignoreCase: true,
     });
@@ -639,9 +677,9 @@ test.describe('coach and parent flows', () => {
       ignoreCase: true,
       timeout: 15_000,
     });
-    await expect(parent.locator('.bslot .shirt').first().locator('.name')).toHaveText(offName, {
+    await expect(parent.locator('.bslot .shirt').last().locator('.name')).toHaveText(offName, {
       ignoreCase: true,
-    });
+    }); // joined the right end of the queue (D79)
     await coach.getByRole('button', { name: 'Undo' }).click();
     await expect(coach.getByRole('status').filter({ hasText: 'Substitution undone' })).toBeVisible();
     await expect(coach.locator('.slot .shirt').first().locator('.name')).toHaveText(offName, {
