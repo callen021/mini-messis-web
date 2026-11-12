@@ -807,3 +807,51 @@ no layout space, and it appears only once a save has run for 1.2 seconds, so a n
 nothing at all. The offline strip is unchanged (it is persistent and worth the space). The
 period-mode Field page's inline "Saving…" pill is gone the same way as the clock page's, replaced
 by a visually hidden live region.
+
+## 2026-11-12 — Bench queue and team duplication
+
+### D79. The bench is a queue, not a sort
+
+Sorting the bench by minutes or periods played kept rearranging the players under a coach's
+thumb. The bench is now an explicit, persisted order on every lineup row (`lineups.bench_order`):
+each period card in period mode, each clock period of a game, and the template. Left to right,
+the leftmost is next in line. A player who comes off joins the right end; one who goes on leaves
+the queue and the gap closes; a player marked out leaves it and joins the right end when marked
+back in; the initial order is roster order of everyone not on the field. Staff may still pick any
+bench player and any on-field player in either tap order, and tapping two bench jerseys swaps
+their places (`clock_bench_swap` during a live clock game, a plan save otherwise). The database
+owns the rule: `bench_normalize` keeps a row's queue honest (drops the on-field, archived and
+marked-out, appends the missing in roster order), `bench_apply` removes and appends, and every
+clock function calls them; `save_lineups` accepts a `bench_order` per period from the period-mode
+Field and normalizes it; `copy_lineups`, `start_game` and the half-time carry-over copy it along;
+`set_player_available` re-normalizes the template and any live game. Every `clock_ops` row
+remembers `bench_before`, so Undo restores the order as well as the players, and Undo now steps
+back through the period's changes that are still in effect rather than stopping at the first
+undone one. On the client `benchQueue` / `benchAfterEdit` / `benchSwap` mirror the rule so the
+row draws right before the server answers; minutes and rest (clock) or periods played (period
+mode) stay under each bench jersey as information only. Realtime on `lineups` keeps the order the
+same on every device. Auto-fill and Suggest starters keep their ranking logic. pgTAP 16 walks the
+queue through a game; the Playwright flows check roster order, a bench swap that survives a
+reload, independent queues per card and the right-end rule on the parent's phone.
+
+### D80. Toasts sit above the sticky toolbar
+
+A swap toast covered the Clear button. Toasts are now positioned above the action bar as well as
+the tab bar, so they never sit on a control; a flow asserts the toast box ends above the bar.
+
+### D81. duplicate_team: a platform-admin copy with new ids throughout
+
+`duplicate_team(source, name, owner?)` builds a new team in one transaction: settings (sport,
+sizes, periods, playing-time mode and clock settings, colours, timezone, stats visibility), the
+current season, players with numbers, availability and the archived flag, player details, player
+contacts with their sharing switches (account links dropped), skill tests and results, the
+template lineups with their bench queues, practices, and the season's games with schedule fields,
+status, snapshots, score events (scorer, assist, clock second), plate appearances, lineups and
+stints, every id remapped through temp tables. It does not copy members (the caller becomes owner
+and coach), guardian links, pending requests, board posts, coach notes, the op log or the join
+code: the copy gets a fresh invite link, turned off. Only a platform admin may call it from the
+app; from the SQL editor there is no JWT, so the owner is passed as the third argument. The admin
+console has a copy button on every team row that asks for a name and opens the copy. pgTAP 17
+compares a row-count signature across every copied table, proves no id is shared, that each
+remapped reference lands in the copy, that the copy's stats match, and that renaming, deleting
+and scoring in the copy leaves the source byte-for-byte the same.

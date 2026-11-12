@@ -16,12 +16,13 @@ scripts in `scripts/`, and the repository variables `VITE_SUPABASE_URL` and
 
 ## 0. Push the pending migrations
 
-Ten migrations are waiting since the launch build: `20261110000100_realtime_teams` (fixes live
+Twelve migrations are waiting since the launch build: `20261110000100_realtime_teams` (fixes live
 updates for parents), the parent-feedback rounds (`admin_only_team_creation`, `invite_links`,
-`addresses_timezone`, `player_details`, `stats_visibility`, `contacts_directory`, `team_board`)
-and clock-based playing time (`20261112000100_time_mode`, `20261112000200_game_clock_stints`).
-Nothing in the app's clock mode works live until the last two are applied; period-mode teams are
-unaffected either way. From the repo folder:
+`addresses_timezone`, `player_details`, `stats_visibility`, `contacts_directory`, `team_board`),
+clock-based playing time (`20261112000100_time_mode`, `20261112000200_game_clock_stints`), the
+bench queue (`20261112000300_bench_queue`) and team duplication (`20261112000400_duplicate_team`).
+Nothing in the app's clock mode works live until they are applied, and the bench on the period
+cards falls back to roster order until the queue migration is in. From the repo folder:
 
 ```powershell
 npm run db:push
@@ -33,7 +34,20 @@ npm run db:types
 setup → **Track playing time by: Clock**, set the halves and an optional half length, and set the
 starters on the Field tab. Known gap: a substitution tapped with no signal is stamped when it
 reaches the server, not when it was tapped (docs/DECISIONS.md D76); fix any stint afterwards from
-the game's page. Test: open the live site as a parent on one phone and add a
+the game's page.
+
+To make a test copy of a team from the dashboard's SQL editor (there is no signed-in user there, so
+the owner is passed explicitly; the owner of the source team is used here):
+
+```sql
+select public.duplicate_team(
+  (select id from public.teams where name = 'Strikers' and archived_at is null),
+  'Test-Strikers',
+  (select owner_id from public.teams where name = 'Strikers' and archived_at is null)
+);
+```
+
+The copy has its own invite link, turned off, and only the owner as coach (D81). Test: open the live site as a parent on one phone and add a
 score as the coach on another; the parent's screen updates within a couple of seconds.
 
 ## 1. Make GitHub Pages possible on a private repo

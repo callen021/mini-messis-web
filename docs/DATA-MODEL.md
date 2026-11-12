@@ -168,6 +168,7 @@ erDiagram
     uuid game_id FK "null = team template"
     int period_index "unique with team + game"
     text formation_name
+    uuid[] bench_order "the bench queue, left to right (D79)"
   }
   lineup_slots {
     uuid lineup_id PK
@@ -397,7 +398,12 @@ A lineup is one period's formation; `game_id` null is the team's template plan, 
 game's own copy. Slots hold the position role/code and the player (at most once per lineup,
 partial unique index). Written atomically by `save_lineups()` (last write wins), `copy_lineups()`,
 `create_team()`, `admin_change_sport()` and `import_legacy_backup()`. Trigger
-`lineup_slots_validate` requires the player to be on the lineup's team.
+`lineup_slots_validate` requires the player to be on the lineup's team. `bench_order` (D79) is the
+row's bench queue, left to right: `bench_normalize(lineup)` keeps it honest (drops the on-field,
+archived and marked-out, appends the missing in roster order) and `bench_apply(lineup, remove,
+append)` updates it; `save_lineups` takes a `bench_order` per period, `copy_lineups`, `start_game`
+and `clock_end_period` carry it, `set_player_available` re-normalizes the template and any live
+game, and `clock_ops.bench_before` lets `clock_undo` restore it.
 
 ### score_events
 
@@ -476,6 +482,8 @@ Training sessions beside games (`scheduled` or `cancelled`, never deleted by a c
 | `game_clock`, `server_time`, `clock_start`, `clock_pause`, `clock_end_period`                                                             | the game clock (D66)                                                                                    |
 | `clock_sub`, `clock_swap`, `clock_empty`, `clock_fill`, `clock_set_lineup`, `clock_undo`                                                  | atomic substitutions on the clock, each an undoable op (D67)                                            |
 | `stint_update`, `stint_add`, `stint_delete`, `stint_check`                                                                                | playing-time corrections after a game (D67, D75)                                                        |
+| `bench_normalize`, `bench_apply`, `lineup_of`, `clock_bench_swap`                                                                         | the bench queue (D79)                                                                                   |
+| `duplicate_team(source, name, owner?)`                                                                                                    | a platform-admin copy of a team with new ids throughout, in one transaction (D81)                       |
 | `season_minutes(team, season?)`, `team_period_count(team)`, `clock_elapsed(seconds, since)`                                               | minutes per player and position group for Auto-fill (staff); the mode's period count; the clock formula |
 | `set_batting_order`                                                                                                                       | baseball order                                                                                          |
 | `set_skill_test_order`, `restore_skill_tests`                                                                                             | skills settings                                                                                         |
