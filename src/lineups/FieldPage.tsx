@@ -308,6 +308,8 @@ function PeriodFieldPage() {
               periodCount={N || 1}
               initialPeriod={scoring ?? 0}
               players={activePlayers}
+              onField={(periods[scoring ?? 0]?.slots ?? []).filter(Boolean)}
+              bench={queueOf(scoring ?? 0)}
               names={names}
               events={log}
               onAdd={(ev) => {

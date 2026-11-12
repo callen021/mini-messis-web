@@ -2551,3 +2551,55 @@ a.prow.dir .pname {
   flex-wrap: wrap;
   gap: 6px;
 }
+
+/* ---------- player buttons in the goal sheet (D96) ---------- */
+.pickgrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.pbtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--fill);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.pbtn b {
+  font-weight: 800;
+  opacity: 0.65;
+}
+.pbtn.none {
+  background: var(--tint-soft);
+  color: var(--tint);
+}
+.pbtn.on,
+.pbtn.none.on {
+  background: var(--green);
+  color: #fff;
+}
+.pbtn.on b {
+  opacity: 1;
+}
+.pbtn.off,
+.pbtn:disabled {
+  opacity: 0.4;
+}
+.form .stamp {
+  margin: -6px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  font-variant-numeric: tabular-nums;
+}
+.benchtoggle {
+  justify-self: start;
+  font-size: 14px;
+}

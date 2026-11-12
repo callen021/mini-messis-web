@@ -289,7 +289,9 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
       renderPage();
       await userEvent.click(screen.getByRole('button', { name: /Add a goal/ }));
       const dialog = await screen.findByRole('dialog', { name: 'Goal · vs Tigers' });
-      const assist = within(dialog).getByRole('combobox', { name: 'Assist' });
+      const assist = within(within(dialog).getByRole('radiogroup', { name: 'Assist' })).getByRole('radio', {
+        name: '#3 Jack',
+      });
       assist.focus();
       expect(assist).toHaveFocus();
       // three clock ticks while the sheet is open
@@ -297,7 +299,11 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
         await new Promise((r) => setTimeout(r, 1300));
       });
       expect(screen.getByRole('dialog', { name: 'Goal · vs Tigers' })).toBe(dialog);
-      expect(within(dialog).getByRole('combobox', { name: 'Assist' })).toBe(assist);
+      expect(
+        within(within(dialog).getByRole('radiogroup', { name: 'Assist' })).getByRole('radio', {
+          name: '#3 Jack',
+        }),
+      ).toBe(assist);
       expect(assist).toHaveFocus();
     } finally {
       useNowImpl = () => FIXED_NOW;

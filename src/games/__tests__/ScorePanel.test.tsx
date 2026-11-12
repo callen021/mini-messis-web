@@ -67,9 +67,13 @@ describe('ScorePanel', () => {
       />,
     );
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).getByRole('combobox', { name: 'Scorer' })).toHaveValue('p2');
+    const scorer = within(dialog).getByRole('radiogroup', { name: 'Scorer' });
+    const assist = within(dialog).getByRole('radiogroup', { name: 'Assist' });
+    expect(within(scorer).getByRole('radio', { name: '#2 Teddy' })).toBeChecked();
     expect(within(dialog).getByRole('radio', { name: 'Quarter 3' })).toBeChecked();
-    await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Assist' }), 'p1');
+    // the scorer is greyed out in the assist row: a kid cannot assist their own goal
+    expect(within(assist).getByRole('radio', { name: '#2 Teddy' })).toBeDisabled();
+    await userEvent.click(within(assist).getByRole('radio', { name: '#1 Nolan' }));
     await userEvent.click(within(dialog).getByRole('button', { name: 'Add our goal' }));
     expect(onAdd).toHaveBeenCalledWith({
       side: 'us',
@@ -101,8 +105,12 @@ describe('ScorePanel', () => {
       />,
     );
     const dialog = screen.getByRole('dialog');
-    expect(within(dialog).queryByRole('combobox', { name: 'Assist' })).not.toBeInTheDocument();
-    await userEvent.selectOptions(within(dialog).getByRole('combobox', { name: 'Scorer' }), 'p1');
+    expect(within(dialog).queryByRole('radiogroup', { name: 'Assist' })).not.toBeInTheDocument();
+    await userEvent.click(
+      within(within(dialog).getByRole('radiogroup', { name: 'Scorer' })).getByRole('radio', {
+        name: '#1 Nolan',
+      }),
+    );
     await userEvent.click(within(dialog).getByRole('button', { name: 'Our field goal, +2' }));
     expect(onAdd).toHaveBeenLastCalledWith(
       expect.objectContaining({ side: 'us', event_type: 'field_goal', points: 2, scorer_player_id: 'p1' }),
@@ -110,6 +118,57 @@ describe('ScorePanel', () => {
     // the sheet closes after a tap; a second immediate tap on the still-mounted panel is ignored
     await userEvent.click(within(dialog).getByRole('button', { name: 'Hawks three-pointer, +3' }));
     expect(onAdd).toHaveBeenCalledTimes(1);
+  });
+
+  it('on-field players first, the bench behind a toggle, the same player never both (D96)', async () => {
+    const onAdd = vi.fn();
+    const roster = [...players, mk('p3', 'Jack', '3'), mk('p4', 'Hal', '4')];
+    render(
+      <ScorePanel
+        open
+        onClose={vi.fn()}
+        S={SPORTS.soccer}
+        opponent="Bears"
+        periodCount={2}
+        initialPeriod={0}
+        players={roster}
+        onField={['p2', 'p1']}
+        bench={['p4', 'p3']}
+        stamp="H1 · 12:34"
+        names={makeNameLookup(roster)}
+        events={[]}
+        onAdd={onAdd}
+        onUndo={vi.fn()}
+      />,
+    );
+    const dialog = screen.getByRole('dialog');
+    expect(within(dialog).getByText('H1 · 12:34')).toBeInTheDocument();
+    const scorer = within(dialog).getByRole('radiogroup', { name: 'Scorer' });
+    // field order first, then Unknown; the bench is hidden until asked for
+    expect(
+      within(scorer)
+        .getAllByRole('radio')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['#2 Teddy', '#1 Nolan', 'Unknown']);
+    expect(within(scorer).getByRole('radio', { name: 'Unknown' })).toBeChecked();
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Show bench players (2)' }));
+    expect(
+      within(scorer)
+        .getAllByRole('radio')
+        .map((b) => b.getAttribute('aria-label')),
+    ).toEqual(['#2 Teddy', '#1 Nolan', '#4 Hal', '#3 Jack', 'Unknown']);
+    const assist = within(dialog).getByRole('radiogroup', { name: 'Assist' });
+    await userEvent.click(within(assist).getByRole('radio', { name: '#1 Nolan' }));
+    // picking Nolan as the scorer clears him as the assist and greys him out there
+    await userEvent.click(within(scorer).getByRole('radio', { name: '#1 Nolan' }));
+    expect(within(scorer).getByRole('radio', { name: '#1 Nolan' })).toBeChecked();
+    expect(within(assist).getByRole('radio', { name: '#1 Nolan' })).toBeDisabled();
+    expect(within(assist).getByRole('radio', { name: 'No assist' })).toBeChecked();
+    await userEvent.click(within(assist).getByRole('radio', { name: '#4 Hal' }));
+    await userEvent.click(within(dialog).getByRole('button', { name: 'Add our goal' }));
+    expect(onAdd).toHaveBeenCalledWith(
+      expect.objectContaining({ scorer_player_id: 'p1', assist_player_id: 'p4' }),
+    );
   });
 
   it('describes events for toasts and the log', () => {

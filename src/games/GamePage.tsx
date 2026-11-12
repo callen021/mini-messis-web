@@ -655,6 +655,17 @@ function GameDetail({ game }: { game: GameWithScore }) {
             }
             lockPeriod={clockMode && isLive}
             players={roster.filter((p) => p.is_available)}
+            onField={
+              isLive
+                ? (
+                    periods[
+                      clockMode
+                        ? Math.min(gameClock.data?.periodIndex ?? 0, periodCount - 1)
+                        : Math.max(0, periodCount - 1)
+                    ]?.slots ?? []
+                  ).filter(Boolean)
+                : []
+            }
             names={names}
             events={log}
             onAdd={(ev) => {

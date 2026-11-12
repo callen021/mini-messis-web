@@ -1,12 +1,12 @@
-import { useState } from 'react';
+import { type ReactNode, useState } from 'react';
 import { Button } from '@/components/Button';
-import { Field, Select } from '@/components/Form';
 import { FormSheet } from '@/components/Sheet';
 import { type ScoreEventKind, type SportDefinition } from '@/sports/types';
 import { type Player } from '@/teams/api';
 import { type NewScoreEvent, type ScoreEvent } from './api';
 import { type NameLookup } from './names';
 import { PeriodPicker } from './PeriodPicker';
+import { PlayerPicker } from './PlayerPicker';
 import { describeEvent, scoreTapAllowed } from './scoring';
 
 export interface ScorePanelProps {
@@ -26,6 +26,12 @@ export interface ScorePanelProps {
   onUndo: (ev: ScoreEvent) => void;
   /** Clock mode (D68): the period comes from the game clock, so the picker is hidden. */
   lockPeriod?: boolean;
+  /** Ids on the field right now, in field order (D96): their buttons come first. */
+  onField?: readonly string[];
+  /** Ids on the bench, in bench order; everyone not on the field when omitted. */
+  bench?: readonly string[];
+  /** "H1 · 12:34": the period and clock time the goal is stamped with (a ticking leaf). */
+  stamp?: ReactNode;
 }
 
 /**
@@ -46,11 +52,15 @@ export function ScorePanel({
   onAdd,
   onUndo,
   lockPeriod = false,
+  onField = [],
+  bench,
+  stamp,
 }: ScorePanelProps) {
   const lastOurs = [...events].reverse().find((e) => e.side === 'us');
   const [period, setPeriod] = useState(initialPeriod);
   const [scorer, setScorer] = useState(lastOurs?.scorer_player_id ?? '');
   const [assist, setAssist] = useState('');
+  const [showBench, setShowBench] = useState(false);
   const [busy, setBusy] = useState(false);
   const [prevOpen, setPrevOpen] = useState(open);
 
@@ -61,9 +71,28 @@ export function ScorePanel({
       setPeriod(initialPeriod);
       setScorer(lastOurs?.scorer_player_id ?? '');
       setAssist('');
+      setShowBench(false);
       setBusy(false);
     }
   }
+
+  const byId = new Map(players.map((p) => [p.id, p]));
+  const onSet = new Set(onField);
+  const onFieldPlayers = onField.flatMap((id) => {
+    const p = byId.get(id);
+    return p ? [p] : [];
+  });
+  const benchPlayers = bench
+    ? bench.flatMap((id) => {
+        const p = byId.get(id);
+        return p && !onSet.has(id) ? [p] : [];
+      })
+    : players.filter((p) => !onSet.has(p.id));
+  const canToggleBench = onFieldPlayers.length > 0 && benchPlayers.length > 0;
+  const pickScorer = (id: string) => {
+    setScorer(id);
+    if (id && id === assist) setAssist(''); // the same player cannot be both
+  };
 
   const post = (side: 'us' | 'them', kind: ScoreEventKind) => {
     if (busy || !scoreTapAllowed()) return;
@@ -91,29 +120,42 @@ export function ScorePanel({
         : `Goal · vs ${opponent}`;
   const scorerLabel = panel === 'run' ? 'Who crossed the plate' : 'Scorer';
 
-  const playerOptions = players.map((p) => (
-    <option key={p.id} value={p.id}>
-      {p.jersey_number ? `#${p.jersey_number} ` : ''}
-      {names.name(p.id)}
-    </option>
-  ));
-
   return (
     <FormSheet open={open} onClose={onClose} title={title}>
+      {stamp && <p className="stamp">{stamp}</p>}
       {!lockPeriod && <PeriodPicker S={S} count={periodCount} value={period} onChange={setPeriod} />}
-      <Field label={scorerLabel}>
-        <Select value={scorer} onChange={(e) => setScorer(e.target.value)}>
-          <option value="">Unknown / not recorded</option>
-          {playerOptions}
-        </Select>
-      </Field>
+      <PlayerPicker
+        label={scorerLabel}
+        value={scorer}
+        onChange={pickScorer}
+        onField={onFieldPlayers}
+        bench={benchPlayers}
+        showBench={showBench}
+        noneLabel="Unknown"
+        names={names}
+      />
       {S.scoring.assists && (
-        <Field label="Assist">
-          <Select value={assist} onChange={(e) => setAssist(e.target.value)}>
-            <option value="">No assist</option>
-            {playerOptions}
-          </Select>
-        </Field>
+        <PlayerPicker
+          label="Assist"
+          value={assist}
+          onChange={setAssist}
+          onField={onFieldPlayers}
+          bench={benchPlayers}
+          showBench={showBench}
+          noneLabel="No assist"
+          excludeId={scorer || undefined}
+          names={names}
+        />
+      )}
+      {canToggleBench && (
+        <button
+          type="button"
+          className="linkbtn benchtoggle"
+          aria-expanded={showBench}
+          onClick={() => setShowBench((v) => !v)}
+        >
+          {showBench ? 'Hide bench players' : `Show bench players (${benchPlayers.length})`}
+        </button>
       )}
       {panel === 'points' ? (
         <div className="ptpanel" role="group" aria-label="Add points">

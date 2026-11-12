@@ -36,6 +36,7 @@ import {
 } from './clock';
 import { ClockCard } from './ClockCard';
 import { ClockDisplay } from './ClockDisplay';
+import { ClockStamp } from './ClockStamp';
 import { PeriodOverAlert } from './PeriodOverAlert';
 import { type Selection, type TapOutcome, resolveTap, selectionHint } from './tap';
 import { useFlash } from './useFlash';
@@ -460,6 +461,9 @@ export function ClockFieldPage() {
           initialPeriod={periodIndex}
           lockPeriod
           players={activePlayers}
+          onField={slots.filter(Boolean)}
+          bench={queue}
+          stamp={<ClockStamp clock={clock} label={shortPeriod(S, N, periodIndex)} />}
           names={names}
           events={log}
           onAdd={(ev) => {

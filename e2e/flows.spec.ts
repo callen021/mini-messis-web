@@ -1,4 +1,4 @@
-import { type Browser, type BrowserContext, expect, type Page, test } from '@playwright/test';
+import { type Browser, type BrowserContext, expect, type Locator, type Page, test } from '@playwright/test';
 
 /**
  * The full coach + parent flow from docs/BUILD-PROMPT.md §7, against a LOCAL Supabase
@@ -564,7 +564,7 @@ test.describe('coach and parent flows', () => {
   test('coach adds a goal; the parent sees the score update live', async () => {
     await coach.getByRole('button', { name: 'Add goal' }).click();
     const sheet = coach.getByRole('dialog', { name: 'Goal · vs Tigers' });
-    await sheet.getByLabel('Scorer').selectOption({ label: '#1 Ava' });
+    await pickPlayer(sheet, 'Scorer', '#1 Ava');
     await sheet.getByRole('button', { name: 'Add our goal' }).click();
     await expect(sheet).toBeHidden();
     await expect(coach.getByLabel('Us 1, them 0')).toBeVisible();
@@ -575,7 +575,7 @@ test.describe('coach and parent flows', () => {
     // a second goal by Ben, who is not the parent's child
     await coach.getByRole('button', { name: 'Add goal' }).click();
     const sheet = coach.getByRole('dialog', { name: 'Goal · vs Tigers' });
-    await sheet.getByLabel('Scorer').selectOption({ label: '#2 Ben' });
+    await pickPlayer(sheet, 'Scorer', '#2 Ben');
     await sheet.getByRole('button', { name: 'Add our goal' }).click();
     await expect(sheet).toBeHidden();
     await expect(coach.getByLabel('Us 2, them 0')).toBeVisible();
@@ -799,11 +799,23 @@ test.describe('coach and parent flows', () => {
   });
 
   test('a goal in clock mode is stamped with the half and the minute (D74)', async () => {
+    await coach.setViewportSize({ width: 375, height: 760 }); // one-handed (D96)
     await coach.getByRole('button', { name: 'Start clock' }).click();
     await coach.getByRole('button', { name: /Add a goal/ }).click();
     const sheet = coach.getByRole('dialog', { name: 'Goal · vs Lions' });
     await expect(sheet.getByRole('radiogroup', { name: 'Half' })).toHaveCount(0); // the period comes from the clock
-    await sheet.getByLabel('Scorer').selectOption({ label: '#1 Ava' });
+    // the stamp ticks inside the sheet; the sheet itself never re-renders with the clock (D95, D96)
+    await expect(sheet.getByText(/^H2 · \d+:\d\d$/)).toBeVisible();
+    await pickPlayer(sheet, 'Scorer', '#1 Ava');
+    const focused = () => coach.evaluate(() => document.activeElement?.getAttribute('aria-label') ?? '');
+    expect(await focused()).toBe('#1 Ava');
+    await coach.waitForTimeout(3000);
+    await expect(sheet).toBeVisible();
+    expect(await focused()).toBe('#1 Ava'); // focus never moved on its own
+    await pickPlayer(sheet, 'Assist', '#2 Ben');
+    await expect(
+      sheet.getByRole('radiogroup', { name: 'Assist' }).getByRole('radio', { name: '#1 Ava' }),
+    ).toBeDisabled();
     await sheet.getByRole('button', { name: 'Add our goal' }).click();
     await expect(sheet).toBeHidden();
     await coach.goto('/games');
@@ -947,6 +959,13 @@ test.describe('coach and parent flows', () => {
     await expect(coach.locator('.benchrow')).toHaveCount(4);
   });
 });
+
+/** Pick a player button in the goal sheet (D96); bench players sit behind a toggle. */
+async function pickPlayer(sheet: Locator, group: string, name: string) {
+  const radio = sheet.getByRole('radiogroup', { name: group }).getByRole('radio', { name });
+  if ((await radio.count()) === 0) await sheet.getByRole('button', { name: /Show bench players/ }).click();
+  await radio.click();
+}
 
 async function fresh(browser: Browser): Promise<[BrowserContext, Page]> {
   const ctx = await browser.newContext();

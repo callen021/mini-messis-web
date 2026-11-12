@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Button } from '@/components/Button';
-import { Field, FieldGroup, Select, TextInput } from '@/components/Form';
+import { Field, FieldGroup, TextInput } from '@/components/Form';
 import { Segmented } from '@/components/Segmented';
 import { FormSheet } from '@/components/Sheet';
 import { type SportDefinition } from '@/sports/types';
@@ -8,6 +8,7 @@ import { type Player } from '@/teams/api';
 import { type ScoreEvent, type ScoreEventPatch } from './api';
 import { type NameLookup } from './names';
 import { PeriodPicker } from './PeriodPicker';
+import { PlayerPicker } from './PlayerPicker';
 
 export interface EditScoreSheetProps {
   event: ScoreEvent | null;
@@ -77,21 +78,6 @@ export function EditScoreSheet({
   const noun = first?.noun ?? 'score';
   // Keep a removed player selectable so the row can be saved untouched.
   const extra = [scorer, assist].filter((id) => id && !players.some((p) => p.id === id));
-  const options = (
-    <>
-      {players.map((p) => (
-        <option key={p.id} value={p.id}>
-          {p.jersey_number ? `#${p.jersey_number} ` : ''}
-          {names.name(p.id)}
-        </option>
-      ))}
-      {extra.map((id) => (
-        <option key={id} value={id}>
-          {names.name(id) || 'Removed player'} (removed)
-        </option>
-      ))}
-    </>
-  );
 
   return (
     <FormSheet open={!!event} onClose={onClose} title={`Edit ${noun}`}>
@@ -130,19 +116,35 @@ export function EditScoreSheet({
           />
         </FieldGroup>
       )}
-      <Field label={S.scoring.panel === 'run' ? 'Who crossed the plate' : 'Scorer'}>
-        <Select value={scorer} onChange={(e) => setScorer(e.target.value)} disabled={side === 'them'}>
-          <option value="">Unknown / not recorded</option>
-          {options}
-        </Select>
-      </Field>
+      <PlayerPicker
+        label={S.scoring.panel === 'run' ? 'Who crossed the plate' : 'Scorer'}
+        value={scorer}
+        onChange={(id) => {
+          setScorer(id);
+          if (id && id === assist) setAssist('');
+        }}
+        onField={[]}
+        bench={players}
+        showBench
+        extraIds={extra}
+        noneLabel="Unknown"
+        names={names}
+        disabled={side === 'them'}
+      />
       {S.scoring.assists && (
-        <Field label="Assist">
-          <Select value={assist} onChange={(e) => setAssist(e.target.value)} disabled={side === 'them'}>
-            <option value="">No assist</option>
-            {options}
-          </Select>
-        </Field>
+        <PlayerPicker
+          label="Assist"
+          value={assist}
+          onChange={setAssist}
+          onField={[]}
+          bench={players}
+          showBench
+          extraIds={extra}
+          noneLabel="No assist"
+          excludeId={scorer || undefined}
+          names={names}
+          disabled={side === 'them'}
+        />
       )}
       <Button
         onClick={() => {
