@@ -2,9 +2,10 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { qk } from '@/lib/query-keys';
 import { supabase } from '@/lib/supabase';
 import { type Player } from '@/teams/api';
+import { type DbErrorLike, dbError } from '@/lib/errors';
 
-const fail = (error: { message: string } | null) => {
-  if (error) throw new Error(error.message);
+const fail = (error: DbErrorLike | null) => {
+  if (error) throw dbError(error);
 };
 
 /** Optimistic helpers shared by the roster mutations. */

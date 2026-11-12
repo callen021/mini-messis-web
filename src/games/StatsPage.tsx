@@ -9,6 +9,7 @@ import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
 import { Tile, Tiles } from '@/components/Tile';
 import { cn } from '@/lib/cn';
+import { errorMessage } from '@/lib/supabase';
 import { type StatsView, useUIStore } from '@/lib/ui-store';
 import { SPORTS } from '@/sports/definitions';
 import { useCurrentTeam } from '@/teams/TeamContext';
@@ -169,7 +170,9 @@ export function StatsPage() {
               </div>
             ))}
             {list.length === 0 && <div className="prow">Play a game to see player stats.</div>}
-            {stats.error && <div className="prow">Couldn’t load player stats: {stats.error.message}</div>}
+            {stats.error && (
+              <div className="prow">Couldn’t load player stats. {errorMessage(stats.error)}</div>
+            )}
             {list.length > 0 && rows.length === 0 && !stats.isPending && !stats.error && (
               <div className="prow">No player stats yet.</div>
             )}

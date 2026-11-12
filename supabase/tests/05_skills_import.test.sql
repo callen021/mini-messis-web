@@ -1,7 +1,7 @@
 -- Phase 6/7: skills tests (attempts lock, order, restore), stats games_played, legacy import (pgTAP).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(24);
+select plan(29);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -99,8 +99,23 @@ select is((select goals || '/' || assists from public.player_season_stats((selec
 select pg_temp.logout();
 
 select pg_temp.login('f2000000-0000-0000-0000-000000000002');
-select throws_ok($$select public.import_legacy_backup((select v from ctx where k = 'team'), '{}'::jsonb)$$, '42501', null, 'non-staff cannot import');
+select throws_ok($$select public.import_legacy_backup((select v from ctx where k = 'team'), '{}'::jsonb)$$,'42501', null, 'non-staff cannot import');
 select pg_temp.logout();
+
+-- ---------- Load example team (D90) ----------
+-- a second replace in the same session reuses the temp map (truncated, never a bare DELETE)
+select pg_temp.login('f2000000-0000-0000-0000-000000000001');
+select lives_ok($$select public.import_legacy_backup((select v from ctx where k = 'team'), '{"replace": true, "players": [{"key":"p0","first_name":"Ann"}], "template": [], "games": []}'::jsonb)$$,'a second replace import in the same session runs');
+select is((select count(*)::int from public.players where team_id = (select v from ctx where k = 'team')), 1, 'and replaced the roster again');
+-- the example payload is admin-only and only for a team with no players
+select throws_ok($$select public.import_legacy_backup((select v from ctx where k = 'team'), '{"example": true, "replace": true, "players": [{"key":"p0","first_name":"Ann"}]}'::jsonb)$$,'42501', null, 'a coach who is not a platform admin cannot load the example team');
+select pg_temp.logout();
+update public.profiles set is_platform_admin = true where id = 'f2000000-0000-0000-0000-000000000001';
+select pg_temp.login('f2000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.import_legacy_backup((select v from ctx where k = 'team'), '{"example": true, "replace": true, "players": [{"key":"p0","first_name":"Ann"}]}'::jsonb)$$,'P0008', null, 'an admin cannot load it onto a team that has players');
+select lives_ok($$select public.import_legacy_backup((select v from ctx where k = 'team2'), '{"example": true, "replace": true, "players": [{"key":"p0","first_name":"Ann"},{"key":"p1","first_name":"Bo"}], "template": [], "games": []}'::jsonb)$$,'an admin loads the example onto an empty team');
+select pg_temp.logout();
+update public.profiles set is_platform_admin = false where id = 'f2000000-0000-0000-0000-000000000001';
 
 select * from finish();
 rollback;

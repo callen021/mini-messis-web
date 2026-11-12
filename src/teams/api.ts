@@ -6,6 +6,7 @@ import { defaultsPayload } from '@/skills/defaults';
 import { SPORTS, defaultFormation } from '@/sports/definitions';
 import { type SportKey } from '@/sports/types';
 import { invalidateTeamCaches, patchTeamCaches } from './teamCache';
+import { type DbErrorLike, dbError } from '@/lib/errors';
 
 export type Team = Tables<'teams'>;
 export type Membership = Tables<'team_members'>;
@@ -18,8 +19,8 @@ export interface ActiveMembership {
   team: Team;
 }
 
-function unwrap<T>(res: { data: T; error: { message: string } | null }): NonNullable<T> {
-  if (res.error) throw new Error(res.error.message);
+function unwrap<T>(res: { data: T; error: DbErrorLike | null }): NonNullable<T> {
+  if (res.error) throw dbError(res.error);
   if (res.data === null || res.data === undefined) throw new Error('No data returned');
   return res.data as NonNullable<T>;
 }
@@ -208,7 +209,7 @@ export interface InvitePreview extends JoinPreview {
 
 export async function lookupInvite(code: string): Promise<InvitePreview | null> {
   const { data, error } = await supabase.rpc('lookup_invite', { p_code: code });
-  if (error) throw new Error(error.message);
+  if (error) throw dbError(error);
   return (data as unknown as InvitePreview | null) ?? null;
 }
 

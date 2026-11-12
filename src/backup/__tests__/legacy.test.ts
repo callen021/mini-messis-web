@@ -133,5 +133,7 @@ describe('legacy backup import', () => {
     expect(payload.template).toHaveLength(4);
     expect(payload.template[0]?.slots.every((s) => s.player_key)).toBe(true);
     expect(payload.games).toEqual([]);
+    // flagged so the server can restrict it to platform admins and empty rosters (D90)
+    expect(payload.example).toBe(true);
   });
 });

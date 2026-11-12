@@ -37,16 +37,5 @@ export function appUrl(path: string): string {
   return `${window.location.origin}${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
-/** Human-readable message from a Supabase/Postgres error. */
-export function errorMessage(err: unknown): string {
-  if (!err) return 'Something went wrong.';
-  if (
-    typeof err === 'object' &&
-    'message' in err &&
-    typeof (err as { message: unknown }).message === 'string'
-  ) {
-    return (err as { message: string }).message;
-  }
-  if (err instanceof Error) return err.message;
-  return String(err);
-}
+/** The one sentence a screen shows for a failure; raw database text never (D90). See lib/errors. */
+export { errorMessage } from './errors';

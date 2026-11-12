@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type Enums, type Tables } from '@/lib/database.types';
 import { normalizePhone } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
+import { type DbErrorLike, dbError } from '@/lib/errors';
 
 /** Private player data (D52) and the shared contact directory (D57). RLS trims what each caller sees. */
 export type PlayerDetails = Tables<'player_details'>;
@@ -31,8 +32,8 @@ export const playerKeys = {
   teamSheet: (teamId: string) => ['team', teamId, 'sheet'] as const,
 };
 
-const fail = (error: { message: string } | null) => {
-  if (error) throw new Error(error.message);
+const fail = (error: DbErrorLike | null) => {
+  if (error) throw dbError(error);
 };
 
 /* ---------- details (birthdate, shirt size) ---------- */

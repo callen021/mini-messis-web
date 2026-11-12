@@ -3,9 +3,10 @@ import { type Json } from '@/lib/database.types';
 import { qk } from '@/lib/query-keys';
 import { supabase } from '@/lib/supabase';
 import { type ImportPayload } from './legacy';
+import { type DbErrorLike, dbError } from '@/lib/errors';
 
-const fail = (error: { message: string } | null) => {
-  if (error) throw new Error(error.message);
+const fail = (error: DbErrorLike | null) => {
+  if (error) throw dbError(error);
 };
 
 /** Everything a team import can touch. */

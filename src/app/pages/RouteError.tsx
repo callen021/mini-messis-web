@@ -1,15 +1,12 @@
 import { isRouteErrorResponse, useRouteError } from 'react-router';
+import { errorMessage } from '@/lib/errors';
 import { Footer, Group, Row } from '@/components/List';
 import { Page } from '@/components/Page';
 
 /** Router-level error boundary. Full error boundaries with retry arrive in Phase 8. */
 export function RouteError() {
   const err = useRouteError();
-  const message = isRouteErrorResponse(err)
-    ? `${err.status} ${err.statusText}`
-    : err instanceof Error
-      ? err.message
-      : 'Something went wrong.';
+  const message = isRouteErrorResponse(err) ? `${err.status} ${err.statusText}` : errorMessage(err);
   return (
     <main className="app-main">
       <Page title="Something went wrong" sub={message}>

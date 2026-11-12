@@ -9,11 +9,12 @@ import { type EnginePlayer, type Formation, type Period } from '@/sports/types';
 import { type Player } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { periodsToPayload, rowsToPeriods, type StoredPeriod } from './convert';
+import { type DbErrorLike, dbError } from '@/lib/errors';
 
 export type Game = Tables<'games'>;
 
-function unwrap<T>(res: { data: T; error: { message: string } | null }): NonNullable<T> {
-  if (res.error) throw new Error(res.error.message);
+function unwrap<T>(res: { data: T; error: DbErrorLike | null }): NonNullable<T> {
+  if (res.error) throw dbError(res.error);
   if (res.data === null || res.data === undefined) throw new Error('No data returned');
   return res.data as NonNullable<T>;
 }
@@ -29,7 +30,7 @@ export function useLiveGame(teamId: string) {
         .eq('team_id', teamId)
         .eq('status', 'live')
         .maybeSingle();
-      if (error) throw new Error(error.message);
+      if (error) throw dbError(error);
       return data;
     },
   });
@@ -106,7 +107,7 @@ export function useSavePlan(teamId: string, gameId: string | null) {
         p_game_id: gameId ?? undefined,
         p_periods: payload as unknown as Json,
       });
-      if (error) throw new Error(error.message);
+      if (error) throw dbError(error);
     },
     onMutate: async (periods) => {
       await qc.cancelQueries({ queryKey: key });

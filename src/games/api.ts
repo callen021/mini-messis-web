@@ -3,6 +3,7 @@ import { type Enums, type Tables, type TablesInsert } from '@/lib/database.types
 import { qk } from '@/lib/query-keys';
 import { supabase } from '@/lib/supabase';
 import { type PlayerStatRow } from './stats';
+import { type DbErrorLike, dbError } from '@/lib/errors';
 
 export type Game = Tables<'games'>;
 export type ScoreEvent = Tables<'score_events'>;
@@ -18,13 +19,13 @@ export interface GameWithScore extends Game {
   them: number;
 }
 
-function unwrap<T>(res: { data: T; error: { message: string } | null }): NonNullable<T> {
-  if (res.error) throw new Error(res.error.message);
+function unwrap<T>(res: { data: T; error: DbErrorLike | null }): NonNullable<T> {
+  if (res.error) throw dbError(res.error);
   if (res.data === null || res.data === undefined) throw new Error('No data returned');
   return res.data as NonNullable<T>;
 }
-const fail = (error: { message: string } | null) => {
-  if (error) throw new Error(error.message);
+const fail = (error: DbErrorLike | null) => {
+  if (error) throw dbError(error);
 };
 
 /** Generic optimistic list mutation: apply the change to the cached list, roll back on error, refetch after. */
@@ -107,7 +108,7 @@ export function useGame(gameId: string | undefined) {
         .select('*')
         .eq('id', gameId as string)
         .maybeSingle();
-      if (error) throw new Error(error.message);
+      if (error) throw dbError(error);
       if (!data) return null;
       return (await attachScores([data]))[0] ?? null;
     },
@@ -438,7 +439,7 @@ export function useCoachNotes(gameId: string | undefined, enabled: boolean) {
         .select('notes')
         .eq('game_id', gameId as string)
         .maybeSingle();
-      if (error) throw new Error(error.message);
+      if (error) throw dbError(error);
       return data?.notes ?? '';
     },
     enabled: !!gameId && enabled,

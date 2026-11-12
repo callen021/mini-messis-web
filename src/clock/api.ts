@@ -5,16 +5,17 @@ import { qk } from '@/lib/query-keys';
 import { supabase } from '@/lib/supabase';
 import { type ClockState, PAUSED_CLOCK, type Stint } from './clock';
 import { noteServerTime } from './serverTime';
+import { type DbErrorLike, dbError } from '@/lib/errors';
 
 export type StintRow = Tables<'stints'>;
 
-function unwrap<T>(res: { data: T; error: { message: string } | null }): NonNullable<T> {
-  if (res.error) throw new Error(res.error.message);
+function unwrap<T>(res: { data: T; error: DbErrorLike | null }): NonNullable<T> {
+  if (res.error) throw dbError(res.error);
   if (res.data === null || res.data === undefined) throw new Error('No data returned');
   return res.data as NonNullable<T>;
 }
-const fail = (error: { message: string } | null) => {
-  if (error) throw new Error(error.message);
+const fail = (error: DbErrorLike | null) => {
+  if (error) throw dbError(error);
 };
 
 export const clockKeys = {

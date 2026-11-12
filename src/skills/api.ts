@@ -3,19 +3,20 @@ import { type Json, type TablesInsert } from '@/lib/database.types';
 import { supabase } from '@/lib/supabase';
 import { type SportKey } from '@/sports/types';
 import { defaultsPayload, type SkillResult, type SkillTest } from './defaults';
+import { type DbErrorLike, dbError } from '@/lib/errors';
 
 export const skillKeys = {
   tests: (teamId: string) => ['team', teamId, 'skill-tests'] as const,
   results: (teamId: string) => ['team', teamId, 'skill-results'] as const,
 };
 
-function unwrap<T>(res: { data: T; error: { message: string } | null }): NonNullable<T> {
-  if (res.error) throw new Error(res.error.message);
+function unwrap<T>(res: { data: T; error: DbErrorLike | null }): NonNullable<T> {
+  if (res.error) throw dbError(res.error);
   if (res.data === null || res.data === undefined) throw new Error('No data returned');
   return res.data as NonNullable<T>;
 }
-const fail = (error: { message: string } | null) => {
-  if (error) throw new Error(error.message);
+const fail = (error: DbErrorLike | null) => {
+  if (error) throw dbError(error);
 };
 
 function useListMutation<TRow, TArgs>(

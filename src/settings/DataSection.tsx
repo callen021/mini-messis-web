@@ -1,6 +1,7 @@
 import { useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
-import { useIsCoach, useIsStaff } from '@/auth/guards';
+import { useIsPlatformAdmin } from '@/admin/useIsPlatformAdmin';
+import { useIsStaff } from '@/auth/guards';
 import { downloadJson, exportTeamBackup, useArchiveTeam, useImportBackup } from '@/backup/api';
 import { examplePayload, isLegacyBackup, legacySports, normalizeLegacyBackup } from '@/backup/legacy';
 import { ExportIcon, ImportIcon } from '@/components/icons';
@@ -12,6 +13,7 @@ import { errorMessage } from '@/lib/supabase';
 import { useFormations } from '@/lineups/api';
 import { defaultFormation, SPORTS, periodPlural } from '@/sports/definitions';
 import { samplePlan } from '@/sports/lineup';
+import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 
 /** Settings → Data: export, legacy import, example team, delete team. */
@@ -19,7 +21,8 @@ export function DataSection() {
   const { teamId, team, sport, isOwner } = useCurrentTeam();
   const S = SPORTS[sport];
   const isStaff = useIsStaff();
-  const isCoach = useIsCoach();
+  const isAdmin = useIsPlatformAdmin() === true;
+  const players = usePlayers(teamId);
   const toast = useToast();
   const sheet = useActionSheet();
   const navigate = useNavigate();
@@ -92,7 +95,7 @@ export function DataSection() {
   const loadExample = async () => {
     const ok = await sheet({
       title: `Load example ${S.name.toLowerCase()} team`,
-      message: `This replaces the roster, lineups and games on ${team.name} with a sample team. Other teams are untouched.`,
+      message: `This puts a sample roster and lineups on ${team.name}. Other teams are untouched.`,
       actions: [{ label: 'Load example', value: true, destructive: true }],
     });
     if (!ok) return;
@@ -150,11 +153,11 @@ export function DataSection() {
           onClick={() => fileRef.current?.click()}
           disabled={importBackup.isPending}
         />
-        {isCoach && (
+        {isAdmin && players.data?.length === 0 && (
           <Row
             icon={S.emoji}
             label="Load example team"
-            detail="Sample roster and lineups for trying things out"
+            detail="Sample roster and lineups for trying things out (platform admins, empty roster only)"
             link
             onClick={() => void loadExample()}
             disabled={importBackup.isPending}

@@ -1,4 +1,5 @@
 import { Component, type ErrorInfo, type ReactNode } from 'react';
+import { errorMessage } from '@/lib/errors';
 
 export interface ErrorBoundaryProps {
   children: ReactNode;
@@ -50,7 +51,7 @@ export function AppCrash({ error, reset }: { error: Error; reset: () => void }) 
     <main className="app-main">
       <section className="page">
         <h1 className="large">Something went wrong</h1>
-        <p className="sub">{error.message || 'An unexpected error.'}</p>
+        <p className="sub">{errorMessage(error)}</p>
         <div className="group">
           <button type="button" className="row link" onClick={reset}>
             <span className="lbl">Try again</span>

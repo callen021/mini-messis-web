@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useFormations } from '@/lineups/api';
 import { periodsToPayload, type StoredPeriod } from '@/lineups/convert';
 import { type Period } from '@/sports/types';
+import { dbError } from '@/lib/errors';
 
 /**
  * Save the starters of a clock-mode team (D70). The template keeps its period rows (the
@@ -23,7 +24,7 @@ export function useSaveStarters(teamId: string) {
         p_game_id: undefined,
         p_periods: periodsToPayload(periods, formationFor) as unknown as Json,
       });
-      if (error) throw new Error(error.message);
+      if (error) throw dbError(error);
     },
     onMutate: async ({ starters, count }) => {
       await qc.cancelQueries({ queryKey: key });

@@ -4,14 +4,15 @@ import { qk } from '@/lib/query-keys';
 import { supabase } from '@/lib/supabase';
 import { type SportKey } from '@/sports/types';
 import { type MemberRole, teamDefaults } from '@/teams/api';
+import { type DbErrorLike, dbError } from '@/lib/errors';
 
 export const adminKeys = {
   teams: ['admin', 'teams'] as const,
   users: ['admin', 'users'] as const,
 };
 
-const fail = (error: { message: string } | null) => {
-  if (error) throw new Error(error.message);
+const fail = (error: DbErrorLike | null) => {
+  if (error) throw dbError(error);
 };
 
 export interface AdminTeamRow {

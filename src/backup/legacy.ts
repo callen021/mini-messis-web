@@ -36,6 +36,8 @@ export interface ImportGame {
 }
 export interface ImportPayload {
   replace: boolean;
+  /** The sample team (D90): the server accepts it only from a platform admin onto an empty roster. */
+  example?: boolean;
   team: { side_size: number; has_gk: boolean; periods_count: number; colors: Record<string, string> };
   players: {
     key: string;
@@ -297,6 +299,7 @@ export function examplePayload(
   });
   return {
     replace: true,
+    example: true,
     team: {
       side_size: S.defaultSize,
       has_gk: S.hasGK,

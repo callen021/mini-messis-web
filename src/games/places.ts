@@ -1,5 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { dbError } from '@/lib/errors';
 
 /** A location the team has used before, with the address last entered for it (D50). */
 export interface TeamPlace {
@@ -15,7 +16,7 @@ export function useTeamPlaces(teamId: string, enabled = true) {
     queryKey: ['team', teamId, 'places'],
     queryFn: async () => {
       const { data, error } = await supabase.rpc('team_places', { p_team_id: teamId });
-      if (error) throw new Error(error.message);
+      if (error) throw dbError(error);
       return (data ?? []) as TeamPlace[];
     },
     enabled,

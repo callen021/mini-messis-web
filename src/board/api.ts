@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { supabase } from '@/lib/supabase';
+import { type DbErrorLike, dbError } from '@/lib/errors';
 
 /** Team board (D58): posts, one level of comments, announcements, unread tracking. */
 export interface BoardComment {
@@ -30,8 +31,8 @@ export const boardKeys = {
   all: (teamId: string) => ['team', teamId, 'board'] as const,
 };
 
-const fail = (error: { message: string } | null) => {
-  if (error) throw new Error(error.message);
+const fail = (error: DbErrorLike | null) => {
+  if (error) throw dbError(error);
 };
 
 export function useBoardFeed(teamId: string) {

@@ -1,4 +1,5 @@
 import { isRouteErrorResponse, useLocation, useNavigate, useRouteError } from 'react-router';
+import { errorMessage } from '@/lib/errors';
 import { Footer, Group, Row } from '@/components/List';
 import { Page } from '@/components/Page';
 
@@ -10,11 +11,7 @@ export function TabError() {
   const err = useRouteError();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const message = isRouteErrorResponse(err)
-    ? `${err.status} ${err.statusText}`
-    : err instanceof Error
-      ? err.message
-      : 'Something went wrong.';
+  const message = isRouteErrorResponse(err) ? `${err.status} ${err.statusText}` : errorMessage(err);
   return (
     <Page title="This page hit a snag" sub={message}>
       <Group>
