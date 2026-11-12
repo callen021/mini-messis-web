@@ -2,6 +2,30 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { qk } from '@/lib/query-keys';
 import { supabase } from '@/lib/supabase';
 import { type Player } from '@/teams/api';
+
+/** A parent who would lose their membership if these players were removed (rule 12, D93). */
+export interface LosingParent {
+  user_id: string;
+  display_name: string;
+  children: string[];
+}
+
+/** Staff: the parents whose only linked children are among `playerIds`. */
+export async function parentsLosingAccess(playerIds: readonly string[]): Promise<LosingParent[]> {
+  if (!playerIds.length) return [];
+  const { data, error } = await supabase.rpc('parents_losing_access', { p_player_ids: [...playerIds] });
+  if (error) throw dbError(error);
+  return (data ?? []).map((r) => ({ ...r, children: r.children ?? [] }));
+}
+
+/** "Pat and Sam lose access" for a confirmation sheet. */
+export function losingAccessText(parents: readonly LosingParent[]): string {
+  if (!parents.length) return '';
+  const names = parents.map((p) => p.display_name);
+  const list =
+    names.length === 1 ? names[0] : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+  return `${list} ${names.length === 1 ? 'loses' : 'lose'} access to the team: this is their only child here.`;
+}
 import { type DbErrorLike, dbError } from '@/lib/errors';
 
 const fail = (error: DbErrorLike | null) => {
@@ -30,6 +54,7 @@ function usePlayersMutation<TArgs>(
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: key });
       void qc.invalidateQueries({ queryKey: ['team', teamId, 'lineups'] });
+      void qc.invalidateQueries({ queryKey: qk.teamMembers(teamId) }); // a removal may remove parents (D93)
     },
   });
 }

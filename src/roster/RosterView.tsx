@@ -14,7 +14,13 @@ import { buildVCards, deliverVcf } from '@/players/vcard';
 import { SPORTS } from '@/sports/definitions';
 import { type Player } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
-import { useAddPlayer, useArchivePlayer, useUpdatePlayer } from './api';
+import {
+  losingAccessText,
+  parentsLosingAccess,
+  useAddPlayer,
+  useArchivePlayer,
+  useUpdatePlayer,
+} from './api';
 
 /**
  * Team → Roster is the team directory (D57): number, name and the parents' first names the viewer
@@ -63,12 +69,21 @@ export function RosterView({
   };
   const remove = async (p: Player) => {
     const used = plan.periods.some((q) => q.slots.includes(p.id));
+    let losing = '';
+    try {
+      losing = losingAccessText(await parentsLosingAccess([p.id]));
+    } catch (e) {
+      onError(e);
+      return;
+    }
     const ok = await sheet({
       title: p.first_name,
       message:
         (used
           ? `This player is ${S.unit} in at least one ${noun}. Those jerseys will become unassigned. `
-          : '') + 'Past game results keep their name and stats. Remove from the roster?',
+          : '') +
+        (losing ? `${losing} ` : '') +
+        'Past game results keep their name and stats. Remove from the roster?',
       actions: [{ label: 'Remove player', value: true, destructive: true }],
     });
     if (!ok) return;

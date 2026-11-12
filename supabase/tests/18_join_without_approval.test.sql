@@ -1,7 +1,7 @@
--- Joining without approval, unconfirmed links and staff link management (pgTAP, D91, D92).
+-- Joining without approval, unconfirmed links, staff link management and rule 12 (pgTAP, D91–D93).
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(47);
+select plan(56);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -159,6 +159,22 @@ select pg_temp.logout();
 select pg_temp.login('fc000000-0000-0000-0000-000000000002');
 select lives_ok($$select public.approve_member((select id from public.team_members where user_id = 'fc000000-0000-0000-0000-000000000006'), 'parent')$$, 'the coach approves P3');
 select is((select status::text from public.player_guardians where user_id = 'fc000000-0000-0000-0000-000000000006'), 'approved', 'approval confirms the link as before');
+select pg_temp.logout();
+
+-- ---------- rule 12: removing a player removes their parents ----------
+-- links now: P1→Ann (confirmed), P2→Bo, P3→Cy, Old→Cy. Make the assistant a parent of Ann too.
+insert into public.player_guardians (player_id, user_id, status) values ('ec000000-0000-0000-0000-00000000000a', 'fc000000-0000-0000-0000-000000000003', 'approved');
+insert into public.player_guardians (player_id, user_id, status) values ('ec000000-0000-0000-0000-00000000000b', 'fc000000-0000-0000-0000-000000000004', 'pending');
+select pg_temp.login('fc000000-0000-0000-0000-000000000002');
+select is((select string_agg(display_name, ',' order by display_name) from public.parents_losing_access(array['ec000000-0000-0000-0000-00000000000c'::uuid])), 'old-j,parent3-j', 'the preview names the parents who would lose access');
+select is((select count(*)::int from public.parents_losing_access(array['ec000000-0000-0000-0000-00000000000a'::uuid])), 0, 'removing Ann alone removes nobody: P1 also has Bo, the assistant is staff');
+select lives_ok($$select public.archive_player('ec000000-0000-0000-0000-00000000000c')$$, 'the coach removes Cy');
+select is((select string_agg(user_id::text, ',' order by user_id) from public.team_members where team_id = (select v from ctx where k = 'team') and status = 'removed'), 'fc000000-0000-0000-0000-000000000006,fc000000-0000-0000-0000-000000000007', 'both parents whose only child was Cy lost their membership in the same transaction');
+select is((select count(*)::int from public.player_guardians where player_id = 'ec000000-0000-0000-0000-00000000000c'), 0, 'their links are gone');
+select lives_ok($$select public.archive_player('ec000000-0000-0000-0000-00000000000a')$$, 'the coach removes Ann');
+select is((select status::text || '/' || role::text from public.team_members where user_id = 'fc000000-0000-0000-0000-000000000004'), 'active/parent', 'P1 stays: they still have Bo');
+select is((select status::text || '/' || role::text from public.team_members where user_id = 'fc000000-0000-0000-0000-000000000003'), 'active/assistant', 'the assistant keeps their staff role');
+select is((select count(*)::int from public.game_players gp where gp.game_id = 'ac000000-0000-0000-0000-000000000001') + (select count(*)::int from public.score_events where scorer_player_id = 'ec000000-0000-0000-0000-00000000000a'), 1, 'the player''s history is kept');
 select pg_temp.logout();
 
 select * from finish();

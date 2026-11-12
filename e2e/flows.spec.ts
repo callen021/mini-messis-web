@@ -871,6 +871,22 @@ test.describe('coach and parent flows', () => {
     await expect(row).toContainText('1 shift');
   });
 
+  test('removing a player removes a parent whose only child it was; the confirmation names them (D93)', async () => {
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await coach.getByRole('button', { name: 'Edit roster' }).click();
+    await coach.getByRole('button', { name: 'Remove Ben' }).click();
+    const confirm = coach.getByRole('dialog', { name: 'Ben' });
+    await expect(confirm).toContainText('Direct Dana loses access to the team');
+    await confirm.getByRole('button', { name: 'Remove player' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Player removed' })).toBeVisible();
+    // Dana is out in the same transaction; Parent Pat (Ava) stays
+    await danaPage.reload();
+    await expect(danaPage).toHaveURL(/\/welcome$/, { timeout: 20_000 });
+    await parent.goto('/home');
+    await expect(parent.getByRole('heading', { level: 1, name: 'Ava' })).toBeVisible({ timeout: 20_000 });
+  });
+
   test('switching back to periods brings back the four quarter cards, untouched', async () => {
     await coach.goto('/settings/team');
     const saved = teamSaved(coach);
