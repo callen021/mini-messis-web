@@ -20,10 +20,14 @@ const ToastContext = createContext<ToastFn | null>(null);
 export function ToastProvider({ children }: { children: ReactNode }) {
   const [message, setMessage] = useState('');
   const [show, setShow] = useState(false);
+  // px from the viewport bottom when a sticky action bar is on screen: the toast sits just above it (D80)
+  const [lift, setLift] = useState<number | null>(null);
   const timer = useRef<number | undefined>(undefined);
 
   const toast = useCallback<ToastFn>((msg) => {
     setMessage(msg);
+    const bar = document.querySelector<HTMLElement>('.actionbar')?.getBoundingClientRect();
+    setLift(bar && bar.top < window.innerHeight && bar.bottom > 0 ? window.innerHeight - bar.top + 12 : null);
     setShow(true);
     window.clearTimeout(timer.current);
     timer.current = window.setTimeout(() => setShow(false), TOAST_DURATION_MS);
@@ -36,7 +40,13 @@ export function ToastProvider({ children }: { children: ReactNode }) {
   return (
     <ToastContext.Provider value={value}>
       {children}
-      <div className={cn('toast', show && 'show')} role="status" aria-live="polite" aria-atomic="true">
+      <div
+        className={cn('toast', show && 'show')}
+        style={lift !== null ? { bottom: lift } : undefined}
+        role="status"
+        aria-live="polite"
+        aria-atomic="true"
+      >
         {message}
       </div>
     </ToastContext.Provider>

@@ -943,8 +943,8 @@ button.row:disabled {
 .toast {
   position: fixed;
   left: 50%;
-  /* above the sticky action bar as well as the tab bar, so a toast never covers a control (D80) */
-  bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + 76px);
+  /* above the tab bar; with a sticky action bar on screen the provider lifts it above that too (D80) */
+  bottom: calc(var(--tab-h) + env(safe-area-inset-bottom) + 14px);
   transform: translate(-50%, 10px);
   z-index: 60;
   background: var(--toast-bg);
@@ -954,7 +954,9 @@ button.row:disabled {
   padding: 10px 16px;
   border-radius: 20px;
   opacity: 0;
-  transition: 0.25s;
+  transition:
+    opacity 0.25s,
+    transform 0.25s; /* never bottom: the lift above a toolbar must not slide through it (D80) */
   pointer-events: none;
   white-space: nowrap;
   max-width: calc(100vw - 32px);
