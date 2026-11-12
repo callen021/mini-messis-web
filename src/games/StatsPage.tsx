@@ -17,7 +17,7 @@ import { usePlayers } from '@/teams/api';
 import { useGames, usePlayerStats } from './api';
 import { fmtDate } from './format';
 import { GameBadge } from './GameBadge';
-import { completedGames, formatStat, signed, sortRows, teamRecord } from './stats';
+import { completedGames, formatStat, signed, sortRows, statColumns, teamRecord } from './stats';
 
 /** Completed games shown on Stats → Season before "See all results". */
 export const RECENT_RESULTS = 3;
@@ -53,7 +53,7 @@ export function StatsPage() {
 
   const rec = teamRecord(list);
   const unit = S.scoring.unitPlural;
-  const cols = S.scoring.columns;
+  const cols = statColumns(S, team.time_mode === 'clock');
   const sorted = sortRows(
     stats.data ?? [],
     cols.map((c) => c.key),
@@ -176,6 +176,7 @@ export function StatsPage() {
           </Group>
           <Footer>
             Stats come from saved games only.{' '}
+            {team.time_mode === 'clock' ? 'MIN is minutes on the field from the game clock. ' : ''}
             {S.scoring.panel === 'run'
               ? 'AVG is hits divided by at-bats; walks, hit by pitch and sacrifices are not at-bats. '
               : ''}

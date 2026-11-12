@@ -91,6 +91,7 @@ export interface StatColumn {
 export type StatKey =
   | 'games_played'
   | 'periods_played'
+  | 'minutes_played'
   | 'goals'
   | 'assists'
   | 'points'

@@ -1,4 +1,4 @@
-import { type StatKey } from '@/sports/types';
+import { type SportDefinition, type StatColumn, type StatKey } from '@/sports/types';
 import { type ScoreEvent } from './api';
 
 export interface Scored {
@@ -79,9 +79,10 @@ export interface PlayerStatRow {
   seconds_played: number;
 }
 
-/** Numeric value of a column (AVG is derived). */
+/** Numeric value of a column (AVG and minutes are derived). */
 export function statValue(row: PlayerStatRow, key: StatKey): number {
   if (key === 'avg') return row.at_bats ? row.hits / row.at_bats : 0;
+  if (key === 'minutes_played') return (row.seconds_played ?? 0) / 60;
   return row[key] ?? 0;
 }
 
@@ -91,12 +92,29 @@ export function formatStat(row: PlayerStatRow, key: StatKey): string {
     if (!row.at_bats) return '–';
     return (row.hits / row.at_bats).toFixed(3).replace(/^0/, '');
   }
+  if (key === 'minutes_played') return String(Math.floor((row.seconds_played ?? 0) / 60));
   return String(row[key] ?? 0);
+}
+
+const MINUTES_COLUMN: StatColumn = { key: 'minutes_played', label: 'MIN', title: 'Minutes played' };
+const MINUTES_TILE: StatColumn = { key: 'minutes_played', label: 'Minutes', title: 'Minutes played' };
+
+/** The sport's stat columns; in clock mode (D73) minutes played stand where periods played would. */
+export function statColumns(S: SportDefinition, clockMode: boolean): readonly StatColumn[] {
+  if (!clockMode) return S.scoring.columns;
+  return S.scoring.columns.map((c) => (c.key === 'periods_played' ? MINUTES_COLUMN : c));
+}
+
+/** The four season tiles; in clock mode minutes replace periods. */
+export function profileTiles(S: SportDefinition, clockMode: boolean): readonly StatColumn[] {
+  if (!clockMode) return S.scoring.profile;
+  return S.scoring.profile.map((c) => (c.key === 'periods_played' ? MINUTES_TILE : c));
 }
 
 /** True when the row has nothing to show (hidden for removed players, as in the legacy app). */
 export const isEmptyRow = (row: PlayerStatRow): boolean =>
   row.periods_played === 0 &&
+  (row.seconds_played ?? 0) === 0 &&
   row.goals === 0 &&
   row.assists === 0 &&
   row.points === 0 &&

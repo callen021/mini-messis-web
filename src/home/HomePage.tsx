@@ -17,8 +17,9 @@ import { downloadScheduleIcs } from '@/games/ics';
 import { usePractices } from '@/games/practices';
 import { mergeSchedule } from '@/games/recurrence';
 import { scheduleEvents } from '@/games/schedule-ics';
-import { formatStat } from '@/games/stats';
+import { formatStat, profileTiles } from '@/games/stats';
 import { countdown, timingLabel } from '@/games/timing';
+import { ChildClockRow } from '@/clock/ChildClockRow';
 import { useCurrentPlan, useFormations, useMyChildren } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
 import { DetailsSection } from '@/players/DetailsSection';
@@ -219,7 +220,14 @@ function ChildHome({ child }: { child: Player }) {
 
       <Section>{live ? `${child.first_name} in this game` : `${child.first_name} in the next game`}</Section>
       <Group>
-        {N === 0 || !inPlan ? (
+        {team.time_mode === 'clock' ? (
+          <ChildClockRow
+            child={child}
+            live={live}
+            starters={periods[0] ?? null}
+            formationFor={formationFor}
+          />
+        ) : N === 0 || !inPlan ? (
           <Row
             label={
               N === 0 ? 'The coach hasn’t set a lineup yet' : `${child.first_name} isn’t in the lineup yet`
@@ -258,7 +266,7 @@ function ChildHome({ child }: { child: Player }) {
 
       <Section>Season</Section>
       <Tiles cols={4}>
-        {S.scoring.profile.map((c, i) => (
+        {profileTiles(S, team.time_mode === 'clock').map((c, i) => (
           <Tile key={`${c.key}-${i}`} label={c.label} value={row ? formatStat(row, c.key) : '–'} />
         ))}
       </Tiles>
