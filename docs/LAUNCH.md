@@ -14,20 +14,26 @@ scripts in `scripts/`, and the repository variables `VITE_SUPABASE_URL` and
 
 ---
 
-## 0. Push the pending migration (fixes live updates for parents)
+## 0. Push the pending migrations
 
-Phase 8 testing found that the `teams` table was never added to the Realtime publication, and
-Supabase then silently delivers no events on that channel at all, so parents did not get live
-scores or lineup changes. The fix is migration `20261110000100_realtime_teams.sql`. From the
-repo folder:
+Ten migrations are waiting since the launch build: `20261110000100_realtime_teams` (fixes live
+updates for parents), the parent-feedback rounds (`admin_only_team_creation`, `invite_links`,
+`addresses_timezone`, `player_details`, `stats_visibility`, `contacts_directory`, `team_board`)
+and clock-based playing time (`20261112000100_time_mode`, `20261112000200_game_clock_stints`).
+Nothing in the app's clock mode works live until the last two are applied; period-mode teams are
+unaffected either way. From the repo folder:
 
 ```powershell
 npm run db:push
 npm run db:types
 ```
 
-`db:push` asks for confirmation and applies only the new migration. If `db:types` changes
-`src/lib/database.types.ts`, commit it. Test: open the live site as a parent on one phone and add a
+`db:push` asks for confirmation and applies only the new migrations. If `db:types` changes
+`src/lib/database.types.ts`, commit it. Then, for a team that wants the clock: Settings → Team
+setup → **Track playing time by: Clock**, set the halves and an optional half length, and set the
+starters on the Field tab. Known gap: a substitution tapped with no signal is stamped when it
+reaches the server, not when it was tapped (docs/DECISIONS.md D76); fix any stint afterwards from
+the game's page. Test: open the live site as a parent on one phone and add a
 score as the coach on another; the parent's screen updates within a couple of seconds.
 
 ## 1. Make GitHub Pages possible on a private repo

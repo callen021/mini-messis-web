@@ -81,9 +81,11 @@ Read the legacy code for exact behavior; this is the checklist.
 **Field screen (team template and live game)**
 - One card per period: period title (Q1/H1/Inning 1), formation select, "N open / Full" pill, jerseys placed on the field with name, number, position code, auto-fill dot; tapping a jersey opens a player picker (native `<select>` today — replace with a bottom-sheet picker that shows bench first, then "move from X" for players already on the field; keep the swap/move semantics and toasts). Bench strip: "Sitting out · n", out-for-this-game players, per-card Auto-fill / Redo button. Toolbar: Auto-fill (all periods), Clear, Print. Soccer/lacrosse: live score button per card that opens the goal panel; subtitle shows "Live vs Opponent · US x – y THEM".
 - Editable team name in the large title.
+- **Clock mode (D65–D76, 2026-11-12):** a team setting "Track playing time by" — periods (the default, everything above unchanged) or clock. In clock mode the Field is one card for the whole game: the period and a count-up clock in the header (Start, Pause, End half; time remaining and an alert at zero when a period length is set, never ending the half by itself; elapsed time derived from server timestamps so every device agrees), the field, and a bench row of the same jerseys at two-thirds size (44px tap targets, wrapping, players marked out excluded). Substitution is select-then-target with no sheet: tap a jersey, then another (field↔bench swaps them, two on-field jerseys swap positions, an empty spot moves the selected player, the same jersey again cancels, two bench jerseys does nothing; an empty spot with nothing selected opens the picker). On-field jerseys show the current shift, bench jerseys minutes played and rest, fewest minutes then longest rest first. Changes during a game are atomic server functions on stints (sub, swap, empty a spot, fill, rewrite at zero, end period, undo last); before kickoff the same field sets the starters, and at the end of a half everyone carries over as the next half's starters. Auto-fill before a game ranks by season minutes (rotating position groups, hand picks never moved); at a break "Suggest starters" ranks by minutes this game. Finishing keeps the starting lineup as the template. Parents see the clock and bench read-only. The small jerseys exist only in clock mode.
 
 **Team screen** — segmented Rotation | Roster.
 - Rotation grid: one row per active player with active/out switch, name+number, one chip per period showing the position code (colored by group, dotted corner if auto) that opens a position picker including "* Sitting out" and "code · occupant" for taken spots (swap semantics), total column, "Out this game" list, balance meter, Auto-fill open spots. (Parent-feedback round, D51: a Position key under the grid lists only the codes in the current plan with full names; tapping a chip as a parent names the position; the totals column has a header — Qtrs / Halves / Inn — and reads "3 of 4".)
+- Clock mode (D72): the Rotation view becomes one row per player with minutes this game as a bar, shifts, an on-field dot and a minutes balance (range and average, informational), live; parents read-only with their own child first.
 - Roster: jersey number, name, active/out switch, remove (with confirmation that explains lineup/history effects), "Everyone's back", Add player. Removing a player keeps their name on past games (snapshot).
 
 **Lineup / Edit order (baseball only)**
@@ -107,6 +109,7 @@ Read the legacy code for exact behavior; this is the checklist.
 - Soccer / lacrosse: G, A, periods played.
 - Basketball: PTS, FG, 3PT, FT, periods played.
 - Baseball: R, AB, H, 2B, 3B, HR, RBI, BB, K, AVG (H/AB, AB excludes walks, HBP and sacrifices), innings in the field.
+- Clock mode (D73): minutes played (from stints) stand where periods played would, in the table and the season tiles, under the same "parents can see stats for" rule. Scores in a live clock game are stamped with the period and clock second and the log shows "H2 23'"; the minute is editable after the fact (D69). After a game, staff correct a player's stints (edit, add, delete; no overlaps, inside the period; who edited is recorded) from the game page (D75).
 
 **Player profile & skills assessments (new) — a click-through prototype of these screens exists; ask me for it before building this phase**
 - Tapping a player's name on the Roster or on any Stats table opens a player page: jersey number and name, four season stat tiles (sport-specific), linked guardians (coach/assistant view only), and a **Skills** section. No playing-time block on this page; that lives on the Team → Rotation view.
@@ -131,7 +134,7 @@ Read the legacy code for exact behavior; this is the checklist.
 - Results belong to the player row, so they carry across seasons on that team.
 
 **Settings** (per team for coaches; per user for everyone)
-- Team: sport picker rows with player/size/period summary; team name; players-on-field stepper; goalkeeper switch; periods stepper; formations read-out with the "read defense → attack" hint; jersey colors per position group with color input.
+- Team: sport picker rows with player/size/period summary; team name; players-on-field stepper; goalkeeper switch; periods stepper; "Track playing time by" periods | clock, with the clock's own period count (default two halves) and optional period length, locked while a game is live (D65); formations read-out with the "read defense → attack" hint; jersey colors per position group with color input.
 - User: theme Light/Dark/Auto; field view 3D/Top-down; install instructions.
 - Data: export team backup (JSON), **import legacy backup** (map the `mini-messis-coach-v5` shape — teams per sport, players, periods, order, games, goals — into the new tables for the current team; keep the old `normalize()` validation rules), "Load example team" (coach only, dev/demo), delete team (owner, double confirm).
 
@@ -243,6 +246,7 @@ src/
   teams/          create, join, members (approve/manage), switcher, settings
   roster/         roster screen + hooks
   lineups/        Field screen, period card, jersey, player picker sheet, rotation grid, auto-fill actions
+  clock/          clock mode (D65–D76): clock maths, stints, select-then-target, the clock-mode Field, Rotation, corrections
   games/          Schedule tab (All | Games | Practices), game detail, new-game sheet, goal panel, schedule fields, ics,
                   practices (hooks, weekly recurrence, new-practice sheet, practice detail)
   stats/          stats screen + hooks

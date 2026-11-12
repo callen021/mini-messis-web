@@ -124,6 +124,32 @@ erDiagram
     text team_name_snapshot
     timestamptz started_at
     timestamptz finished_at
+    int clock_period "clock mode: current period"
+    int clock_seconds "banked while paused"
+    timestamptz clock_running_since "null = paused"
+    int[] clock_period_lengths "final length per ended period"
+  }
+  stints {
+    uuid id PK
+    uuid game_id FK
+    uuid player_id FK
+    int period_index
+    int slot_index
+    text position_role
+    text position_code
+    int clock_start
+    int clock_end "null = on the field now"
+    uuid opened_by_op
+    uuid closed_by_op
+  }
+  clock_ops {
+    uuid id PK
+    bigint seq
+    uuid game_id FK
+    int period_index
+    text kind "sub | swap | empty | fill | lineup | end_period"
+    jsonb deleted_stints
+    timestamptz undone_at
   }
   game_coach_notes {
     uuid game_id PK
@@ -270,7 +296,8 @@ write = coach or assistant**, with these exceptions:
   `rotate_join_code` replaces the code and turns the invite back on.
 
 Realtime is published for `games`, `score_events`, `plate_appearances`, `lineups`, `lineup_slots`,
-`team_members`, `player_guardians`, `players`, `skill_tests`, `skill_results` and `practices`.
+`team_members`, `player_guardians`, `players`, `skill_tests`, `skill_results`, `practices`, `teams`,
+`board_posts`, `board_comments` and `stints`.
 
 ## Tables
 
@@ -285,7 +312,10 @@ can only be set from the SQL editor. Written by the user themselves and by `crea
 ### teams
 
 The team and its settings (sport, side size, goalkeeper, periods, colours, `timezone` for calendar
-exports — default America/Chicago, D50), the owner, the join code and `join_enabled` (D49). Created only by `create_team()`, which also inserts the owner's coach membership, the first
+exports — default America/Chicago, D50), the owner, the join code and `join_enabled` (D49).
+`time_mode` ('periods' | 'clock'), `clock_periods` (default 2) and `period_minutes` (optional)
+decide how playing time is tracked (D65); trigger `teams_guard_time_mode` refuses a change of mode
+or clock period count while a game is live. `team_period_count(team)` is the count for the mode. Created only by `create_team()`, which also inserts the owner's coach membership, the first
 season, the template lineups and the sport's default skill tests. Trigger `teams_guard_update`:
 `owner_id` changes only inside `transfer_ownership()`; name by a coach; sport by a platform admin
 (`admin_change_sport()`); archive by the owner. RPCs: `rotate_join_code`, `transfer_ownership`,
@@ -329,8 +359,27 @@ Schedule and status of a game. `address` (optional, ≤ 200 chars) feeds the Dir
 calendar export; `team_places(team)` lists the location/address pairs a team has used (D50). `start_game()` copies the template lineups into the game, snapshots
 the roster into `game_players`, sets `live` (one live game per team, partial unique index).
 `finish_game()` re-snapshots, sets `done`, and copies the final lineups back as the new template.
-Schedule fields (`start_time`, `location`, `home_away`, `parent_notes`) are edited directly by
+In clock mode (D66–D68) the game also carries the clock (`clock_period`, `clock_seconds`,
+`clock_running_since`, `clock_period_lengths`); `start_game` copies the template's first period
+into every clock period and opens a stint at zero per starter, `finish_game` stops the clock,
+closes stints and writes the _starting_ lineup back as the template. `game_clock(game)` returns
+the clock with the server's own time for skew correction; `clock_elapsed(seconds, running_since)`
+is the one formula. Schedule fields (`start_time`, `location`, `home_away`, `parent_notes`) are edited directly by
 staff. Trigger `games_stamp` writes `updated_by`.
+
+### stints and clock_ops
+
+Clock mode's ledger (D67): one row per spell a player spends in a spot (game, player, period,
+slot, role, code, `clock_start`, `clock_end`; null end = on the field now). Partial unique indexes
+keep one open stint per player per game and per spot per period. Written only by the clock
+functions (`clock_sub`, `clock_swap`, `clock_empty`, `clock_fill`, `clock_set_lineup`,
+`clock_end_period`, `clock_undo`) and the corrections (`stint_update`, `stint_add`,
+`stint_delete`, done games only, staff; `stint_check` enforces end after start, inside the
+period's recorded length, no overlap for the same player). Each clock function mirrors the open
+stints into the period's `lineup_slots` and records a `clock_ops` row (`seq` orders them within a
+transaction); undo reverses the latest op of the current period. Active members read stints
+(playing time is team-visible); `clock_ops` is staff-only. Triggers `stints_updated_at` and
+`stints_stamp` (`updated_by`).
 
 ### game_coach_notes
 
@@ -355,7 +404,9 @@ partial unique index). Written atomically by `save_lineups()` (last write wins),
 The scoring log; the score of a game is always the sum of this table (`game_scores` and
 `game_line_score` views). Trigger `score_events_validate` derives `points` from the sport and
 `event_type` (`score_event_points`), strips players from opponent events, and checks scorer and
-assist belong to the team. Staff insert, update and delete rows directly.
+assist belong to the team. Staff insert, update and delete rows directly. `clock_seconds` (D69)
+is stamped by `score_events_clock_stamp` during a live clock game when the row arrives without
+one, together with the current period.
 
 ### plate_appearances
 
@@ -410,23 +461,27 @@ Training sessions beside games (`scheduled` or `cancelled`, never deleted by a c
 
 ## Views and functions
 
-| Name                                                                                                                                      | What it does                                                                                   |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- |
-| `game_scores` (view)                                                                                                                      | us / them totals per game from `score_events` (security invoker)                               |
-| `game_line_score` (view)                                                                                                                  | points per game, period and side                                                               |
-| `player_season_stats(team, season?, game?)`                                                                                               | one row per player with the sport's stat columns, for a season or one game; runs as the caller |
-| `default_skill_tests(sport)`                                                                                                              | the sport's default test set as JSON (kept in step with `src/skills/defaults.ts`)              |
-| `create_team(...)`                                                                                                                        | team + owner membership + season + template lineups + default tests                            |
-| `lookup_join_code`, `request_join`, `request_guardian_link`, `record_join_attempt`                                                        | the parent/assistant join flow                                                                 |
-| `approve_member`, `decline_member`, `remove_member`, `set_member_role`, `approve_guardian_link`, `rotate_join_code`, `transfer_ownership` | coach membership actions                                                                       |
-| `my_pending_requests`, `list_team_members`                                                                                                | directory helpers (profiles are private)                                                       |
-| `save_lineups`, `copy_lineups`, `clear_player_from_plans`, `set_player_available`, `archive_player`                                       | lineup and roster writes that touch several rows                                               |
-| `start_game`, `finish_game`, `snapshot_game_players`                                                                                      | game lifecycle                                                                                 |
-| `set_batting_order`                                                                                                                       | baseball order                                                                                 |
-| `set_skill_test_order`, `restore_skill_tests`                                                                                             | skills settings                                                                                |
-| `import_legacy_backup`                                                                                                                    | loads a normalised `mini-messis-coach-v5` backup into a team                                   |
-| `is_platform_admin`, `admin_list_teams`, `admin_list_users`, `admin_add_member`, `admin_change_sport`                                     | platform admin console (D39)                                                                   |
-| `generate_join_code`, `normalize_join_code`, `score_event_points`, `email_confirmed`                                                      | pure helpers                                                                                   |
+| Name                                                                                                                                      | What it does                                                                                            |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| `game_scores` (view)                                                                                                                      | us / them totals per game from `score_events` (security invoker)                                        |
+| `game_line_score` (view)                                                                                                                  | points per game, period and side                                                                        |
+| `player_season_stats(team, season?, game?)`                                                                                               | one row per player with the sport's stat columns plus `seconds_played`, for a season or one game        |
+| `default_skill_tests(sport)`                                                                                                              | the sport's default test set as JSON (kept in step with `src/skills/defaults.ts`)                       |
+| `create_team(...)`                                                                                                                        | team + owner membership + season + template lineups + default tests                                     |
+| `lookup_join_code`, `request_join`, `request_guardian_link`, `record_join_attempt`                                                        | the parent/assistant join flow                                                                          |
+| `approve_member`, `decline_member`, `remove_member`, `set_member_role`, `approve_guardian_link`, `rotate_join_code`, `transfer_ownership` | coach membership actions                                                                                |
+| `my_pending_requests`, `list_team_members`                                                                                                | directory helpers (profiles are private)                                                                |
+| `save_lineups`, `copy_lineups`, `clear_player_from_plans`, `set_player_available`, `archive_player`                                       | lineup and roster writes that touch several rows                                                        |
+| `start_game`, `finish_game`, `snapshot_game_players`                                                                                      | game lifecycle (clock-mode branches, D68)                                                               |
+| `game_clock`, `server_time`, `clock_start`, `clock_pause`, `clock_end_period`                                                             | the game clock (D66)                                                                                    |
+| `clock_sub`, `clock_swap`, `clock_empty`, `clock_fill`, `clock_set_lineup`, `clock_undo`                                                  | atomic substitutions on the clock, each an undoable op (D67)                                            |
+| `stint_update`, `stint_add`, `stint_delete`, `stint_check`                                                                                | playing-time corrections after a game (D67, D75)                                                        |
+| `season_minutes(team, season?)`, `team_period_count(team)`, `clock_elapsed(seconds, since)`                                               | minutes per player and position group for Auto-fill (staff); the mode's period count; the clock formula |
+| `set_batting_order`                                                                                                                       | baseball order                                                                                          |
+| `set_skill_test_order`, `restore_skill_tests`                                                                                             | skills settings                                                                                         |
+| `import_legacy_backup`                                                                                                                    | loads a normalised `mini-messis-coach-v5` backup into a team                                            |
+| `is_platform_admin`, `admin_list_teams`, `admin_list_users`, `admin_add_member`, `admin_change_sport`                                     | platform admin console (D39)                                                                            |
+| `generate_join_code`, `normalize_join_code`, `score_event_points`, `email_confirmed`                                                      | pure helpers                                                                                            |
 
 Launch scripts that read this schema: `scripts/reset-strikers-for-launch.sql` (backup to
 `backup_prelaunch`, then wipe everything but the Strikers' roster, schedule and settings) and

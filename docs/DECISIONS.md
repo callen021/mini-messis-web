@@ -638,3 +638,143 @@ pluralised. The parent game page "When" fix from D55 is confirmed in the deploye
 Playwright flows check all three at 375px: the Field empty state (code inside the shirt, no
 "Select", strip above the bar), a scrolled player page (the strip exists, is fixed at the top and
 layered above content), and the parent game detail rows (D55).
+
+## 2026-11-12 — Clock-based playing time
+
+### D64. The rotation total is just the number
+
+"3 of 4" never fit the bubble on a phone. The bubble shows "3"; the column header (Qtrs / Halves
+/ Inn, D51) and the accessible label still say what it is out of.
+
+### D65. "Track playing time by": periods or the clock, with its own period count
+
+`teams.time_mode` ('periods', the default and the existing behaviour, or 'clock') is a staff
+setting in Team setup. Clock mode keeps its own `clock_periods` (default two halves) and an
+optional `period_minutes`; the period-mode `periods_count` is never touched, so switching back and
+forth never resizes a team's plan. A trigger refuses a change of mode or clock period count while
+a game is live (the period length may still change; it only drives "time remaining").
+`team_period_count(team)` gives the count for the current mode. Teams in period mode take exactly
+the code paths they did before: the Field, Team and Stats pages branch on the mode at the top and
+the period components are untouched (the Playwright flows prove the four quarter cards and the
+sitting-out strip come back after a round trip through clock mode).
+
+### D66. The clock is three columns and a server timestamp, never a counter
+
+A live game carries `clock_period`, `clock_seconds` (banked while paused) and
+`clock_running_since` (null when paused), plus the final `clock_period_lengths` of the periods
+ended so far. Elapsed time is `clock_seconds + (now() − clock_running_since)`, computed from
+timestamps on every device and on every tick, so a locked phone, a closed app or a second staff
+phone joining all read the same number. The device's clock skew is measured from `server_time()`
+and from every clock read (`game_clock()` returns `server_now`), and all displays use the corrected
+time. `clock_start` / `clock_pause` / `clock_end_period` are atomic, staff-only, refuse period-mode
+teams, and the games-row realtime that already existed keeps parents in step. With a period
+length set the header shows time remaining, turns red at zero, buzzes and toasts "Time", and does
+nothing else: the half ends only when staff end it. A screen wake lock is requested while a live
+clock game is on the Field (where the browser allows it; iOS needs the installed app).
+
+### D67. Stints are the ledger; minutes are derived; every change is one undoable op
+
+Who is on the field is `stints` (game, player, period, spot, role, code, clock start, clock end).
+An open stint is a player on the field now; one open stint per player per game and per spot per
+period (partial unique indexes). `clock_sub`, `clock_swap`, `clock_empty`, `clock_fill` and
+`clock_set_lineup` close and open stints at the current clock second inside one transaction,
+mirror the open stints into the game's lineup row for that period (so parents' existing views and
+the game page keep working), and write a `clock_ops` row. A stint that would be zero seconds long
+is deleted rather than closed and remembered on the op, so pre-kickoff changes leave no debris.
+`clock_undo` reverses the latest op of the current period (delete what it opened, reopen what it
+closed, re-insert what it deleted); ending a period is never undone. `clock_end_period` closes
+everyone at the final second, records the period's length and carries the same players into the
+next period as its starters at 0:00 (or stops at full time on the last period). Minutes played
+are summed from stints wherever they are shown: `player_season_stats.seconds_played` (an open
+stint counts up to the game's current clock), `season_minutes()` per player and position group for
+Auto-fill, and `playerTimes()` on the client for the live views. After a game staff correct a
+player's stints with `stint_update`, `stint_add` and `stint_delete`: a stint must end after it
+starts, stay inside its period's recorded length and never overlap the same player's other
+stints; `updated_by` records who edited. Parents read stints (playing time is team-visible, like
+positions) and can call nothing. pgTAP 15 walks a whole game: pause and resume maths, every
+substitution kind and its undo, the half-time carry-over, minutes during and after the game, the
+score stamp, the starters-as-template rule, corrections and the period-mode control team.
+
+### D68. Starting and finishing a clock game
+
+`start_game` on a clock team copies the template's first period into every clock period of the
+game, resets the clock and opens a stint at zero for each starter. `finish_game` stops the clock,
+records the last period's length, closes open stints, sets `done`, and writes the **starting**
+lineup (first-period stints that begin at zero) into every template period, not the last players
+on the field. Period-mode teams take the old paths unchanged.
+
+### D69. Scores carry the clock
+
+`score_events.clock_seconds`: during a live clock game an inserted score is stamped with the
+current period and clock second by a trigger, whatever period the client sent; an edit keeps what
+it is given. The log shows "H2 23'" (the running minute of the period, football style) and the
+edit sheet in clock mode has a Minute field: leaving the minute as it was keeps the exact second,
+a new minute starts at :00, clearing it drops the stamp. `game_events()` returns the second.
+
+### D70. The clock-mode Field: one field, a bench row, select-then-target
+
+The period cards are replaced by one card for the whole game: the period and clock in the header
+beside the score button, the field, and under it a bench row of the same jersey art at about
+two-thirds size (a 44px tap target, wrapping) with name and number; players marked out are not on
+the bench. Substitution is select-then-target with no sheet: the first tap selects a jersey
+(outlined, `aria-pressed`, and a hint line "Tap a player to swap with Nolan"), the second completes
+it: field then bench or bench then field swaps those two, two on-field jerseys swap positions, an
+on-field jersey then an empty spot moves the player, tapping the selected jersey again cancels,
+two bench jerseys does nothing. An empty spot with nothing selected still opens the picker sheet.
+`resolveTap()` is a pure function with its own tests. Before a game the same field edits the
+template's starters (saved into every template period so `start_game` and a switch back to period
+mode both find a complete plan); during a game each outcome is one server call on the running
+clock; on-field jerseys show the current shift and bench jerseys minutes played and time resting,
+fewest minutes then longest rest first (`benchOrder()`). The formation can change while the clock
+stands at zero (`clock_set_lineup`), never mid-period. Staff get Start / Pause / Resume, End H1,
+Undo and, at zero, Auto-fill or Suggest starters; parents see the clock and the bench read-only
+with their child starred. The bench row and small jerseys exist in clock mode only: period mode
+keeps its "Sitting out" strip exactly as before (asked for explicitly).
+
+### D71. Auto-fill in clock mode ranks by seconds
+
+Before a game, Auto-fill fills the open starter spots with the players who have the fewest
+seconds this season, then the fewest seconds in that spot's position group (`season_minutes()`),
+then at random; goalie first; hand-picked spots are never moved. At a break (the clock at zero of a
+later period) "Suggest starters" re-picks every spot by minutes this game, from the stints.
+`fillByTime()` mirrors the period engine's rules and has the same kind of tests.
+
+### D72. Rotation in clock mode: minutes bars
+
+Team → Rotation for a clock team is one row per player: minutes this game as a bar against the
+most-used player, the number of shifts, "on at LW" with the on-field dot, the out switch for
+staff, and a Balance summary in minutes (range and average; more than five minutes between the
+most- and least-used player turns the meter orange; informational only). It follows the live game,
+else the most recent completed one, updating live through the stints realtime. Parents see it
+read-only with their own child first.
+
+### D73. Minutes replace periods in the stats
+
+`statColumns()` and `profileTiles()` swap the periods-played column and tile for MIN / Minutes
+when the team is in clock mode (whole minutes, rounded down, from `seconds_played`). The existing
+"parents can see stats for" rule applies unchanged because the minutes come from the same
+`player_season_stats` row. The parent home tab's "in this game" block becomes one row: on the
+field at a position with the current shift, or on the bench with minutes played and rest; before a
+game, the starting position or "not in the starting lineup yet".
+
+### D74. Where the minute shows
+
+The game page log tag, the undo and toast descriptions and the edit sheet all use `eventTag()`,
+which appends the minute only when the event has one, so period-mode games read exactly as
+before.
+
+### D75. Corrections are made on the game page, after the game
+
+A clock game's page replaces the per-period lineup lists with Playing time: the starters, then
+minutes and shifts per player, live while the game is on. After the game staff tap a player to
+open their stints: edit the start and end of each (m:ss), delete one, or add one for a period,
+position and range; the sheet applies the same checks as the server before calling.
+
+### D76. Offline, noted
+
+The clock functions are plain RPCs under the same retry-on-reconnect hooks as everything else
+(D43), but a substitution is stamped with the clock second at the moment the server runs it, not
+the moment it was tapped. At a venue with no signal a sub recorded late lands at a later minute.
+This is a known gap: the venues have good signal, and the correction sheet (D75) fixes any stint
+after the game. Queuing taps with their intended second is possible later by adding a `p_at`
+argument to the functions.
