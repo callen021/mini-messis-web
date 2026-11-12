@@ -601,8 +601,9 @@ test.describe('coach and parent flows', () => {
     await expect(benchRow).toContainText('Bench · 1');
     const fieldShirt = await coach.locator('.slot .shirt').first().boundingBox();
     const benchShirt = await coach.locator('.bslot .shirt').first().boundingBox();
-    expect(fieldShirt && benchShirt && benchShirt.width <= fieldShirt.width * 0.8).toBe(true);
-    expect(benchShirt && benchShirt.height >= 44 && benchShirt.width >= 44).toBe(true);
+    // smaller than a field jersey, but big enough for five to a row at 375px (D85)
+    expect(fieldShirt && benchShirt && benchShirt.width < fieldShirt.width).toBe(true);
+    expect(benchShirt && benchShirt.height >= 44 && benchShirt.width >= 56 && benchShirt.width <= 76).toBe(true);
     // no horizontal scroll
     const overflow = await coach.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
