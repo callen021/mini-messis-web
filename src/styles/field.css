@@ -383,21 +383,30 @@
 
 /* ---------- clock mode (D70): one field, a bench row of small jerseys, select-then-target ---------- */
 .benchrow {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  gap: 6px 8px;
+  --bgap: 8px;
   padding: 10px 12px 12px;
 }
 .benchlabel {
-  flex-basis: 100%;
+  display: block;
+  margin-bottom: 6px;
   font-size: 13px;
   font-weight: 600;
   color: var(--text2);
 }
 .benchempty {
+  display: block;
   font-size: 14px;
   color: var(--text2);
+}
+/* the queue runs right to left (D83): row-reverse puts the first (next in) at the right edge,
+   wraps leftward, and keeps every row right-aligned */
+.benchq {
+  display: flex;
+  flex-direction: row-reverse;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  align-items: flex-start;
+  gap: 6px var(--bgap);
 }
 .bslot {
   width: 56px; /* about two-thirds of a field jersey on a phone; the shirt itself keeps a 44px+ tap box */

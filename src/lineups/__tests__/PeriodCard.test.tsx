@@ -76,6 +76,8 @@ describe('PeriodCard', () => {
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label'));
     expect(names).toEqual(['Bench: Milo #5, 0 quarters', 'Bench: Jack #3, 1 quarter']);
+    // the queue is drawn right to left: DOM order stays queue order inside .benchq (D83)
+    expect(bench.querySelector('.benchq')).not.toBeNull();
     expect(document.querySelectorAll('.bslot')).toHaveLength(2);
     expect(screen.queryByText(/Sitting out/)).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Quarter 1,/ })).toHaveLength(7);

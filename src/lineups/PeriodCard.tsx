@@ -5,12 +5,12 @@ import { useFlash } from '@/clock/useFlash';
 import { OpenPill } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { type FieldView } from '@/sports/field';
-import { periodPlural } from '@/sports/definitions';
 import { type Formation, type Period, type SportDefinition, type SportKey } from '@/sports/types';
 import { type Player } from '@/teams/api';
 import { playerName } from './api';
 import { FieldStage } from './FieldStage';
 import { Jersey } from './Jersey';
+import { periodsPlayed } from './captions';
 import { PlayerPickerSheet } from './PlayerPickerSheet';
 
 export interface PeriodCardProps {
@@ -43,11 +43,6 @@ export interface PeriodCardProps {
   onRedo: () => void;
   /** Optional trailing control in the header (score button, Phase 5). */
   headerExtra?: ReactNode;
-}
-
-/** "0 quarters", "1 half", "2 halves" (D82): the caption under a bench jersey in period mode. */
-export function periodsPlayed(S: SportDefinition, periodCount: number, n: number): string {
-  return `${n} ${n === 1 ? S.periodName(periodCount).toLowerCase() : periodPlural(S, periodCount)}`;
 }
 
 /**
@@ -225,7 +220,7 @@ export function PeriodCard({
           <span>
             {selected
               ? selectionHint(selected, nameOf)
-              : 'Tap a jersey, then another, to swap them. The bench is in order, next in line on the left.'}
+              : 'Tap a jersey, then another, to swap them. The bench is a line: next in on the right.'}
           </span>
           {selected?.kind === 'field' && (
             <Button size="sm" variant="gray" onClick={openSelectedSpot}>

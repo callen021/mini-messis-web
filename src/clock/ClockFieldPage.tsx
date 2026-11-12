@@ -572,8 +572,8 @@ export function ClockFieldPage() {
         <>
           <Footer className="noprint" style={{ marginTop: 14 }}>
             {live
-              ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench is a queue, next in line on the left, with minutes played and time resting under each player; tap two bench jerseys to swap their places. End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`
-              : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available, in the order they will come on (tap two to swap places). Auto-fill gives open spots to the players with the fewest minutes this season, rotating position groups; your own picks are never moved.`}
+              ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench is a line, next in on the right, with minutes played and time resting under each player; tap two bench jerseys to swap their places. End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`
+              : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available, in the order they will come on, next in on the right (tap two to swap places). Auto-fill gives open spots to the players with the fewest minutes this season, rotating position groups; your own picks are never moved.`}
           </Footer>
           {live ? (
             <Toolbar sticky className="mt-3 clockbar">
