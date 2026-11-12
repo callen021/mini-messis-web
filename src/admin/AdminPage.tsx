@@ -1,14 +1,18 @@
 import { useState } from 'react';
-import { Link } from 'react-router';
+import { Link, useNavigate } from 'react-router';
 import { LoadingScreen } from '@/auth/guards';
 import { Badge } from '@/components/Badge';
+import { CopyIcon } from '@/components/icons';
 import { Footer, Group, Row, Section } from '@/components/List';
+import { useToast } from '@/components/Toast';
+import { errorMessage } from '@/lib/supabase';
 import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
 import { fmtDate } from '@/games/format';
 import { SPORTS } from '@/sports/definitions';
 import { useOptionalTeam } from '@/teams/TeamContext';
-import { useAdminTeams, useAdminUsers } from './api';
+import { useAdminTeams, useAdminUsers, useDuplicateTeam } from './api';
+import { DuplicateTeamSheet } from './DuplicateTeamSheet';
 
 type View = 'teams' | 'users';
 const ROLE_LABEL = { coach: 'coach', assistant: 'assistant', parent: 'parent' } as const;
@@ -19,6 +23,10 @@ export function AdminPage() {
   const teams = useAdminTeams();
   const users = useAdminUsers();
   const team = useOptionalTeam();
+  const toast = useToast();
+  const navigate = useNavigate();
+  const duplicate = useDuplicateTeam();
+  const [copying, setCopying] = useState<{ id: string; name: string } | null>(null);
 
   if (teams.isPending || users.isPending) return <LoadingScreen />;
   const teamRows = teams.data ?? [];
@@ -48,20 +56,31 @@ export function AdminPage() {
               const S = SPORTS[t.sport];
               const members = t.coaches + t.assistants + t.parents;
               return (
-                <Row
-                  key={t.id}
-                  to={`/admin/teams/${t.id}`}
-                  icon={S.emoji}
-                  label={t.name}
-                  detail={`${t.owner_name} · ${members} member${members === 1 ? '' : 's'} (${t.coaches}c · ${t.assistants}a · ${t.parents}p)${t.pending ? ` · ${t.pending} pending` : ''} · ${t.players} players · created ${fmtDate(t.created_at.slice(0, 10))}`}
-                  chevron
-                >
-                  {t.archived_at ? (
-                    <Badge>Archived</Badge>
-                  ) : t.pending ? (
-                    <Badge status="upcoming">{t.pending} pending</Badge>
-                  ) : null}
-                </Row>
+                <div key={t.id} className="rowwrap">
+                  <Row
+                    to={`/admin/teams/${t.id}`}
+                    className="hasdir"
+                    icon={S.emoji}
+                    label={t.name}
+                    detail={`${t.owner_name} · ${members} member${members === 1 ? '' : 's'} (${t.coaches}c · ${t.assistants}a · ${t.parents}p)${t.pending ? ` · ${t.pending} pending` : ''} · ${t.players} players · created ${fmtDate(t.created_at.slice(0, 10))}`}
+                    chevron
+                  >
+                    {t.archived_at ? (
+                      <Badge>Archived</Badge>
+                    ) : t.pending ? (
+                      <Badge status="upcoming">{t.pending} pending</Badge>
+                    ) : null}
+                  </Row>
+                  <button
+                    type="button"
+                    className="dirbtn"
+                    aria-label={`Duplicate ${t.name}`}
+                    title="Duplicate team"
+                    onClick={() => setCopying({ id: t.id, name: t.name })}
+                  >
+                    <CopyIcon />
+                  </button>
+                </div>
               );
             })}
             {teamRows.length === 0 && <Row label="No teams yet." />}
@@ -118,9 +137,29 @@ export function AdminPage() {
           </Group>
         </>
       )}
+      <DuplicateTeamSheet
+        source={copying}
+        busy={duplicate.isPending}
+        onClose={() => setCopying(null)}
+        onSubmit={(name) => {
+          const src = copying;
+          if (!src) return;
+          duplicate.mutate(
+            { sourceId: src.id, name },
+            {
+              onSuccess: (id) => {
+                setCopying(null);
+                toast(`${name} created from ${src.name}`);
+                void navigate(`/admin/teams/${id}`);
+              },
+              onError: (e) => toast(errorMessage(e)),
+            },
+          );
+        }}
+      />
       <Footer>
-        Platform admins see every team and can act as a coach on any of them. The admin flag itself is set
-        only in the Supabase SQL editor.
+        Platform admins see every team and can act as a coach on any of them. The copy button on a team row
+        duplicates it under a new name (D81). The admin flag itself is set only in the Supabase SQL editor.
       </Footer>
     </Page>
   );

@@ -132,3 +132,21 @@ export function useAdminChangeSport(teamId: string) {
     void qc.invalidateQueries({ queryKey: ['team', teamId] });
   });
 }
+
+/** Copy a team under a new name; the admin becomes its owner and coach (D81). Resolves to the new team id. */
+export function useDuplicateTeam() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ sourceId, name }: { sourceId: string; name: string }): Promise<string> => {
+      const { data, error } = await supabase.rpc('duplicate_team', { p_source: sourceId, p_name: name });
+      fail(error);
+      if (!data) throw new Error('No team id returned');
+      return data;
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: adminKeys.teams });
+      void qc.invalidateQueries({ queryKey: adminKeys.users });
+      void qc.invalidateQueries({ queryKey: ['memberships'] });
+    },
+  });
+}
