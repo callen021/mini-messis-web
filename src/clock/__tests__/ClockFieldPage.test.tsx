@@ -188,6 +188,7 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     // marked out: not on the bench
     expect(screen.queryByRole('button', { name: /Atlas/ })).not.toBeInTheDocument();
     expect(document.querySelectorAll('.bslot')).toHaveLength(2);
+    expect(document.querySelector('.benchrow .upnext')).toHaveTextContent('Up Next');
     // the jerseys come before the hint text (D77)
     const row = document.querySelector('.benchrow') as HTMLElement;
     const hint = document.querySelector('.taphint') as HTMLElement;
@@ -308,7 +309,7 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     const names = within(screen.getByRole('group', { name: 'Bench' }))
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label'));
-    expect(names[0]).toMatch(/^Bench: Hal #8, 1 min · rest 1:00/); // first in line though he has played more
+    expect(names[0]).toMatch(/^Bench: Hal #8, 1 min · rest 1:00, up next/); // first in line though he has played more
     expect(names[1]).toMatch(/^Bench: Nick/);
     await userEvent.click(bench('Hal'));
     await userEvent.click(bench('Nick'));

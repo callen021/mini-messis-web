@@ -43,13 +43,20 @@ export function BenchRow({
 }) {
   return (
     <div className="benchrow" role="group" aria-label="Bench">
-      <span className="benchlabel">
-        Bench · {entries.length}
-        {extra && <small> · {extra}</small>}
-      </span>
+      <div className="benchhead">
+        <span className="benchlabel">
+          Bench · {entries.length}
+          {extra && <small> · {extra}</small>}
+        </span>
+        {entries.length > 0 && (
+          <span className="upnext" aria-hidden="true">
+            Up Next
+          </span>
+        )}
+      </div>
       {entries.length === 0 && <span className="benchempty">{emptyText}</span>}
       <div className="benchq">
-        {entries.map(({ player, time }) => (
+        {entries.map(({ player, time }, i) => (
           <div key={player.id} className="bslot">
             <Jersey
               id={`bench-${player.id}`}
@@ -58,7 +65,7 @@ export function BenchRow({
               name={player.first_name}
               number={player.jersey_number ?? undefined}
               code=""
-              label={`Bench: ${player.first_name}${player.jersey_number ? ` #${player.jersey_number}` : ''}${time ? `, ${time}` : ''}`}
+              label={`Bench: ${player.first_name}${player.jersey_number ? ` #${player.jersey_number}` : ''}${time ? `, ${time}` : ''}${i === 0 ? ', up next' : ''}`}
               onClick={canEdit ? () => onTap(player.id) : undefined}
               readOnly={!canEdit}
               highlighted={highlight.has(player.id)}

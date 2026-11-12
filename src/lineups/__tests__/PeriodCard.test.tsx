@@ -75,9 +75,10 @@ describe('PeriodCard', () => {
     const names = within(bench)
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label'));
-    expect(names).toEqual(['Bench: Milo #5, 0 quarters', 'Bench: Jack #3, 1 quarter']);
-    // the queue is drawn right to left: DOM order stays queue order inside .benchq (D83)
+    expect(names).toEqual(['Bench: Milo #5, 0 quarters, up next', 'Bench: Jack #3, 1 quarter']);
+    // the queue is drawn right to left with an "Up Next" label over the next-in jersey (D83, D84)
     expect(bench.querySelector('.benchq')).not.toBeNull();
+    expect(bench.querySelector('.upnext')).toHaveTextContent('Up Next');
     expect(document.querySelectorAll('.bslot')).toHaveLength(2);
     expect(screen.queryByText(/Sitting out/)).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Quarter 1,/ })).toHaveLength(7);
@@ -99,7 +100,7 @@ describe('PeriodCard', () => {
     const names = within(bench)
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label'));
-    expect(names).toEqual(['Bench: Milo #5, 0 halves', 'Bench: Jack #3, 1 half']);
+    expect(names).toEqual(['Bench: Milo #5, 0 halves, up next', 'Bench: Jack #3, 1 half']);
     expect(bench.textContent).not.toMatch(/halfs/);
   });
 
