@@ -54,6 +54,22 @@ export const FIELDS: Readonly<
 };
 
 /** Football has no artwork yet; it reuses the soccer pitch (the sport is disabled anyway). */
+/**
+ * Ask the browser for the sport's field artwork before the Field page renders (D89): a
+ * <link rel="preload"> once per image, so the first paint of the field is not waiting on it.
+ * The service worker keeps it in its runtime cache after the first launch.
+ */
+export function preloadFieldImage(sport: SportKey, view: FieldView): void {
+  if (typeof document === 'undefined') return;
+  const href = `${import.meta.env.BASE_URL}${fieldImage(sport, view).src}`;
+  if (document.querySelector(`link[rel="preload"][href="${href}"]`)) return;
+  const link = document.createElement('link');
+  link.rel = 'preload';
+  link.as = 'image';
+  link.href = href;
+  document.head.appendChild(link);
+}
+
 export function fieldImage(sport: SportKey, view: FieldView): FieldImage {
   const key = sport === 'football' ? 'soccer' : sport;
   return FIELDS[key][view];

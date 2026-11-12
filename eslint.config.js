@@ -10,6 +10,8 @@ export default tseslint.config(
   {
     ignores: [
       'dist',
+      'dist-perf',
+      'perf',
       'dev-dist',
       'coverage',
       'node_modules',

@@ -1,7 +1,6 @@
 import { useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { useOfferBoardPost } from '@/board/offer';
-import { Badge } from '@/components/Badge';
 import { Textarea } from '@/components/Form';
 import { DirectionsIcon } from '@/components/icons';
 import { Footer, Group, Row, Section } from '@/components/List';
@@ -17,29 +16,7 @@ import { PlaceDatalist } from './PlaceDatalist';
 import { addressFor, useTeamPlaces } from './places';
 import { type Practice, usePractice, useUpdatePractice } from './practices';
 import { practiceLine } from './recurrence';
-import { timingLabel } from './timing';
-
-/** "Practice" plus how soon it is; "Cancelled" when called off (D50). */
-export function PracticeBadge({
-  practice,
-  today,
-}: {
-  practice: Pick<Practice, 'status'> & { practice_date?: string };
-  today?: string;
-}) {
-  if (practice.status === 'cancelled') return <Badge status="cancelled">Cancelled</Badge>;
-  const when = today && practice.practice_date ? timingLabel(practice.practice_date, today) : null;
-  return (
-    <span className="badges">
-      <Badge>Practice</Badge>
-      {when && (
-        <Badge status="upcoming" className={when === 'Upcoming' ? undefined : 'soon'}>
-          {when}
-        </Badge>
-      )}
-    </span>
-  );
-}
+import { PracticeBadge } from './PracticeBadge';
 
 export function PracticePage() {
   const { practiceId } = useParams<{ practiceId: string }>();

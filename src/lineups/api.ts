@@ -36,20 +36,14 @@ export function useLiveGame(teamId: string) {
   });
 }
 
+/** One request: the lineups with their slots embedded (D89). */
 async function fetchLineups(teamId: string, gameId: string | null): Promise<StoredPeriod[]> {
-  let q = supabase.from('lineups').select('*').eq('team_id', teamId);
+  let q = supabase.from('lineups').select('*, lineup_slots(*)').eq('team_id', teamId);
   q = gameId === null ? q.is('game_id', null) : q.eq('game_id', gameId);
-  const lineups = unwrap(await q.order('period_index'));
-  if (!lineups.length) return [];
-  const slots = unwrap(
-    await supabase
-      .from('lineup_slots')
-      .select('*')
-      .in(
-        'lineup_id',
-        lineups.map((l) => l.id),
-      ),
-  );
+  const rows = unwrap(await q.order('period_index'));
+  if (!rows.length) return [];
+  const lineups = rows.map(({ lineup_slots: _slots, ...l }) => l);
+  const slots = rows.flatMap((r) => r.lineup_slots);
   return rowsToPeriods(lineups, slots);
 }
 
@@ -65,7 +59,11 @@ export function useLineups(teamId: string, gameId: string | null, enabled = true
 export function useCurrentPlan(teamId: string) {
   const live = useLiveGame(teamId);
   const gameId = live.data?.id ?? null;
-  const lineups = useLineups(teamId, gameId, !live.isPending);
+  // the template is fetched alongside the live-game check, not after it (D89): on most launches
+  // there is no live game and the plan is ready one round trip sooner
+  const template = useLineups(teamId, null);
+  const game = useLineups(teamId, gameId, !!gameId);
+  const lineups = gameId ? game : template;
   return {
     gameId,
     liveGame: live.data ?? null,

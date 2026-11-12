@@ -25,6 +25,8 @@ export interface FieldStageProps {
    * formation's `w` and the per-sport 3D factor for every slot.
    */
   jerseyWidth?: number;
+  /** The first field on the page: load its artwork now, not lazily (D89). */
+  priority?: boolean;
 }
 
 /**
@@ -40,6 +42,7 @@ export function FieldStage({
   className,
   depthScale = false,
   jerseyWidth,
+  priority = false,
 }: FieldStageProps) {
   const F = fieldImage(sport, view);
   const base = import.meta.env.BASE_URL;
@@ -56,7 +59,8 @@ export function FieldStage({
           height={F.h}
           alt=""
           decoding="async"
-          loading="lazy"
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : 'auto'}
         />
         {STANDING[sport].map(([kind, x, y, sw], i) => {
           const p = place(F, x, y, sw);

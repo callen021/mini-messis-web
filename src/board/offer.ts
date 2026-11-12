@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { useNavigate } from 'react-router';
 import { useActionSheet } from '@/components/Sheet';
-import { type BoardDraft } from './BoardPage';
+import type { BoardDraft } from './BoardPage';
 
 /**
  * After staff cancel a practice or change a game's time or place, offer to tell the team (D58):

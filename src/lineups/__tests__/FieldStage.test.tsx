@@ -76,3 +76,18 @@ describe('FieldStage', () => {
     );
   });
 });
+
+describe('FieldStage · field artwork priority (D89)', () => {
+  it('the first field loads its image eagerly with high priority; the others lazily', () => {
+    const { container } = render(
+      <FieldStage sport="soccer" view="flat" formation={f33} priority renderSlot={() => null} />,
+    );
+    const img = container.querySelector('img.pitch') as HTMLImageElement;
+    expect(img.getAttribute('loading')).toBe('eager');
+    expect(img.getAttribute('fetchpriority')).toBe('high');
+    const { container: later } = render(
+      <FieldStage sport="soccer" view="flat" formation={f33} renderSlot={() => null} />,
+    );
+    expect((later.querySelector('img.pitch') as HTMLImageElement).getAttribute('loading')).toBe('lazy');
+  });
+});

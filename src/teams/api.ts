@@ -27,26 +27,14 @@ function unwrap<T>(res: { data: T; error: DbErrorLike | null }): NonNullable<T> 
 
 /* ---------- memberships ---------- */
 
+/** One request: the membership rows with their team embedded (D89); archived teams are dropped. */
 export async function fetchActiveMemberships(userId: string): Promise<ActiveMembership[]> {
-  const memberships = unwrap(
-    await supabase.from('team_members').select('*').eq('user_id', userId).eq('status', 'active'),
+  const rows = unwrap(
+    await supabase.from('team_members').select('*, teams(*)').eq('user_id', userId).eq('status', 'active'),
   );
-  if (!memberships.length) return [];
-  const teams = unwrap(
-    await supabase
-      .from('teams')
-      .select('*')
-      .in(
-        'id',
-        memberships.map((m) => m.team_id),
-      )
-      .is('archived_at', null),
+  return rows.flatMap(({ teams: team, ...membership }) =>
+    team && !team.archived_at ? [{ membership, team }] : [],
   );
-  const byId = new Map(teams.map((t) => [t.id, t]));
-  return memberships.flatMap((m) => {
-    const team = byId.get(m.team_id);
-    return team ? [{ membership: m, team }] : [];
-  });
 }
 
 export function useActiveMemberships(userId: string | undefined) {

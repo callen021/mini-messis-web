@@ -32,7 +32,7 @@ import { GameBadge } from './GameBadge';
 import { downloadScheduleIcs } from './ics';
 import { makeNameLookup } from './names';
 import { NewGameSheet } from './NewGameSheet';
-import { PracticeBadge } from './PracticePage';
+import { PracticeBadge } from './PracticeBadge';
 import { type Practice, useCreatePractices, usePractices } from './practices';
 import { PracticeSheet } from './PracticeSheet';
 import { filterSchedule, mergeSchedule } from './recurrence';

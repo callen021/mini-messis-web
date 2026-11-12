@@ -1,4 +1,6 @@
 dist
+dist-perf
+perf
 dev-dist
 coverage
 node_modules

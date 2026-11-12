@@ -3,6 +3,7 @@ import { Navigate, Outlet } from 'react-router';
 import { useActAs } from '@/admin/actAs';
 import { useAuth } from '@/auth/AuthProvider';
 import { LoadingScreen } from '@/auth/guards';
+import { ShellSkeleton } from '@/components/Skeleton';
 import { useUIStore } from '@/lib/ui-store';
 import { type SportKey } from '@/sports/types';
 import {
@@ -91,8 +92,9 @@ export function RequireTeam() {
     [profile.data, updateProfile, setActAs],
   );
 
-  if (memberships.isPending || (pending.isPending && !list.length)) return <LoadingScreen />;
-  if (isAdmin && actAsId && adminTeam.isPending) return <LoadingScreen label="Opening team…" />;
+  // the frame first (D89): the tab bar and a page skeleton while the memberships load
+  if (memberships.isPending || (pending.isPending && !list.length)) return <ShellSkeleton />;
+  if (isAdmin && actAsId && adminTeam.isPending) return <ShellSkeleton label="Opening team…" />;
   if (memberships.isError) return <LoadingScreen label="Couldn’t load your teams. Pull to retry." />;
   if (acting) {
     const value: TeamContextValue = {

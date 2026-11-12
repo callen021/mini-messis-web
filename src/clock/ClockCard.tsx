@@ -104,6 +104,7 @@ export function ClockCard({
         sport={sport}
         view={view}
         formation={formation}
+        priority
         renderSlot={(i) => {
           const pos = formation.positions[i];
           if (!pos) return null;

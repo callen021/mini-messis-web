@@ -4,6 +4,7 @@ import { createContext, type ReactNode, useContext, useEffect, useMemo, useState
 import { Outlet } from 'react-router';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
+import { clearPersistedCache } from '@/lib/query-client';
 import { isSupabaseConfigured, supabase } from '@/lib/supabase';
 
 export interface AuthState {
@@ -33,7 +34,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } = supabase.auth.onAuthStateChange((event, next) => {
       setSession(next);
       setLoading(false);
-      if (event === 'SIGNED_OUT') queryClient.clear();
+      if (event === 'SIGNED_OUT') {
+        queryClient.clear();
+        clearPersistedCache();
+      }
     });
     return () => {
       active = false;

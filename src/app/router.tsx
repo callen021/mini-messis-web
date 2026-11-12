@@ -2,38 +2,11 @@ import { lazy, Suspense } from 'react';
 import { createBrowserRouter, type RouteObject } from 'react-router';
 import { AuthRoot } from '@/auth/AuthProvider';
 import { PublicOnly, RequireAuth } from '@/auth/guards';
-import { AdminLayout } from '@/admin/AdminLayout';
-import { AdminPage } from '@/admin/AdminPage';
-import { AdminTeamPage } from '@/admin/AdminTeamPage';
-import { ResetPage } from '@/auth/pages/ResetPage';
+import { lazyPage } from './lazy';
 import { SignInPage } from '@/auth/pages/SignInPage';
-import { SignUpPage } from '@/auth/pages/SignUpPage';
-import { ProfilePage } from '@/settings/ProfilePage';
-import { NewSeasonPage } from '@/settings/NewSeasonPage';
-import { SettingsPage } from '@/settings/SettingsPage';
-import { CreateTeamPage } from '@/teams/pages/CreateTeamPage';
-import { InvitePage } from '@/teams/pages/InvitePage';
-import { JoinPage } from '@/teams/pages/JoinPage';
-import { MembersPage } from '@/teams/pages/MembersPage';
-import { PendingPage } from '@/teams/pages/PendingPage';
-import { WelcomePage } from '@/teams/pages/WelcomePage';
 import { RequireTeam } from '@/teams/TeamContext';
-import { BattingOrderPage } from '@/games/BattingOrderPage';
-import { GamePage } from '@/games/GamePage';
-import { PracticePage } from '@/games/PracticePage';
-import { GamesPage } from '@/games/GamesPage';
-import { LineupPage } from '@/games/LineupPage';
-import { StatsPage } from '@/games/StatsPage';
-import { BoardPage } from '@/board/BoardPage';
 import { HomePage } from '@/home/HomePage';
 import { FieldPage } from '@/lineups/FieldPage';
-import { PlayerPage } from '@/skills/PlayerPage';
-import { PlayerSkillsPage } from '@/skills/PlayerSkillsPage';
-import { SkillsSettingsPage } from '@/skills/SkillsSettingsPage';
-import { SkillTestPage } from '@/skills/SkillTestPage';
-import { TeamSetupPage } from '@/settings/TeamSetupPage';
-import { TeamPage } from '@/roster/TeamPage';
-import { TeamSheetPage } from '@/roster/TeamSheetPage';
 import { AuthLayout } from './layouts/AuthLayout';
 import { TabLayout } from './layouts/TabLayout';
 import { NotFound } from './pages/NotFound';
@@ -84,7 +57,12 @@ export const routes: RouteObject[] = [
             element: <AuthLayout />,
             children: [
               { path: '/signin', element: <SignInPage /> },
-              { path: '/signup', element: <SignUpPage /> },
+              {
+                path: '/signup',
+                element: lazyPage(() =>
+                  import('@/auth/pages/SignUpPage').then((m) => ({ default: m.SignUpPage })),
+                ),
+              },
             ],
           },
         ],
@@ -94,8 +72,16 @@ export const routes: RouteObject[] = [
       {
         element: <AuthLayout />,
         children: [
-          { path: '/reset', element: <ResetPage /> },
-          { path: '/join/:code', element: <InvitePage /> },
+          {
+            path: '/reset',
+            element: lazyPage(() => import('@/auth/pages/ResetPage').then((m) => ({ default: m.ResetPage }))),
+          },
+          {
+            path: '/join/:code',
+            element: lazyPage(() =>
+              import('@/teams/pages/InvitePage').then((m) => ({ default: m.InvitePage })),
+            ),
+          },
         ],
       },
       // signed in
@@ -105,18 +91,46 @@ export const routes: RouteObject[] = [
           {
             element: <AuthLayout />,
             children: [
-              { path: '/welcome', element: <WelcomePage /> },
-              { path: '/join', element: <JoinPage /> },
-              { path: '/create-team', element: <CreateTeamPage /> },
-              { path: '/pending', element: <PendingPage /> },
+              {
+                path: '/welcome',
+                element: lazyPage(() =>
+                  import('@/teams/pages/WelcomePage').then((m) => ({ default: m.WelcomePage })),
+                ),
+              },
+              {
+                path: '/join',
+                element: lazyPage(() =>
+                  import('@/teams/pages/JoinPage').then((m) => ({ default: m.JoinPage })),
+                ),
+              },
+              {
+                path: '/create-team',
+                element: lazyPage(() =>
+                  import('@/teams/pages/CreateTeamPage').then((m) => ({ default: m.CreateTeamPage })),
+                ),
+              },
+              {
+                path: '/pending',
+                element: lazyPage(() =>
+                  import('@/teams/pages/PendingPage').then((m) => ({ default: m.PendingPage })),
+                ),
+              },
             ],
           },
           // platform admin console (no team context)
           {
-            element: <AdminLayout />,
+            element: lazyPage(() => import('@/admin/AdminLayout').then((m) => ({ default: m.AdminLayout }))),
             children: [
-              { path: '/admin', element: <AdminPage /> },
-              { path: '/admin/teams/:teamId', element: <AdminTeamPage /> },
+              {
+                path: '/admin',
+                element: lazyPage(() => import('@/admin/AdminPage').then((m) => ({ default: m.AdminPage }))),
+              },
+              {
+                path: '/admin/teams/:teamId',
+                element: lazyPage(() =>
+                  import('@/admin/AdminTeamPage').then((m) => ({ default: m.AdminTeamPage })),
+                ),
+              },
             ],
           },
           // signed in with a team
@@ -132,25 +146,117 @@ export const routes: RouteObject[] = [
                     children: [
                       { index: true, element: <LandingRedirect /> },
                       { path: '/home', element: <HomePage /> },
-                      { path: '/board', element: <BoardPage /> },
+                      {
+                        path: '/board',
+                        element: lazyPage(() =>
+                          import('@/board/BoardPage').then((m) => ({ default: m.BoardPage })),
+                        ),
+                      },
                       { path: '/field', element: <FieldPage /> },
-                      { path: '/lineup', element: <LineupPage /> },
-                      { path: '/lineup/order', element: <BattingOrderPage /> },
-                      { path: '/team', element: <TeamPage /> },
-                      { path: '/team/sheet', element: <TeamSheetPage /> },
-                      { path: '/games', element: <GamesPage /> },
-                      { path: '/games/:gameId', element: <GamePage /> },
-                      { path: '/practices/:practiceId', element: <PracticePage /> },
-                      { path: '/stats', element: <StatsPage /> },
-                      { path: '/players/:playerId', element: <PlayerPage /> },
-                      { path: '/players/:playerId/skills', element: <PlayerSkillsPage /> },
-                      { path: '/players/:playerId/skills/:testId', element: <SkillTestPage /> },
-                      { path: '/settings', element: <SettingsPage /> },
-                      { path: '/settings/members', element: <MembersPage /> },
-                      { path: '/settings/team', element: <TeamSetupPage /> },
-                      { path: '/settings/season', element: <NewSeasonPage /> },
-                      { path: '/settings/skills', element: <SkillsSettingsPage /> },
-                      { path: '/profile', element: <ProfilePage /> },
+                      {
+                        path: '/lineup',
+                        element: lazyPage(() =>
+                          import('@/games/LineupPage').then((m) => ({ default: m.LineupPage })),
+                        ),
+                      },
+                      {
+                        path: '/lineup/order',
+                        element: lazyPage(() =>
+                          import('@/games/BattingOrderPage').then((m) => ({ default: m.BattingOrderPage })),
+                        ),
+                      },
+                      {
+                        path: '/team',
+                        element: lazyPage(() =>
+                          import('@/roster/TeamPage').then((m) => ({ default: m.TeamPage })),
+                        ),
+                      },
+                      {
+                        path: '/team/sheet',
+                        element: lazyPage(() =>
+                          import('@/roster/TeamSheetPage').then((m) => ({ default: m.TeamSheetPage })),
+                        ),
+                      },
+                      {
+                        path: '/games',
+                        element: lazyPage(() =>
+                          import('@/games/GamesPage').then((m) => ({ default: m.GamesPage })),
+                        ),
+                      },
+                      {
+                        path: '/games/:gameId',
+                        element: lazyPage(() =>
+                          import('@/games/GamePage').then((m) => ({ default: m.GamePage })),
+                        ),
+                      },
+                      {
+                        path: '/practices/:practiceId',
+                        element: lazyPage(() =>
+                          import('@/games/PracticePage').then((m) => ({ default: m.PracticePage })),
+                        ),
+                      },
+                      {
+                        path: '/stats',
+                        element: lazyPage(() =>
+                          import('@/games/StatsPage').then((m) => ({ default: m.StatsPage })),
+                        ),
+                      },
+                      {
+                        path: '/players/:playerId',
+                        element: lazyPage(() =>
+                          import('@/skills/PlayerPage').then((m) => ({ default: m.PlayerPage })),
+                        ),
+                      },
+                      {
+                        path: '/players/:playerId/skills',
+                        element: lazyPage(() =>
+                          import('@/skills/PlayerSkillsPage').then((m) => ({ default: m.PlayerSkillsPage })),
+                        ),
+                      },
+                      {
+                        path: '/players/:playerId/skills/:testId',
+                        element: lazyPage(() =>
+                          import('@/skills/SkillTestPage').then((m) => ({ default: m.SkillTestPage })),
+                        ),
+                      },
+                      {
+                        path: '/settings',
+                        element: lazyPage(() =>
+                          import('@/settings/SettingsPage').then((m) => ({ default: m.SettingsPage })),
+                        ),
+                      },
+                      {
+                        path: '/settings/members',
+                        element: lazyPage(() =>
+                          import('@/teams/pages/MembersPage').then((m) => ({ default: m.MembersPage })),
+                        ),
+                      },
+                      {
+                        path: '/settings/team',
+                        element: lazyPage(() =>
+                          import('@/settings/TeamSetupPage').then((m) => ({ default: m.TeamSetupPage })),
+                        ),
+                      },
+                      {
+                        path: '/settings/season',
+                        element: lazyPage(() =>
+                          import('@/settings/NewSeasonPage').then((m) => ({ default: m.NewSeasonPage })),
+                        ),
+                      },
+                      {
+                        path: '/settings/skills',
+                        element: lazyPage(() =>
+                          import('@/skills/SkillsSettingsPage').then((m) => ({
+                            default: m.SkillsSettingsPage,
+                          })),
+                        ),
+                      },
+                      {
+                        path: '/profile',
+                        element: lazyPage(() =>
+                          import('@/settings/ProfilePage').then((m) => ({ default: m.ProfilePage })),
+                        ),
+                      },
                     ],
                   },
                 ],

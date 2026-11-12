@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { Outlet, ScrollRestoration } from 'react-router';
 import { BoardButton } from '@/board/BoardButton';
 import { SyncBanner } from '@/components/SyncBanner';
@@ -6,6 +6,8 @@ import { Tabbar } from '@/components/Tabbar';
 import { useMyChildren, useTeamRealtime } from '@/lineups/api';
 import { ProfileSync } from '@/settings/ProfileSync';
 import { SPORTS } from '@/sports/definitions';
+import { preloadFieldImage } from '@/sports/field';
+import { useUIStore } from '@/lib/ui-store';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { TeamSwitcher } from '@/teams/TeamSwitcher';
@@ -16,6 +18,8 @@ export function TabLayout() {
   const { teamId, sport, role } = useCurrentTeam();
   const S = SPORTS[sport];
   useTeamRealtime(teamId);
+  const view = useUIStore((s) => s.fieldView);
+  useEffect(() => preloadFieldImage(sport, view), [sport, view]);
   const children = useMyChildren();
   const players = usePlayers(teamId);
   const mine = useMemo(() => {

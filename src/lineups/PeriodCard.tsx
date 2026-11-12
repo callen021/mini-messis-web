@@ -162,6 +162,7 @@ export function PeriodCard({
         sport={sport}
         view={view}
         formation={formation}
+        priority={periodIndex === 0}
         renderSlot={(i) => {
           const pos = formation.positions[i];
           if (!pos) return null;
