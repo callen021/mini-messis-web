@@ -24,7 +24,8 @@ import { type Period } from '@/sports/types';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useRenameTeam } from '@/teams/teamMutations';
-import { useClockAction, useGameClock, useServerTimeSync, useStints } from './api';
+import { useClockAction, useGameClock, useSeasonMinutes, useServerTimeSync, useStints } from './api';
+import { fillByTime, rankFromStints, suggestStarters } from './autofill';
 import { type BenchEntry } from './BenchRow';
 import {
   PAUSED_CLOCK,
@@ -37,6 +38,7 @@ import {
   onFieldBySlot,
   playerTimes,
   remainingAt,
+  stintSeconds,
 } from './clock';
 import { ClockCard } from './ClockCard';
 import { ClockDisplay } from './ClockDisplay';
@@ -75,6 +77,7 @@ export function ClockFieldPage() {
   const addEvent = useAddScoreEvent(teamId, gameId ?? '');
   const deleteEvent = useDeleteScoreEvent(teamId, gameId ?? '');
   const createGame = useCreateGame(teamId);
+  const seasonMinutes = useSeasonMinutes(teamId, isStaff);
   const [selected, setSelected] = useState<Selection>(null);
   const [picking, setPicking] = useState<number | null>(null);
   const [scoring, setScoring] = useState(false);
@@ -272,6 +275,47 @@ export function ClockFieldPage() {
         { onError, onSuccess: () => toast(`Formation ${to.name}`) },
       );
     } else commitTemplate(next);
+  };
+
+  /* ---------- auto-fill (D71): season minutes before a game, game minutes at a break ---------- */
+  const sendLineup = (p: Period, msg: string) =>
+    act.mutate(
+      {
+        kind: 'lineup',
+        formation: formation.name,
+        slots: formation.positions.map((pos, i) => ({
+          position_role: pos.role,
+          position_code: pos.code,
+          player_id: p.slots[i] || null,
+          auto_picked: p.auto.includes(i) && !!p.slots[i],
+        })),
+      },
+      { onError, onSuccess: () => toast(msg) },
+    );
+  const onAutoFill = () => {
+    if (!shown) return;
+    const p: Period = { formation: formation.name, slots: [...slots], auto: [...shown.auto] };
+    const offField = activePlayers.filter((pl) => !slots.includes(pl.id));
+    const rank = seasonMinutes.data ?? new Map();
+    const r = fillByTime(p, formation, S, offField, rank);
+    if (!r.filled) {
+      toast(offField.length ? 'No open spots' : 'Nobody left on the bench');
+      return;
+    }
+    const msg = `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled by season minutes`;
+    if (live) sendLineup(r.period, msg);
+    else commitTemplate(r.period, msg);
+  };
+  const onSuggest = () => {
+    const rank = rankFromStints(
+      stints.map((st) => ({
+        player_id: st.player_id,
+        position_role: st.position_role,
+        seconds: stintSeconds(st, clock, now),
+      })),
+      S.group,
+    );
+    sendLineup(suggestStarters(formation, S, activePlayers, rank), 'Starters picked by minutes this game');
   };
 
   const onClear = async () => {
@@ -489,7 +533,7 @@ export function ClockFieldPage() {
           <Footer className="noprint" style={{ marginTop: 14 }}>
             {live
               ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench shows minutes played and time resting, fewest minutes first. End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`
-              : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available. The clock starts on the Field once a game is on.`}
+              : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available. Auto-fill gives open spots to the players with the fewest minutes this season, rotating position groups; your own picks are never moved.`}
           </Footer>
           {live ? (
             <Toolbar sticky className="mt-3 clockbar">
@@ -507,9 +551,18 @@ export function ClockFieldPage() {
                   End {shortPeriod(S, N, periodIndex)}
                 </Button>
               )}
+              {!fullTime && atZero && (
+                <Button
+                  variant="tinted"
+                  disabled={act.isPending}
+                  onClick={periodIndex === 0 ? onAutoFill : onSuggest}
+                >
+                  {periodIndex === 0 ? 'Auto-fill' : 'Suggest starters'}
+                </Button>
+              )}
               {!fullTime && (
                 <Button variant="gray" disabled={act.isPending} onClick={undo}>
-                  Undo last sub
+                  Undo
                 </Button>
               )}
               {fullTime && (
@@ -518,6 +571,9 @@ export function ClockFieldPage() {
             </Toolbar>
           ) : (
             <Toolbar sticky className="mt-3">
+              <Button variant="tinted" onClick={onAutoFill}>
+                Auto-fill
+              </Button>
               <Button variant="gray" onClick={() => void onClear()}>
                 Clear
               </Button>

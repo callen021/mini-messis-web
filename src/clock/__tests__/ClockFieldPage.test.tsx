@@ -26,6 +26,7 @@ let liveGame: { id: string; opponent: string } | null = null;
 let periods: StoredPeriod[] = [];
 let clock: ClockState = { periodIndex: 0, clockSeconds: 0, runningSince: null, periodLengths: [] };
 let stints: Stint[] = [];
+let seasonMinutes = new Map<string, { seconds: number; byGroup: Record<string, number> }>();
 
 vi.mock('@/auth/guards', async () => {
   const actual = await vi.importActual<typeof Guards>('@/auth/guards');
@@ -62,6 +63,7 @@ vi.mock('../api', () => ({
   useGameClock: () => ({ data: clock, isPending: false }),
   useStints: () => ({ data: stints, isPending: false }),
   useServerTimeSync: () => undefined,
+  useSeasonMinutes: () => ({ data: seasonMinutes, isPending: false }),
 }));
 vi.mock('../template', () => ({ useSaveStarters: () => ({ mutate: saveStarters, isPending: false }) }));
 vi.mock('../useNow', () => ({ useServerNow: () => Date.parse('2026-11-12T15:00:00Z') }));
@@ -256,7 +258,7 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(screen.getByLabelText('23:00 left, paused')).toHaveTextContent('23:00');
     expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'End H1' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Undo last sub' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
     expect(field('Nolan')).toHaveAccessibleName(/2:00 this shift/);
     expect(bench('Hal')).toHaveAccessibleName(/0 min · rest 2:00/);
   });
@@ -271,7 +273,7 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(act).toHaveBeenCalledWith({ kind: 'swap', a: 'p2', b: 'p3' }, expect.anything());
     await userEvent.click(screen.getByRole('button', { name: 'Resume' }));
     expect(act).toHaveBeenCalledWith({ kind: 'start' }, expect.anything());
-    await userEvent.click(screen.getByRole('button', { name: 'Undo last sub' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(act).toHaveBeenCalledWith({ kind: 'undo' }, expect.anything());
   });
 
@@ -299,11 +301,48 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     staff = false;
     renderPage();
     expect(screen.getByLabelText('23:00 left, paused')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Resume|Pause|End H1|Undo/ })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: /Resume|Pause|End H1|Undo|Auto-fill|Suggest/ }),
+    ).not.toBeInTheDocument();
     expect(field('Nolan')).toBeDisabled();
     expect(bench('Hal')).toBeDisabled();
     expect(field('Teddy')).toHaveClass('highlight');
     expect(screen.queryByText(/Tap a jersey/)).not.toBeInTheDocument();
+  });
+
+  it('before kickoff, Auto-fill fills open spots by season minutes in one lineup call (D71)', async () => {
+    stints = stints.slice(0, 6); // the goalie spot is open
+    clock = { periodIndex: 0, clockSeconds: 0, runningSince: null, periodLengths: [] };
+    seasonMinutes = new Map([
+      ['p7', { seconds: 2000, byGroup: {} }],
+      ['p8', { seconds: 3000, byGroup: {} }],
+      ['p9', { seconds: 100, byGroup: {} }],
+    ]);
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: 'Auto-fill' }));
+    const call = act.mock.calls.find((c) => (c[0] as { kind: string }).kind === 'lineup')?.[0] as {
+      slots: { player_id: string | null; auto_picked: boolean }[];
+    };
+    expect(call.slots[6]).toEqual(expect.objectContaining({ player_id: 'p9', auto_picked: true }));
+    expect(call.slots[0]).toEqual(expect.objectContaining({ player_id: 'p1', auto_picked: false }));
+  });
+
+  it('at halftime, Suggest starters re-picks everyone by minutes this game', async () => {
+    clock = { periodIndex: 1, clockSeconds: 0, runningSince: null, periodLengths: [1500] };
+    stints = [
+      ...STARTERS.map((id, i) => stint({ player_id: id, slot_index: i, clock_start: 0, clock_end: 1500 })),
+      ...STARTERS.map((id, i) => stint({ player_id: id, slot_index: i, period_index: 1, clock_start: 0 })),
+    ];
+    renderPage();
+    expect(screen.getByRole('heading', { level: 2, name: 'H2' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Suggest starters' }));
+    const call = act.mock.calls.find((c) => (c[0] as { kind: string }).kind === 'lineup')?.[0] as {
+      slots: { player_id: string | null }[];
+    };
+    const picked = call.slots.map((s) => s.player_id);
+    expect(picked).toContain('p8'); // the two who sat out the first half start the second
+    expect(picked).toContain('p9');
+    expect(picked.filter(Boolean)).toHaveLength(7);
   });
 
   it('full time: FT, no clock controls, a link to finish', () => {
