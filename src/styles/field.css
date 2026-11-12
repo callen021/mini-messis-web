@@ -383,8 +383,8 @@
 
 /* ---------- clock mode (D70): one field, a bench row of small jerseys, select-then-target ---------- */
 .benchrow {
-  --bgap: 8px;
-  padding: 10px 12px 12px;
+  --bgap: 4px;
+  padding: 8px 8px 12px;
 }
 .benchhead {
   display: flex;
@@ -402,7 +402,8 @@
 /* "Up Next" sits right-aligned, centred over the next-in jersey (the rightmost one, D84) */
 .upnext {
   flex: none;
-  width: 56px;
+  width: calc((100% - 4 * var(--bgap)) / 5);
+  max-width: 76px;
   text-align: center;
   font-size: 10px;
   font-weight: 800;
@@ -427,7 +428,8 @@
   gap: 6px var(--bgap);
 }
 .bslot {
-  width: 56px; /* about two-thirds of a field jersey on a phone; the shirt itself keeps a 44px+ tap box */
+  width: calc((100% - 4 * var(--bgap)) / 5); /* five to a row at 375px (D85) */
+  max-width: 76px;
   min-height: 44px;
   container-type: inline-size;
   text-align: center;

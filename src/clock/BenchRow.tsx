@@ -9,8 +9,8 @@ export interface BenchEntry {
 }
 
 /**
- * The bench under a field (D70, D77): the same jersey art at about two-thirds size, at least a
- * 44px tap target. It is the queue (D79) drawn right to left (D83): the next player in
+ * The bench under a field (D70, D77): the same jersey art, smaller, five to a row on a phone,
+ * at least a 44px tap target. It is the queue (D79) drawn right to left (D83): the next player in
  * is the rightmost jersey of the top row, the line continues leftward and then along the next
  * row, rows are right-aligned, and a player coming off joins the end (leftmost of the last row).
  * The DOM order stays queue order, so screen readers and tests read it next-in first. Players
