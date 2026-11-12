@@ -1,6 +1,6 @@
 import { type SportDefinition } from '@/sports/types';
 import { type ScoreEvent } from './api';
-import { type NameLookup } from './names';
+import { eventTag, type NameLookup } from './names';
 
 /** Double-tap guard shared by every score button (legacy `lastGoalAt`, 400 ms). */
 let lastScoreAt = 0;
@@ -23,7 +23,7 @@ export function describeEvent(
   names: NameLookup,
 ): string {
   const name = S.periodName(periodCount);
-  const tag = name === 'Inning' ? `Inn ${ev.period_index + 1}` : `${name[0] ?? ''}${ev.period_index + 1}`;
+  const tag = eventTag(name, ev);
   const kind = S.scoring.events.find((k) => k.type === ev.event_type);
   const noun = kind?.noun ?? ev.event_type.replace(/_/g, ' ');
   if (ev.side === 'them') return `${tag} · ${opponent || 'Opponent'} ${noun}`;

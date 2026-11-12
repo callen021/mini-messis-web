@@ -42,6 +42,7 @@ vi.mock('../practices', async () => {
   };
 });
 vi.mock('@/board/AnnouncementBanner', () => ({ AnnouncementBanner: () => null }));
+vi.mock('@/clock/api', () => ({ useGameClock: () => ({ data: undefined, isPending: false }) }));
 vi.mock('../places', () => ({
   useTeamPlaces: () => ({ data: [], isPending: false }),
   addressFor: () => null,

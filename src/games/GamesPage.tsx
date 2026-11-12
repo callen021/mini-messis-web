@@ -25,6 +25,7 @@ import {
   useGames,
   useScoreEvents,
 } from './api';
+import { useGameClock } from '@/clock/api';
 import { directionsUrl } from './directions';
 import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
 import { GameBadge } from './GameBadge';
@@ -285,7 +286,7 @@ export function GamesPage() {
 
 /** The in-progress card: score, Add score, Finish. Hooks are scoped to the live game's id. */
 function LiveGameCard({ game }: { game: GameWithScore }) {
-  const { teamId, sport } = useCurrentTeam();
+  const { teamId, team, sport } = useCurrentTeam();
   const S = SPORTS[sport];
   const isStaff = useIsStaff();
   const toast = useToast();
@@ -302,7 +303,9 @@ function LiveGameCard({ game }: { game: GameWithScore }) {
   const roster = players.data ?? [];
   const names = makeNameLookup(roster);
   const log = events.data ?? [];
-  const periodCount = plan.periods.length || 1;
+  const clockMode = team.time_mode === 'clock';
+  const gameClock = useGameClock(game.id, clockMode);
+  const periodCount = clockMode ? team.clock_periods : plan.periods.length || 1;
   const first = S.scoring.events[0];
   const noun = scoreNoun(S);
   const recorded =
@@ -348,7 +351,12 @@ function LiveGameCard({ game }: { game: GameWithScore }) {
             S={S}
             opponent={game.opponent}
             periodCount={periodCount}
-            initialPeriod={Math.max(0, periodCount - 1)}
+            initialPeriod={
+              clockMode
+                ? Math.min(gameClock.data?.periodIndex ?? 0, periodCount - 1)
+                : Math.max(0, periodCount - 1)
+            }
+            lockPeriod={clockMode}
             players={roster.filter((p) => p.is_available)}
             names={names}
             events={log}

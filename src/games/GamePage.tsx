@@ -40,6 +40,7 @@ import {
   useUpdateScoreEvent,
 } from './api';
 import { DirectionsIcon } from '@/components/icons';
+import { useGameClock } from '@/clock/api';
 import { directionsUrl } from './directions';
 import { EditScoreSheet } from './EditScoreSheet';
 import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
@@ -48,7 +49,7 @@ import { downloadIcs } from './ics';
 import { PlaceDatalist } from './PlaceDatalist';
 import { addressFor, useTeamPlaces } from './places';
 import { LineScore } from './LineScore';
-import { makeNameLookup, periodTag } from './names';
+import { eventTag, makeNameLookup } from './names';
 import { paResultLabel, paResultShort } from './batting';
 import { PlateAppearanceSheet } from './PlateAppearanceSheet';
 import { ScorePanel } from './ScorePanel';
@@ -113,7 +114,14 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const names = makeNameLookup(roster, snapshots.data ?? []);
   const log = events.data ?? [];
   const periods = lineups.data ?? [];
-  const periodCount = Math.max(periods.length, team.periods_count, ...log.map((e) => e.period_index + 1), 1);
+  const clockMode = team.time_mode === 'clock';
+  const gameClock = useGameClock(game.id, clockMode && game.status === 'live');
+  const periodCount = Math.max(
+    periods.length,
+    clockMode ? team.clock_periods : team.periods_count,
+    ...log.map((e) => e.period_index + 1),
+    1,
+  );
   const periodName = S.periodName(periodCount);
   const isLive = game.status === 'live';
   const isDone = game.status === 'done';
@@ -480,7 +488,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
                   onClick={isStaff ? () => setEditing(ev) : undefined}
                   label={
                     <>
-                      <PeriodTag>{periodTag(periodName, ev.period_index)}</PeriodTag>
+                      <PeriodTag>{eventTag(periodName, ev)}</PeriodTag>
                       {who}
                     </>
                   }
@@ -614,7 +622,12 @@ function GameDetail({ game }: { game: GameWithScore }) {
             S={S}
             opponent={game.opponent}
             periodCount={periodCount}
-            initialPeriod={Math.max(0, periodCount - 1)}
+            initialPeriod={
+              clockMode && isLive
+                ? Math.min(gameClock.data?.periodIndex ?? 0, periodCount - 1)
+                : Math.max(0, periodCount - 1)
+            }
+            lockPeriod={clockMode && isLive}
             players={roster.filter((p) => p.is_available)}
             names={names}
             events={log}
@@ -637,6 +650,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
             S={S}
             opponent={game.opponent}
             periodCount={periodCount}
+            clockMode={clockMode}
             players={roster}
             names={names}
             onSave={(p) => {

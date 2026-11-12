@@ -322,7 +322,13 @@ export function useAddScoreEvent(teamId: string, gameId: string) {
 export type ScoreEventPatch = Partial<
   Pick<
     ScoreEvent,
-    'side' | 'period_index' | 'event_type' | 'points' | 'scorer_player_id' | 'assist_player_id'
+    | 'side'
+    | 'period_index'
+    | 'event_type'
+    | 'points'
+    | 'scorer_player_id'
+    | 'assist_player_id'
+    | 'clock_seconds'
   >
 >;
 

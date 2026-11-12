@@ -35,3 +35,14 @@ export function makeNameLookup(
 export function periodTag(periodName: string, index: number): string {
   return periodName === 'Inning' ? `Inn ${index + 1}` : `${periodName[0] ?? ''}${index + 1}`;
 }
+
+/** The log tag with the clock minute when the event carries one (clock mode, D74): "H2 23'". */
+export function eventTag(
+  periodName: string,
+  ev: { period_index: number; clock_seconds?: number | null },
+): string {
+  const tag = periodTag(periodName, ev.period_index);
+  return ev.clock_seconds === null || ev.clock_seconds === undefined
+    ? tag
+    : `${tag} ${Math.floor(Math.max(0, ev.clock_seconds) / 60) + 1}'`;
+}
