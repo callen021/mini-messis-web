@@ -45,7 +45,7 @@ function renderCard(over: Partial<Parameters<typeof PeriodCard>[0]> = {}) {
     activePlayers: active,
     colors: S.defaultColors as Record<string, string>,
     counts: { p1: 2, p2: 1, p3: 0 },
-    periodNoun: 'quarter',
+    periodCount: 4,
     canEdit: true,
     highlight: new Set<string>(),
     onFormationChange: vi.fn(),
@@ -83,6 +83,22 @@ describe('PeriodCard', () => {
     const row = document.querySelector('.benchrow') as HTMLElement;
     const hint = document.querySelector('.taphint') as HTMLElement;
     expect(row.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('bench captions say halves, never halfs, and one half (D82)', () => {
+    renderCard({
+      title: 'H1',
+      periodCount: 2,
+      activePlayers: [...active, mk('p5', 'Milo', '5')],
+      counts: { p1: 2, p2: 1, p3: 1, p5: 0 },
+      benchOrder: ['p5', 'p3'],
+    });
+    const bench = screen.getByRole('group', { name: 'Bench' });
+    const names = within(bench)
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label'));
+    expect(names).toEqual(['Bench: Milo #5, 0 halves', 'Bench: Jack #3, 1 half']);
+    expect(bench.textContent).not.toMatch(/halfs/);
   });
 
   it('tapping an open jersey lists the bench first, then moves, and assigns the pick', async () => {

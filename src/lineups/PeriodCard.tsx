@@ -5,6 +5,7 @@ import { useFlash } from '@/clock/useFlash';
 import { OpenPill } from '@/components/Badge';
 import { Button } from '@/components/Button';
 import { type FieldView } from '@/sports/field';
+import { periodPlural } from '@/sports/definitions';
 import { type Formation, type Period, type SportDefinition, type SportKey } from '@/sports/types';
 import { type Player } from '@/teams/api';
 import { playerName } from './api';
@@ -25,7 +26,8 @@ export interface PeriodCardProps {
   activePlayers: Player[];
   colors: Record<string, string>;
   counts: Record<string, number>;
-  periodNoun: string;
+  /** Periods per game, for the "2 quarters" / "1 half" caption under a bench jersey. */
+  periodCount: number;
   canEdit: boolean;
   /** Player ids to highlight (a parent's own children). */
   highlight: ReadonlySet<string>;
@@ -41,6 +43,11 @@ export interface PeriodCardProps {
   onRedo: () => void;
   /** Optional trailing control in the header (score button, Phase 5). */
   headerExtra?: ReactNode;
+}
+
+/** "0 quarters", "1 half", "2 halves" (D82): the caption under a bench jersey in period mode. */
+export function periodsPlayed(S: SportDefinition, periodCount: number, n: number): string {
+  return `${n} ${n === 1 ? S.periodName(periodCount).toLowerCase() : periodPlural(S, periodCount)}`;
 }
 
 /**
@@ -62,7 +69,7 @@ export function PeriodCard({
   activePlayers,
   colors,
   counts,
-  periodNoun,
+  periodCount,
   canEdit,
   highlight,
   onFormationChange,
@@ -203,7 +210,7 @@ export function PeriodCard({
         color={benchColor}
         entries={sittingOut.map((player) => ({
           player,
-          time: `${counts[player.id] ?? 0} ${periodNoun}${(counts[player.id] ?? 0) === 1 ? '' : 's'}`,
+          time: periodsPlayed(S, periodCount, counts[player.id] ?? 0),
         }))}
         canEdit={canEdit}
         selectedId={selected?.kind === 'bench' ? selected.playerId : null}
@@ -256,7 +263,7 @@ export function PeriodCard({
           onField={onField}
           assigned={assignedId ? (byId.get(assignedId) ?? null) : null}
           counts={counts}
-          periodNoun={periodNoun}
+          periodNoun={S.periodName(periodCount).toLowerCase()}
           onPick={(id) => {
             if (picking !== null) onAssign(picking, id);
           }}

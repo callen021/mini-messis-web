@@ -285,7 +285,7 @@ function PeriodFieldPage() {
                 activePlayers={activePlayers}
                 colors={colors}
                 counts={c}
-                periodNoun={noun}
+                periodCount={N}
                 canEdit={isStaff}
                 highlight={highlight}
                 onFormationChange={(name) => onFormationChange(i, name)}
