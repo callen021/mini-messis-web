@@ -310,6 +310,22 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     }
   });
 
+  it('one period: a continuous clock with Start and Pause, Finish game instead of End, no period label (D97)', () => {
+    team.clock_periods = 1;
+    try {
+      periods = [stored(STARTERS, 0)];
+      renderPage();
+      expect(screen.getByRole('heading', { level: 2, name: 'Game' })).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: /^End / })).not.toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Suggest starters' })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Finish game' })).toBeInTheDocument();
+      expect(screen.getByText(/one period on the clock|Live vs Tigers/)).toBeInTheDocument();
+    } finally {
+      team.clock_periods = 2;
+    }
+  });
+
   it('shows the period, the clock, each shift and the bench with minutes and rest', () => {
     renderPage();
     expect(screen.getByRole('heading', { level: 2, name: 'H1' })).toBeInTheDocument();

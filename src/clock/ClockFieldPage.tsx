@@ -16,7 +16,7 @@ import { useUIStore } from '@/lib/ui-store';
 import { JerseyDefs } from '@/lineups/Jersey';
 import { toEnginePlayers, useCurrentPlan, useFormations, useMyChildren } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
-import { SPORTS, periodPlural, shortPeriod } from '@/sports/definitions';
+import { SPORTS, periodCountText, shortPeriod } from '@/sports/definitions';
 import { assignSlot, clearAll, fixPeriods } from '@/sports/lineup';
 import { type Period } from '@/sports/types';
 import { type Player, usePlayers } from '@/teams/api';
@@ -392,7 +392,7 @@ export function ClockFieldPage() {
   const title = live ? (fullTime ? 'Full time' : shortPeriod(S, N, periodIndex)) : 'Starters';
   const sub = live
     ? `Live vs ${live.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ' · tap a jersey, then another, to swap' : ''}`
-    : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${N} ${periodPlural(S, N)} on the clock${isStaff ? ' · tap jerseys to set the starters · tap the score to start a game' : ''}`;
+    : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${periodCountText(S, N)} on the clock${isStaff ? ' · tap jerseys to set the starters · tap the score to start a game' : ''}`;
   const periodNoun = S.periodName(N).toLowerCase();
   const atZero = !!live && clock.clockSeconds === 0 && !isRunning(clock);
 
@@ -463,15 +463,15 @@ export function ClockFieldPage() {
           players={activePlayers}
           onField={slots.filter(Boolean)}
           bench={queue}
-          stamp={<ClockStamp clock={clock} label={shortPeriod(S, N, periodIndex)} />}
+          stamp={<ClockStamp clock={clock} label={N === 1 ? '' : shortPeriod(S, N, periodIndex)} />}
           names={names}
           events={log}
           onAdd={(ev) => {
             addEvent.mutate({ ...ev, period_index: periodIndex }, { onError });
             toast(
               ev.side === 'them'
-                ? `${live.opponent} scored · ${shortPeriod(S, N, periodIndex)} ${formatClock(elapsedAt(clock, serverNow()))}`
-                : `${S.scoring.events[0]?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'} · ${shortPeriod(S, N, periodIndex)} ${formatClock(elapsedAt(clock, serverNow()))}`,
+                ? `${live.opponent} scored · ${N === 1 ? '' : `${shortPeriod(S, N, periodIndex)} `}${formatClock(elapsedAt(clock, serverNow()))}`
+                : `${S.scoring.events[0]?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'} · ${N === 1 ? '' : `${shortPeriod(S, N, periodIndex)} `}${formatClock(elapsedAt(clock, serverNow()))}`,
             );
           }}
           onUndo={(ev) => {
@@ -506,7 +506,7 @@ export function ClockFieldPage() {
         <>
           <Footer className="noprint" style={{ marginTop: 14 }}>
             {live
-              ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench is a line, next in on the right, with minutes played and time resting under each player; tap two bench jerseys to swap their places. End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`
+              ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench is a line, next in on the right, with minutes played and time resting under each player; tap two bench jerseys to swap their places. ${N === 1 ? 'Pause the clock at the breaks; finish the game from the game page when it is over.' : `End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`}`
               : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available, in the order they will come on, next in on the right (tap two to swap places). Auto-fill gives open spots to the players with the fewest minutes this season, rotating position groups; your own picks are never moved.`}
           </Footer>
           {live ? (
@@ -520,9 +520,14 @@ export function ClockFieldPage() {
                   {running ? 'Pause' : clock.clockSeconds > 0 ? 'Resume' : 'Start clock'}
                 </Button>
               )}
-              {!fullTime && (
+              {!fullTime && N > 1 && (
                 <Button variant="tinted" disabled={act.isPending} onClick={() => void endPeriod()}>
                   End {shortPeriod(S, N, periodIndex)}
+                </Button>
+              )}
+              {!fullTime && N === 1 && (
+                <Button variant="tinted" onClick={() => void navigate(`/games/${live.id}`)}>
+                  Finish game
                 </Button>
               )}
               {!fullTime && atZero && (

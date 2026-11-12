@@ -59,5 +59,8 @@ describe('log tags with the clock minute (D74)', () => {
     expect(eventTag('Half', { period_index: 0, clock_seconds: 0 })).toBe("H1 1'");
     expect(eventTag('Quarter', { period_index: 2, clock_seconds: null })).toBe('Q3');
     expect(eventTag('Inning', { period_index: 2 })).toBe('Inn 3');
+    // a one-period game shows the minute only, no period label (D97)
+    expect(eventTag('Game', { period_index: 0, clock_seconds: 1345 })).toBe("23'");
+    expect(eventTag('Game', { period_index: 0, clock_seconds: null })).toBe('');
   });
 });

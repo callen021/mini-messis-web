@@ -19,6 +19,7 @@ export function PeriodPicker({
 }) {
   const name = S.periodName(count);
   const n = Math.max(1, count);
+  if (n === 1) return null; // one period: nothing to pick (D97)
   if (n > 6) {
     return (
       <Field label={name}>

@@ -11,13 +11,13 @@ import { useToast } from '@/components/Toast';
 import { Segmented } from '@/components/Segmented';
 import { useAddScoreEvent, useCreateGame, useDeleteScoreEvent, useScoreEvents } from '@/games/api';
 import { LineupPage } from '@/games/LineupPage';
-import { makeNameLookup } from '@/games/names';
+import { makeNameLookup, periodSuffix } from '@/games/names';
 import { NewGameSheet } from '@/games/NewGameSheet';
 import { ScorePanel } from '@/games/ScorePanel';
 import { describeEvent, scoreNoun as scoreNounFor } from '@/games/scoring';
 import { errorMessage } from '@/lib/supabase';
 import { useUIStore } from '@/lib/ui-store';
-import { SPORTS, shortPeriod, periodPlural } from '@/sports/definitions';
+import { SPORTS, shortPeriod, periodCountText } from '@/sports/definitions';
 import {
   assignSlot,
   autoFill,
@@ -214,7 +214,7 @@ function PeriodFieldPage() {
     commit(
       r.periods,
       r.filled
-        ? `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled across ${N} ${periodPlural(S, N)}`
+        ? `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled across ${periodCountText(S, N)}`
         : 'Nobody left on the bench',
     );
   };
@@ -241,7 +241,7 @@ function PeriodFieldPage() {
 
   const sub = plan.liveGame
     ? `Live vs ${plan.liveGame.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ` · tap a score to add ${scoreNoun === 'score' ? 'points' : `a ${scoreNoun}`}` : ''}`
-    : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${N} ${periodPlural(S, N)}${isStaff ? ' · tap a jersey to assign · tap a score to start a game' : ''}`;
+    : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${periodCountText(S, N)}${isStaff ? ' · tap a jersey to assign · tap a score to start a game' : ''}`;
 
   return (
     <section className="page">
@@ -316,8 +316,8 @@ function PeriodFieldPage() {
                 addEvent.mutate(ev, { onError: (e) => toast(errorMessage(e)) });
                 toast(
                   ev.side === 'them'
-                    ? `${plan.liveGame?.opponent ?? 'Opponent'} scored · ${S.periodName(N)} ${ev.period_index + 1}`
-                    : `${firstKind?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'} · ${S.periodName(N)} ${ev.period_index + 1}`,
+                    ? `${plan.liveGame?.opponent ?? 'Opponent'} scored${periodSuffix(S.periodName(N), ev.period_index)}`
+                    : `${firstKind?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'}${periodSuffix(S.periodName(N), ev.period_index)}`,
                 );
               }}
               onUndo={(ev) => {

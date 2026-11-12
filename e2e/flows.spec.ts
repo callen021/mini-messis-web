@@ -148,6 +148,40 @@ test.describe('coach and parent flows', () => {
     await expect(first.locator('.bslot .shirt .name').last()).toHaveText('Cal', { ignoreCase: true });
   });
 
+  test('one period in period mode: a single card called Game and a Rotation column headed Game (D97)', async () => {
+    await coach.goto('/settings/team');
+    const dec = coach.getByRole('button', { name: /Decrease (Quarters|Halves|Periods)/ });
+    // the count change also resizes the template through save_lineups; wait for that before reloading
+    const synced = () => coach.waitForResponse((r) => r.url().includes('/rpc/save_lineups'));
+    let saved = synced();
+    await dec.click(); // 4 → 3
+    await dec.click(); // 3 → 2
+    await dec.click(); // 2 → 1
+    await expect(coach.getByRole('group', { name: 'Periods' })).toContainText('1');
+    await expect(coach.getByText('One field card for the whole game')).toBeVisible();
+    await expect(coach.getByText(/1 half|1 quarter|halfs/)).toHaveCount(0);
+    await saved;
+    await coach.goto('/field');
+    await expect(coach.locator('.qcard')).toHaveCount(1);
+    await expect(coach.getByRole('heading', { level: 2, name: 'Game' })).toBeVisible();
+    await expect(coach.getByText(/one period/)).toBeVisible();
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Rotation' }).click();
+    await expect(coach.locator('.qlab').first()).toHaveText('Game');
+    await expect(coach.getByText(/1 half|1 quarter|halfs/)).toHaveCount(0);
+    // back to four quarters for the flows that follow
+    await coach.goto('/settings/team');
+    const inc = coach.getByRole('button', { name: /Increase (Quarters|Halves|Periods)/ });
+    saved = synced();
+    await inc.click();
+    await inc.click();
+    await inc.click();
+    await expect(coach.getByRole('group', { name: 'Quarters' })).toContainText('4');
+    await saved;
+    await coach.goto('/field');
+    await expect(coach.locator('.qcard')).toHaveCount(4);
+  });
+
   test('Field empty state at 375px: open jerseys show the code and a plus, never "Select" (D63)', async () => {
     await coach.setViewportSize({ width: 375, height: 760 });
     await coach.goto('/field');

@@ -153,5 +153,6 @@ export function periodsHeader(sport: SportDefinition, periodCount: number): stri
   if (name === 'Quarter') return 'Qtrs';
   if (name === 'Half') return 'Halves';
   if (name === 'Inning') return 'Inn';
+  if (name === 'Game') return 'Played';
   return `${name}s`;
 }

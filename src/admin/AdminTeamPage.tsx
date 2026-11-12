@@ -11,7 +11,7 @@ import { useToast } from '@/components/Toast';
 import { useSeasons, useSetCurrentSeason } from '@/games/api';
 import { fmtDate } from '@/games/format';
 import { errorMessage } from '@/lib/supabase';
-import { ENABLED_SPORTS, SPORTS, periodPlural } from '@/sports/definitions';
+import { ENABLED_SPORTS, SPORTS, periodCountText } from '@/sports/definitions';
 import { type SportKey } from '@/sports/types';
 import {
   type MemberRole,
@@ -230,7 +230,7 @@ export function AdminTeamPage() {
         </Row>
         <Row
           label="Setup"
-          value={`${t.side_size} ${S.unit} · ${t.periods_count} ${periodPlural(S, t.periods_count)} · ${row?.players ?? 0} players`}
+          value={`${t.side_size} ${S.unit} · ${periodCountText(S, t.periods_count)} · ${row?.players ?? 0} players`}
         />
       </Group>
 

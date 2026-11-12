@@ -26,9 +26,10 @@ export function describeEvent(
   const tag = eventTag(name, ev);
   const kind = S.scoring.events.find((k) => k.type === ev.event_type);
   const noun = kind?.noun ?? ev.event_type.replace(/_/g, ' ');
-  if (ev.side === 'them') return `${tag} · ${opponent || 'Opponent'} ${noun}`;
+  const parts = (...xs: string[]) => xs.filter(Boolean).join(' · ');
+  if (ev.side === 'them') return parts(tag, `${opponent || 'Opponent'} ${noun}`);
   const who = names.name(ev.scorer_player_id) || 'Unknown';
-  return S.scoring.panel === 'points' ? `${tag} · ${who} · ${noun}` : `${tag} · ${who}`;
+  return S.scoring.panel === 'points' ? parts(tag, who, noun) : parts(tag, who);
 }
 
 /** What one logged event is called in copy: 'goal', 'run', or 'score' for point-based sports. */

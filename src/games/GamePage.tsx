@@ -51,7 +51,7 @@ import { downloadIcs } from './ics';
 import { PlaceDatalist } from './PlaceDatalist';
 import { addressFor, useTeamPlaces } from './places';
 import { LineScore } from './LineScore';
-import { eventTag, makeNameLookup } from './names';
+import { eventTag, makeNameLookup, periodSuffix } from './names';
 import { paResultLabel, paResultShort } from './batting';
 import { PlateAppearanceSheet } from './PlateAppearanceSheet';
 import { ScorePanel } from './ScorePanel';
@@ -81,7 +81,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const sheet = useActionSheet();
   const navigate = useNavigate();
   const { formationFor, forms } = useFormations();
-  const currentSeason = useCurrentSeason(teamId);
+  const currentSeason = useCurrentSeason(game.team_id); // the game's own team: it may be viewed from another
   // a game of a past season is viewable, never editable (D94)
   const pastSeason = !!currentSeason.data && game.season_id !== currentSeason.data.id;
   const canEdit = isStaff && !pastSeason;
@@ -462,7 +462,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
         )}
       </Group>
 
-      {!isUpcoming && S.scoring.panel !== 'goal' && log.length > 0 && (
+      {!isUpcoming && S.scoring.panel !== 'goal' && log.length > 0 && periodCount > 1 && (
         <>
           <Section>{isBaseball ? 'Line score' : `By ${periodName.toLowerCase()}`}</Section>
           <Group>
@@ -501,7 +501,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
                   onClick={canEdit ? () => setEditing(ev) : undefined}
                   label={
                     <>
-                      <PeriodTag>{eventTag(periodName, ev)}</PeriodTag>
+                      {eventTag(periodName, ev) && <PeriodTag>{eventTag(periodName, ev)}</PeriodTag>}
                       {who}
                     </>
                   }
@@ -672,8 +672,8 @@ function GameDetail({ game }: { game: GameWithScore }) {
               addEvent.mutate(ev, { onError });
               toast(
                 ev.side === 'them'
-                  ? `${game.opponent} scored · ${periodName} ${ev.period_index + 1}`
-                  : `${first?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'} · ${periodName} ${ev.period_index + 1}`,
+                  ? `${game.opponent} scored${periodSuffix(periodName, ev.period_index)}`
+                  : `${first?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'}${periodSuffix(periodName, ev.period_index)}`,
               );
             }}
             onUndo={(ev) => {

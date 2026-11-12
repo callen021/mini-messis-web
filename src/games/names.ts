@@ -31,9 +31,16 @@ export function makeNameLookup(
   };
 }
 
-/** Period label for logs: "Q2", "H1", "Inn 3". */
+/** Period label for logs: "Q2", "H1", "Inn 3"; nothing for a one-period game (D97). */
 export function periodTag(periodName: string, index: number): string {
+  if (periodName === 'Game') return '';
   return periodName === 'Inning' ? `Inn ${index + 1}` : `${periodName[0] ?? ''}${index + 1}`;
+}
+
+/** "Q2" / "H1" / "" after a scorer in a toast: the period, unless the game has only one. */
+export function periodSuffix(periodName: string, index: number): string {
+  const tag = periodTag(periodName, index);
+  return tag ? ` · ${tag}` : '';
 }
 
 /** The log tag with the clock minute when the event carries one (clock mode, D74): "H2 23'". */
@@ -42,7 +49,7 @@ export function eventTag(
   ev: { period_index: number; clock_seconds?: number | null },
 ): string {
   const tag = periodTag(periodName, ev.period_index);
-  return ev.clock_seconds === null || ev.clock_seconds === undefined
-    ? tag
-    : `${tag} ${Math.floor(Math.max(0, ev.clock_seconds) / 60) + 1}'`;
+  if (ev.clock_seconds === null || ev.clock_seconds === undefined) return tag;
+  const minute = `${Math.floor(Math.max(0, ev.clock_seconds) / 60) + 1}'`;
+  return tag ? `${tag} ${minute}` : minute;
 }

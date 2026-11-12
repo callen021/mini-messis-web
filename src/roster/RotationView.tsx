@@ -7,7 +7,7 @@ import { errorMessage } from '@/lib/supabase';
 import { playerName, toEnginePlayers, useCurrentPlan, useFormations, useSavePlan } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
 import { textColor } from '@/sports/colors';
-import { SPORTS, chipLabel, periodPlural } from '@/sports/definitions';
+import { SPORTS, chipLabel, periodPlural, periodsNoun } from '@/sports/definitions';
 import { periodsHeader, positionName, usedPositions } from '@/sports/positions';
 import {
   autoFillAll,
@@ -158,7 +158,7 @@ export function RotationView({
           </div>
           <div
             className={`total ${totalLevel(c[p.id] ?? 0, N)}`}
-            aria-label={`${c[p.id] ?? 0} of ${N} ${periodPlural(S, N)}`}
+            aria-label={`${c[p.id] ?? 0} of ${N} ${periodsNoun(S, N)}`}
           >
             {c[p.id] ?? 0}
           </div>

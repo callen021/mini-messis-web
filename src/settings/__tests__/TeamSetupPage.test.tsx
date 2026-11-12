@@ -165,6 +165,31 @@ describe('TeamSetupPage · track playing time by (D65)', () => {
   });
 });
 
+describe('TeamSetupPage · one period (D97)', () => {
+  beforeEach(() => {
+    updates.length = 0;
+    liveGame = null;
+    failNext = null;
+  });
+
+  it('period mode steps down to one period, labelled Periods, never "1 half"', async () => {
+    renderPage({ periods_count: 2 });
+    await userEvent.click(screen.getByRole('button', { name: 'Decrease Halves' }));
+    expect(screen.getByRole('group', { name: 'Periods' })).toHaveTextContent('1');
+    expect(screen.getByText('One field card for the whole game')).toBeInTheDocument();
+    expect(document.body.textContent).not.toMatch(/1 half|1 quarter|halfs/);
+    await waitFor(() => expect(updates).toContainEqual({ periods_count: 1 }));
+  });
+
+  it('clock mode with one period: the length is the whole game, and the row says so', async () => {
+    renderPage({ time_mode: 'clock', clock_periods: 1 });
+    expect(screen.getByRole('group', { name: 'Periods' })).toHaveTextContent('1');
+    expect(screen.getByText(/One continuous clock with Start and Pause/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Game length in minutes')).toBeInTheDocument();
+    expect(screen.getByText(/the whole game, in minutes/)).toBeInTheDocument();
+  });
+});
+
 describe('TeamSetupPage · responsive controls (D88)', () => {
   beforeEach(() => {
     updates.length = 0;

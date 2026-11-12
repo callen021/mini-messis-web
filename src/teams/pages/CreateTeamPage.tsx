@@ -9,7 +9,7 @@ import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
-import { ENABLED_SPORTS, SPORTS, periodPlural } from '@/sports/definitions';
+import { ENABLED_SPORTS, SPORTS, periodCountText } from '@/sports/definitions';
 import { type SportKey } from '@/sports/types';
 import { useActiveMemberships, useCreateTeam } from '../api';
 
@@ -80,7 +80,7 @@ export function CreateTeamPage() {
                 key={k}
                 icon={sp.emoji}
                 label={sp.name}
-                detail={`${sp.defaultSize} ${sp.unit}${sp.hasGK ? ' incl. goalie' : ''} · ${sp.defaultPeriods} ${periodPlural(sp, sp.defaultPeriods)}`}
+                detail={`${sp.defaultSize} ${sp.unit}${sp.hasGK ? ' incl. goalie' : ''} · ${periodCountText(sp, sp.defaultPeriods)}`}
                 onClick={() => setSport(k)}
                 aria-label={`${sp.name}${k === sport ? ', selected' : ''}`}
               >
@@ -95,8 +95,8 @@ export function CreateTeamPage() {
         </Group>
         <Footer>
           Defaults for {S.name.toLowerCase()}: {S.defaultSize} {S.unit}
-          {S.hasGK ? ' including the goalkeeper' : ''}, {S.defaultPeriods} {periodPlural(S, S.defaultPeriods)}
-          . You can change these in Settings.
+          {S.hasGK ? ' including the goalkeeper' : ''}, {periodCountText(S, S.defaultPeriods)}. You can change
+          these in Settings.
         </Footer>
         {error && (
           <p className="form-error" role="alert" style={{ margin: '12px 16px 0' }}>

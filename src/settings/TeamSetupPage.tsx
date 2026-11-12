@@ -13,7 +13,7 @@ import { dbError } from '@/lib/errors';
 import { supabase } from '@/lib/supabase';
 import { toEnginePlayers, useLiveGame } from '@/lineups/api';
 import { periodsToPayload, rowsToPeriods } from '@/lineups/convert';
-import { formationByName, SPORTS, periodPlural } from '@/sports/definitions';
+import { formationByName, SPORTS, periodCountText, periodPlural, periodsNoun } from '@/sports/definitions';
 import { fixPeriods, resizePeriods } from '@/sports/lineup';
 import { type Team, usePlayers } from '@/teams/api';
 import { COALESCE_MS, SAVE_FAILED, invalidateTeamCaches, patchTeamCaches } from '@/teams/teamCache';
@@ -32,7 +32,7 @@ type Setup = Pick<
   | 'period_minutes'
 >;
 
-/** Period counts a clock-mode game may have (D65): one period up to four quarters, six for innings. */
+/** Period counts a clock-mode game may have (D65, D97): one continuous game up to four quarters, six for innings. */
 const CLOCK_PERIOD_OPTIONS = [1, 2, 3, 4, 6] as const;
 
 /** IANA zones the browser knows, US ones first so the common picks are at the top (D50). */
@@ -245,7 +245,7 @@ export function TeamSetupPage() {
               ? 'Finish the game in progress to change this'
               : clock
                 ? 'A game clock with substitutions; minutes played come from the clock'
-                : `Lineups per ${noun.toLowerCase()}; playing time is counted in ${periodPlural(S, N)}`
+                : `Lineups per ${noun.toLowerCase()}; playing time is counted in ${periodsNoun(S, N)}`
           }
         >
           <Segmented<'periods' | 'clock'>
@@ -268,11 +268,17 @@ export function TeamSetupPage() {
         {clock ? (
           <>
             <Row
-              label={periodPlural(S, N, true)}
-              detail={liveLock ? 'Locked while a game is live' : `${N} ${periodPlural(S, N)} per game`}
+              label={N === 1 ? 'Periods' : periodPlural(S, N, true)}
+              detail={
+                liveLock
+                  ? 'Locked while a game is live'
+                  : N === 1
+                    ? 'One continuous clock with Start and Pause; finish from the game page'
+                    : `${periodCountText(S, N)} per game`
+              }
             >
               <Stepper
-                label={periodPlural(S, N, true)}
+                label={N === 1 ? 'Periods' : periodPlural(S, N, true)}
                 value={clockPerIdx}
                 min={0}
                 max={CLOCK_PERIOD_OPTIONS.length - 1}
@@ -289,7 +295,9 @@ export function TeamSetupPage() {
               detail={
                 team.period_minutes
                   ? `The clock shows time remaining and alerts at zero; the ${noun.toLowerCase()} never ends on its own`
-                  : 'Optional · minutes; leave blank for a plain count-up clock'
+                  : N === 1
+                    ? 'Optional · the whole game, in minutes; leave blank for a plain count-up clock'
+                    : 'Optional · minutes; leave blank for a plain count-up clock'
               }
             >
               <input
@@ -318,9 +326,12 @@ export function TeamSetupPage() {
             </Row>
           </>
         ) : (
-          <Row label={periodPlural(S, N, true)} detail={`${N} ${periodPlural(S, N)} per game`}>
+          <Row
+            label={N === 1 ? 'Periods' : periodPlural(S, N, true)}
+            detail={N === 1 ? 'One field card for the whole game' : `${periodCountText(S, N)} per game`}
+          >
             <Stepper
-              label={periodPlural(S, N, true)}
+              label={N === 1 ? 'Periods' : periodPlural(S, N, true)}
               value={perIdx}
               min={0}
               max={S.periodOptions.length - 1}

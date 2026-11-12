@@ -33,7 +33,7 @@ export function TeamPage() {
     view === 'rotation'
       ? clockMode
         ? `Minutes each player has played${isStaff ? ' · substitutions on the Field tab' : ''}`
-        : `${periodPlural(S, N, true)} each player is scheduled for${isStaff ? ' · tap a box to assign' : ''}`
+        : `${N === 1 ? 'Who plays the game' : `${periodPlural(S, N, true)} each player is scheduled for`}${isStaff ? ' · tap a box to assign' : ''}`
       : `${S.emoji} ${S.name} roster · ${active} active${outCount ? ` · ${outCount} out` : ''}`;
 
   return (

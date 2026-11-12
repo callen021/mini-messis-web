@@ -30,7 +30,7 @@ import { directionsUrl } from './directions';
 import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
 import { GameBadge } from './GameBadge';
 import { downloadScheduleIcs } from './ics';
-import { makeNameLookup } from './names';
+import { makeNameLookup, periodSuffix } from './names';
 import { NewGameSheet } from './NewGameSheet';
 import { PracticeBadge } from './PracticeBadge';
 import { type Practice, useCreatePractices, usePractices } from './practices';
@@ -366,8 +366,8 @@ function LiveGameCard({ game }: { game: GameWithScore }) {
               add.mutate(ev, { onError: (e) => toast(errorMessage(e)) });
               toast(
                 ev.side === 'them'
-                  ? `${game.opponent} scored · ${S.periodName(periodCount)} ${ev.period_index + 1}`
-                  : `${first?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'} · ${S.periodName(periodCount)} ${ev.period_index + 1}`,
+                  ? `${game.opponent} scored${periodSuffix(S.periodName(periodCount), ev.period_index)}`
+                  : `${first?.label === 'Goal' ? 'Goal!' : 'Scored!'} ${names.name(ev.scorer_player_id) || 'Unknown'}${periodSuffix(S.periodName(periodCount), ev.period_index)}`,
               );
             }}
             onUndo={(ev) => {

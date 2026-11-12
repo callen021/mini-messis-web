@@ -7,9 +7,6 @@ import { useServerNow } from './useNow';
  */
 export function ClockStamp({ clock, label }: { clock: ClockState; label: string }) {
   const now = useServerNow(isRunning(clock));
-  return (
-    <>
-      {label} · {formatClock(elapsedAt(clock, now))}
-    </>
-  );
+  const time = formatClock(elapsedAt(clock, now));
+  return <>{label ? `${label} · ${time}` : time}</>;
 }

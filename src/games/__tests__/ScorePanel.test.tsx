@@ -171,6 +171,27 @@ describe('ScorePanel', () => {
     );
   });
 
+  it('one period: no period picker, and the log line has no period label (D97)', () => {
+    render(
+      <ScorePanel
+        open
+        onClose={vi.fn()}
+        S={SPORTS.soccer}
+        opponent="Bears"
+        periodCount={1}
+        initialPeriod={0}
+        players={players}
+        names={names}
+        events={[]}
+        onAdd={vi.fn()}
+        onUndo={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('radiogroup', { name: 'Game' })).not.toBeInTheDocument();
+    expect(describeEvent(SPORTS.soccer, 1, 'Bears', ev({ clock_seconds: 125 }), names)).toBe("3' · Teddy");
+    expect(describeEvent(SPORTS.soccer, 1, 'Bears', ev({ side: 'them' }), names)).toBe('Bears goal');
+  });
+
   it('describes events for toasts and the log', () => {
     expect(describeEvent(SPORTS.soccer, 4, 'Bears', ev({}), names)).toBe('Q1 · Teddy');
     expect(describeEvent(SPORTS.soccer, 4, 'Bears', ev({ side: 'them', period_index: 3 }), names)).toBe(

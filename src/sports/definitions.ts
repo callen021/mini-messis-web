@@ -125,9 +125,9 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
     defaultSize: 7,
     hasGK: true,
     defaultPeriods: 4,
-    periodOptions: [2, 3, 4],
+    periodOptions: [1, 2, 3, 4],
     games: true,
-    periodName: (n) => (n === 2 ? 'Half' : 'Quarter'),
+    periodName: (n) => (n === 1 ? 'Game' : n === 2 ? 'Half' : 'Quarter'),
     unit: 'on the field',
     groups: [
       ['ST', 'Strikers'],
@@ -222,8 +222,8 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
     defaultSize: 5,
     hasGK: false,
     defaultPeriods: 4,
-    periodOptions: [2, 4],
-    periodName: (n) => (n === 2 ? 'Half' : 'Quarter'),
+    periodOptions: [1, 2, 4],
+    periodName: (n) => (n === 1 ? 'Game' : n === 2 ? 'Half' : 'Quarter'),
     unit: 'on the court',
     groups: [
       ['G', 'Guards'],
@@ -255,8 +255,8 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
     defaultSize: 11,
     hasGK: false,
     defaultPeriods: 4,
-    periodOptions: [2, 4],
-    periodName: (n) => (n === 2 ? 'Half' : 'Quarter'),
+    periodOptions: [1, 2, 4],
+    periodName: (n) => (n === 1 ? 'Game' : n === 2 ? 'Half' : 'Quarter'),
     unit: 'on the field',
     groups: [
       ['QB', 'Quarterback'],
@@ -319,9 +319,9 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
     defaultSize: 10,
     hasGK: true,
     defaultPeriods: 4,
-    periodOptions: [2, 4],
+    periodOptions: [1, 2, 4],
     games: true,
-    periodName: (n) => (n === 2 ? 'Half' : 'Quarter'),
+    periodName: (n) => (n === 1 ? 'Game' : n === 2 ? 'Half' : 'Quarter'),
     unit: 'on the field',
     groups: [
       ['ATT', 'Attack'],
@@ -369,22 +369,34 @@ export function formationByName(forms: readonly Formation[], name: string): Form
   return found;
 }
 
-/** "quarters" / "halves" / "innings": the plural, lower-case unless `cap` (D63). */
+/** "quarters" / "halves" / "innings" / "games" (one period): the plural, lower-case unless `cap` (D63). */
 export function periodPlural(sport: SportDefinition, periodCount: number, cap = false): string {
   const name = sport.periodName(periodCount);
   const plural = name === 'Half' ? 'Halves' : `${name}s`;
   return cap ? plural : plural.toLowerCase();
 }
 
-/** "Q1" / "H2" / "Inning 3" — short period title for a card. */
+/** "4 quarters", "2 halves", "one period" (D97): how many periods a game has, for copy. */
+export function periodCountText(sport: SportDefinition, periodCount: number): string {
+  return periodCount === 1 ? 'one period' : `${periodCount} ${periodPlural(sport, periodCount)}`;
+}
+
+/** "quarters" / "halves" / "period" (one): the noun for "N of M …" and settings labels (D97). */
+export function periodsNoun(sport: SportDefinition, periodCount: number): string {
+  return periodCount === 1 ? 'period' : periodPlural(sport, periodCount);
+}
+
+/** "Q1" / "H2" / "Inning 3" / "Game" (one period) — short period title for a card. */
 export function shortPeriod(sport: SportDefinition, periodCount: number, index: number): string {
   const name = sport.periodName(periodCount);
+  if (name === 'Game') return 'Game';
   return name === 'Inning' ? `Inning ${index + 1}` : `${name[0] ?? ''}${index + 1}`;
 }
 
-/** "1" / "Q1" — the tiny label above a rotation chip. */
+/** "1" / "Q1" / "Game" — the tiny label above a rotation chip. */
 export function chipLabel(sport: SportDefinition, periodCount: number, index: number): string {
   const name = sport.periodName(periodCount);
+  if (name === 'Game') return 'Game';
   return name === 'Inning' ? String(index + 1) : `${name[0] ?? ''}${index + 1}`;
 }
 

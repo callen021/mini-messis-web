@@ -137,6 +137,16 @@ describe('RotationView', () => {
     expect(screen.getByText('Hal')).toBeInTheDocument();
   });
 
+  it('one period: the column is headed Game, totals read Played, no "1 quarter" (D97)', () => {
+    periods = [stored({ formation: '3-3', slots: ['p1', 'p2', '', '', '', '', 'p3'], auto: [] }, 0)];
+    renderView();
+    expect(screen.getAllByText('Game', { selector: '.qlab' }).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Nolan, Game 1: Left wing' })).toHaveClass('on');
+    expect(document.querySelector('.rothead .total')).toHaveTextContent('Played');
+    expect(screen.getAllByLabelText('1 of 1 period').length).toBeGreaterThan(0);
+    expect(document.body.textContent).not.toMatch(/1 quarter|1 half/);
+  });
+
   it('tapping a chip opens the position picker; choosing a taken spot swaps and saves', async () => {
     renderView();
     await userEvent.click(screen.getByRole('button', { name: 'Jack, Quarter 1: Goalkeeper' }));
