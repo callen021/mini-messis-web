@@ -855,3 +855,159 @@ console has a copy button on every team row that asks for a name and opens the c
 compares a row-count signature across every copied table, proves no id is shared, that each
 remapped reference lands in the copy, that the copy's stats match, and that renaming, deleting
 and scoring in the copy leaves the source byte-for-byte the same.
+
+## 2026-11-12 — Bench polish, defaults, performance, joining without approval, seasons
+
+### D82. Bench captions use the real plural
+
+The period-mode bench caption was built with a bare "s" and read "0 halfs" on a two-half team.
+`PeriodCard` takes the period count and uses `periodPlural` ("0 halves", "1 half"); in clock mode
+nothing is shown under a bench jersey before kickoff and minutes · rest during a game, as before.
+
+### D83. The bench queue runs right to left
+
+The next player in is the rightmost jersey of the top bench row; the line continues leftward along
+that row, then right to left along the next, and rows are right-aligned. A player coming off joins
+the end of the queue, the leftmost of the last row. The stored order (`lineups.bench_order`) and
+the DOM order are still queue order, next in first, so nobody's place in line changed and no data
+migration was needed; only the drawing changed (`.benchq` is a wrapping `row-reverse` flex box).
+Everything else about the queue (D79) is unchanged.
+
+### D84. "Up Next" over the next-in jersey
+
+The bench header carries an "Up Next" label, right-aligned and exactly one jersey wide, so it sits
+over the next-in jersey in both modes; that jersey also says "up next" in its accessible name.
+
+### D85. Bigger bench jerseys: five to a row
+
+Each bench slot is a fifth of the row (4 px gaps, 8 px side padding, capped at 76 px on wide
+screens), so five fit at 375 px with name, number and caption legible.
+
+### D86. No picker sheet on the Field
+
+Players are assigned only by tapping jerseys, in both modes. An empty spot is selected like a
+jersey (gold outline, "Tap a bench player for LS"); a bench tap fills it, an on-field tap moves that
+player into it, another empty spot takes over the selection, the same spot again cancels; the
+other order (bench first, then the spot) works as before. "Open the spot" stays for clearing a
+selected on-field jersey. `PlayerPickerSheet` and its code are gone from the Field page; the
+position picker on Team → Rotation is untouched.
+
+### D87. Defaults for new teams
+
+`create_team` sets playing time to the clock for every sport where it applies (every enabled sport
+but baseball); the column default stays `periods`, so existing teams are untouched. Every jersey
+colour group of a new team, goalkeeper included, starts as `#E22400` (`DEFAULT_JERSEY`).
+
+### D88. Team setup responds at once; rapid taps save once
+
+The page's team comes from the memberships list (RequireTeam), not from the team's own query, so
+the old optimistic update never reached the controls and every stepper tap waited a second or two
+for the server. `patchTeamCaches` now updates every cached copy (the team query and every
+memberships list) and hands back a restore; `useCoalescedSetup` applies it the moment a control is
+tapped, merges taps within 400 ms into one save (a stepper tapped three times saves once, a mode
+switch and a tap in one burst save as one request), sends what is still queued when the page is
+left or hidden, and on a failed save puts every copy back and shows one plain sentence. The
+parent-stats switch, renaming, the invite on/off switch and the approval switch go through the
+same path. No other settings control waits on the server: theme and field view are local.
+
+### D89. Cold start: the frame first, the last screen from cache, fewer round trips
+
+Measured with `npm run perf:coldstart` (a production build against the local Supabase, Playwright
+on a phone viewport, 4x CPU throttle, slow 4G; `CPU=1` for an unthrottled CPU), signed in as the
+seeded coach and parent, a FIRST launch (fresh profile with the session only) and a REPEAT launch
+(service worker and caches warm, persisted query cache present). Where the time went before: the
+app JS (one 230 kB gzipped bundle, about 1.4 s to arrive on slow 4G and 0.6 s to parse at 4x),
+then a waterfall — memberships in two requests (team_members, then teams), a render, the team's
+queries (players, links, board), the live-game check, then the template lineups, then their slots,
+then the lazily loaded field image, then the field render. Changes:
+
+- the query cache is persisted to localStorage (`PersistQueryClientProvider`, 24 h, build-keyed,
+  successful queries only, never one-off lookups, the clock or data that would not survive JSON
+  such as a Map); restored data is marked stale on arrival so the last-known screen paints at once
+  and every mounted query refetches in the background; sign-out drops it;
+- memberships are one request (team_members with the team embedded); lineups come with their
+  slots embedded; the template is fetched alongside the live-game check instead of after it;
+- the sport's field image is preloaded as soon as the team is known and the first field on the page
+  loads it eagerly with high priority; the service worker keeps it in its runtime cache;
+- the frame (status strip, top bar, tab bar, page skeleton) renders before the memberships arrive;
+- every page a launch does not need is a lazy chunk (the other tabs, settings, the admin console,
+  the board, one-off screens): initial JS 233.7 → 200.5 kB gzipped, 40 chunks on demand.
+
+Medians of three launches, time to useful content (coach: the first field jersey; parent: the
+child's tab), in milliseconds:
+
+| launch                           | before | after |
+| -------------------------------- | ------ | ----- |
+| coach, first (4x CPU)            | 4088   | 3601  |
+| coach, repeat (4x CPU)           | 2817   | 1838  |
+| parent, first (4x CPU)           | 3309   | 3088  |
+| parent, repeat (4x CPU)          | 1928   | 1618  |
+| coach, repeat (CPU unthrottled)  | —      | 274   |
+| parent, repeat (CPU unthrottled) | —      | 261   |
+
+The shell (tab bar) shows at about 1.0 s on a repeat launch at 4x (was 1.5 s). The remaining
+repeat-launch time at 4x is JS parse and the field render; the first launch is bound by the JS
+download on slow 4G plus one round trip per query level. A session whose access token has expired
+(the app opened after an hour away) adds one token refresh before any query; that is not
+measured here and cannot be avoided.
+
+### D90. Load example team works through the API; no raw database text on screen
+
+The hosted API role (`authenticator`) preloads pg-safeupdate, which refuses any DELETE without a
+WHERE clause; `import_legacy_backup` emptied its temp map with one, so "Load example team" failed
+with "DELETE requires a WHERE clause" (pgTAP runs as postgres and never saw it). The map is
+truncated now. A payload flagged `example` is accepted only from a platform admin onto a team with
+no players, and the row is shown only then. Every query wrapper throws a `DbError` that keeps the
+SQLSTATE, and `errorMessage` maps engine text (constraints, policies, PostgREST codes, dropped
+connections, JS TypeErrors) to one plain sentence by code or by wording while our own
+raise-exception text passes through; the stats page, the route and tab error screens and the app
+crash screen use it. Checked end to end against local PostgREST: first load 200, a second replace
+200, a third onto a team with players refused with P0008.
+
+### D91. Joining without approval; unconfirmed child links
+
+`teams.require_approval`, staff-editable in Members, is off for every team, existing ones included.
+When off, submitting the invite link makes the parent an active member at once (no pending
+screen) and links the children they picked as unconfirmed. An unconfirmed link gives everything
+any team parent sees plus the child starred, pinned first and on the home tab (next event,
+positions), and the child's individual stats under "own child only" (`is_linked_to`). It withholds
+the child's birthdate and shirt size, contacts not shared with the team, skill results, and editing
+of the child's details or other people's contacts: those stay on `is_guardian_of`, a staff-confirmed
+link. A parent may add and edit one contact entry for themselves on a linked child
+(`can_write_contact`). A parent cannot add, change or remove their own child links after joining:
+`request_guardian_link` refuses, RLS refuses, and opening the invite again as a member changes
+nothing; staff do it from Members. When the setting is on, the approval flow (pending →
+`approve_member`) and its tests are unchanged; parents approved before stay confirmed; the link
+only ever grants the parent role; the join rate limit and the Turn off / Replace controls stay;
+there is no coach invite link. Realtime on the user's own links and membership keeps the home tab
+honest. pgTAP 18 covers each withheld item.
+
+### D92. New this week; one-tap link actions; the count badge
+
+Members starts with "New this week": everyone who joined in the last seven days (`joined_at`),
+their children and whether each link is confirmed, with one-tap Confirm and Remove per link, a
+picker to change the set of children (`set_member_children`, every link confirmed), Change role and
+Remove member. Confirming a link makes the parent a contact on the child (D57), as approval did. A
+parent with an unconfirmed link reads "Your coach will confirm your link to <child> to show their
+details." on their tab, and the Members row in Settings carries the number of links to confirm.
+
+### D93. Removing a player removes their parents
+
+`archive_player_core` archives the player, clears them from plans and bench queues and, in the
+same transaction, sets to removed every active parent membership whose only linked child on the
+team was that player; a parent with another child stays, coaches and assistants keep their role.
+The player's games and stats are kept as before. `parents_losing_access()` previews who that would
+be, and the roster's Remove sheet names them. `start_season` uses the same core.
+
+### D94. Seasons on the same team
+
+Settings → Start new season (coach or platform admin; not while a game is live): name and dates,
+then a roster review with a Returning switch per player, default on; the confirmation names the
+players not returning and the parents who lose access. `start_season` does it in one transaction:
+the new season becomes current, non-returners are archived with D93, the template lineup and its
+bench order are cleared; returning players with numbers, details and contacts, parents, team
+settings, skill tests and every result, the board and the invite link carry over; the schedule and
+stats start empty. Stats → Season gets a season picker (results and the player table follow it);
+a game of a past season opens read-only. The admin console lists seasons and can make an earlier
+one current again (`set_current_season`) for a season started by mistake. pgTAP 19 proves each
+rule and that past-season games and stats are byte-for-byte unchanged.

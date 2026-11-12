@@ -62,6 +62,7 @@ erDiagram
     timestamptz join_code_rotated_at
     int side_size
     boolean has_gk
+    boolean require_approval "approve new parents before they join; off by default (D91)"
     int periods_count
     jsonb colors
     uuid last_batter_player_id FK
@@ -168,7 +169,7 @@ erDiagram
     uuid game_id FK "null = team template"
     int period_index "unique with team + game"
     text formation_name
-    uuid[] bench_order "the bench queue, left to right (D79)"
+    uuid[] bench_order "the bench queue, next in first (D79); drawn right to left (D83)"
   }
   lineup_slots {
     uuid lineup_id PK
@@ -467,29 +468,34 @@ Training sessions beside games (`scheduled` or `cancelled`, never deleted by a c
 
 ## Views and functions
 
-| Name                                                                                                                                      | What it does                                                                                            |
-| ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
-| `game_scores` (view)                                                                                                                      | us / them totals per game from `score_events` (security invoker)                                        |
-| `game_line_score` (view)                                                                                                                  | points per game, period and side                                                                        |
-| `player_season_stats(team, season?, game?)`                                                                                               | one row per player with the sport's stat columns plus `seconds_played`, for a season or one game        |
-| `default_skill_tests(sport)`                                                                                                              | the sport's default test set as JSON (kept in step with `src/skills/defaults.ts`)                       |
-| `create_team(...)`                                                                                                                        | team + owner membership + season + template lineups + default tests                                     |
-| `lookup_join_code`, `request_join`, `request_guardian_link`, `record_join_attempt`                                                        | the parent/assistant join flow                                                                          |
-| `approve_member`, `decline_member`, `remove_member`, `set_member_role`, `approve_guardian_link`, `rotate_join_code`, `transfer_ownership` | coach membership actions                                                                                |
-| `my_pending_requests`, `list_team_members`                                                                                                | directory helpers (profiles are private)                                                                |
-| `save_lineups`, `copy_lineups`, `clear_player_from_plans`, `set_player_available`, `archive_player`                                       | lineup and roster writes that touch several rows                                                        |
-| `start_game`, `finish_game`, `snapshot_game_players`                                                                                      | game lifecycle (clock-mode branches, D68)                                                               |
-| `game_clock`, `server_time`, `clock_start`, `clock_pause`, `clock_end_period`                                                             | the game clock (D66)                                                                                    |
-| `clock_sub`, `clock_swap`, `clock_empty`, `clock_fill`, `clock_set_lineup`, `clock_undo`                                                  | atomic substitutions on the clock, each an undoable op (D67)                                            |
-| `stint_update`, `stint_add`, `stint_delete`, `stint_check`                                                                                | playing-time corrections after a game (D67, D75)                                                        |
-| `bench_normalize`, `bench_apply`, `lineup_of`, `clock_bench_swap`                                                                         | the bench queue (D79)                                                                                   |
-| `duplicate_team(source, name, owner?)`                                                                                                    | a platform-admin copy of a team with new ids throughout, in one transaction (D81)                       |
-| `season_minutes(team, season?)`, `team_period_count(team)`, `clock_elapsed(seconds, since)`                                               | minutes per player and position group for Auto-fill (staff); the mode's period count; the clock formula |
-| `set_batting_order`                                                                                                                       | baseball order                                                                                          |
-| `set_skill_test_order`, `restore_skill_tests`                                                                                             | skills settings                                                                                         |
-| `import_legacy_backup`                                                                                                                    | loads a normalised `mini-messis-coach-v5` backup into a team                                            |
-| `is_platform_admin`, `admin_list_teams`, `admin_list_users`, `admin_add_member`, `admin_change_sport`                                     | platform admin console (D39)                                                                            |
-| `generate_join_code`, `normalize_join_code`, `score_event_points`, `email_confirmed`                                                      | pure helpers                                                                                            |
+| Name                                                                                                                                      | What it does                                                                                               |
+| ----------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| `game_scores` (view)                                                                                                                      | us / them totals per game from `score_events` (security invoker)                                           |
+| `game_line_score` (view)                                                                                                                  | points per game, period and side                                                                           |
+| `player_season_stats(team, season?, game?)`                                                                                               | one row per player with the sport's stat columns plus `seconds_played`, for a season or one game           |
+| `default_skill_tests(sport)`                                                                                                              | the sport's default test set as JSON (kept in step with `src/skills/defaults.ts`)                          |
+| `create_team(...)`                                                                                                                        | team + owner membership + season + template lineups + default tests                                        |
+| `lookup_join_code`, `request_join`, `request_guardian_link`, `record_join_attempt`                                                        | the parent/assistant join flow                                                                             |
+| `approve_member`, `decline_member`, `remove_member`, `set_member_role`, `approve_guardian_link`, `rotate_join_code`, `transfer_ownership` | coach membership actions                                                                                   |
+| `my_pending_requests`, `list_team_members`                                                                                                | directory helpers (profiles are private)                                                                   |
+| `save_lineups`, `copy_lineups`, `clear_player_from_plans`, `set_player_available`, `archive_player`                                       | lineup and roster writes that touch several rows                                                           |
+| `start_game`, `finish_game`, `snapshot_game_players`                                                                                      | game lifecycle (clock-mode branches, D68)                                                                  |
+| `game_clock`, `server_time`, `clock_start`, `clock_pause`, `clock_end_period`                                                             | the game clock (D66)                                                                                       |
+| `clock_sub`, `clock_swap`, `clock_empty`, `clock_fill`, `clock_set_lineup`, `clock_undo`                                                  | atomic substitutions on the clock, each an undoable op (D67)                                               |
+| `stint_update`, `stint_add`, `stint_delete`, `stint_check`                                                                                | playing-time corrections after a game (D67, D75)                                                           |
+| `bench_normalize`, `bench_apply`, `lineup_of`, `clock_bench_swap`                                                                         | the bench queue (D79)                                                                                      |
+| `duplicate_team(source, name, owner?)`                                                                                                    | a platform-admin copy of a team with new ids throughout, in one transaction (D81)                          |
+| `is_linked_to`, `can_write_contact`, `request_join` (direct when `teams.require_approval` is off)                                         | joining without approval; unconfirmed child links (D91)                                                    |
+| `set_member_children`, `guardian_contact_row`, `approve_guardian_link`, `list_team_members` (+`joined_at`)                                | staff confirm, change or remove child links; New this week (D92)                                           |
+| `archive_player_core`, `archive_player`, `parents_losing_access`                                                                          | removing a player removes any parent whose only linked child it was (D93)                                  |
+| `start_season`, `set_current_season`                                                                                                      | a new season on the same team; the admin switch back (D94)                                                 |
+| `import_legacy_backup` (`example` flag)                                                                                                   | truncates its temp map (pg-safeupdate on the API role); the example team is admin-only, empty roster (D90) |
+| `season_minutes(team, season?)`, `team_period_count(team)`, `clock_elapsed(seconds, since)`                                               | minutes per player and position group for Auto-fill (staff); the mode's period count; the clock formula    |
+| `set_batting_order`                                                                                                                       | baseball order                                                                                             |
+| `set_skill_test_order`, `restore_skill_tests`                                                                                             | skills settings                                                                                            |
+| `import_legacy_backup`                                                                                                                    | loads a normalised `mini-messis-coach-v5` backup into a team                                               |
+| `is_platform_admin`, `admin_list_teams`, `admin_list_users`, `admin_add_member`, `admin_change_sport`                                     | platform admin console (D39)                                                                               |
+| `generate_join_code`, `normalize_join_code`, `score_event_points`, `email_confirmed`                                                      | pure helpers                                                                                               |
 
 Launch scripts that read this schema: `scripts/reset-strikers-for-launch.sql` (backup to
 `backup_prelaunch`, then wipe everything but the Strikers' roster, schedule and settings) and

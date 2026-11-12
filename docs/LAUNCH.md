@@ -16,13 +16,17 @@ scripts in `scripts/`, and the repository variables `VITE_SUPABASE_URL` and
 
 ## 0. Push the pending migrations
 
-Twelve migrations are waiting since the launch build: `20261110000100_realtime_teams` (fixes live
+Eighteen migrations are waiting since the launch build: `20261110000100_realtime_teams` (fixes live
 updates for parents), the parent-feedback rounds (`admin_only_team_creation`, `invite_links`,
 `addresses_timezone`, `player_details`, `stats_visibility`, `contacts_directory`, `team_board`),
 clock-based playing time (`20261112000100_time_mode`, `20261112000200_game_clock_stints`), the
-bench queue (`20261112000300_bench_queue`) and team duplication (`20261112000400_duplicate_team`).
-Nothing in the app's clock mode works live until they are applied, and the bench on the period
-cards falls back to roster order until the queue migration is in. From the repo folder:
+bench queue (`20261112000300_bench_queue`), team duplication (`20261112000400_duplicate_team`),
+and the combined round (`20261112000500_new_team_defaults`, `20261112000600_example_team`,
+`20261112000700_join_without_approval`, `20261112000710_members_links`,
+`20261112000720_remove_player_parents`, `20261112000800_seasons`). Nothing in the app's clock
+mode works live until they are applied, the bench on the period cards falls back to roster order
+until the queue migration is in, and the Members screen, joining, Load example team and Start new
+season need the last six. From the repo folder:
 
 ```powershell
 npm run db:push
@@ -30,7 +34,8 @@ npm run db:types
 ```
 
 `db:push` asks for confirmation and applies only the new migrations. If `db:types` changes
-`src/lib/database.types.ts`, commit it. Then, for a team that wants the clock: Settings → Team
+`src/lib/database.types.ts`, commit it. After the push every team has "Approve new parents before
+they join" OFF (D91); turn it on in Settings → Members for a team that wants the old approval flow. Then, for a team that wants the clock: Settings → Team
 setup → **Track playing time by: Clock**, set the halves and an optional half length, and set the
 starters on the Field tab. Known gap: a substitution tapped with no signal is stamped when it
 reaches the server, not when it was tapped (docs/DECISIONS.md D76); fix any stint afterwards from
