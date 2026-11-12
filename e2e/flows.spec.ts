@@ -30,6 +30,8 @@ test.describe('coach and parent flows', () => {
   const parentEmail = `parent-${run}@example.com`;
   const teamName = `Strikers ${run}`;
   let joinCode = '';
+  /** The player left on the bench once the clock-mode starters are set (D70 tests). */
+  let benchPlayer = '';
 
   test.beforeAll(async ({ browser }) => {
     [coachCtx, coach] = await fresh(browser);
@@ -515,6 +517,223 @@ test.describe('coach and parent flows', () => {
     await parent.goto('/stats');
     await parent.getByRole('radio', { name: 'Season' }).click();
     await expect(parent.getByRole('link', { name: /vs Tigers/ }).getByText('Win')).toBeVisible();
+  });
+
+  /* ---------- clock-based playing time (D65–D76) ---------- */
+
+  test('period mode is untouched: four quarter cards and the sitting-out strip', async () => {
+    await coach.goto('/field');
+    await expect(coach.locator('.qcard')).toHaveCount(4);
+    await expect(coach.locator('.qcard h2').first()).toHaveText('Q1');
+    await expect(coach.locator('.bench strong').first()).toContainText('Sitting out');
+    await expect(coach.locator('.benchrow')).toHaveCount(0);
+  });
+
+  test('coach switches the team to the clock in Team setup (D65)', async () => {
+    await coach.goto('/settings/team');
+    await coach
+      .getByRole('radiogroup', { name: 'Track playing time by' })
+      .getByRole('radio', { name: 'Clock' })
+      .click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Playing time by the clock' })).toBeVisible();
+    await expect(coach.getByRole('group', { name: 'Halves' })).toContainText('2');
+    const len = coach.getByLabel('Half length in minutes');
+    await len.fill('20');
+    await len.blur();
+    await expect(coach.getByRole('status').filter({ hasText: '20-minute half' })).toBeVisible();
+  });
+
+  test('clock-mode Field at 375px: one field of starters, a bench row of small jerseys (D70)', async () => {
+    await coach.setViewportSize({ width: 375, height: 760 });
+    await coach.goto('/field');
+    await expect(coach.locator('.qcard')).toHaveCount(1);
+    await expect(coach.getByRole('heading', { level: 2, name: 'Starters' })).toBeVisible();
+    const benchRow = coach.getByRole('group', { name: 'Bench' });
+    await expect(benchRow).toContainText('Bench · 1');
+    const fieldShirt = await coach.locator('.slot .shirt').first().boundingBox();
+    const benchShirt = await coach.locator('.bslot .shirt').first().boundingBox();
+    expect(fieldShirt && benchShirt && benchShirt.width <= fieldShirt.width * 0.8).toBe(true);
+    expect(benchShirt && benchShirt.height >= 44 && benchShirt.width >= 44).toBe(true);
+    // no horizontal scroll
+    const overflow = await coach.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    );
+    expect(overflow).toBeLessThanOrEqual(1);
+  });
+
+  test('select-then-target on the template: field then bench swaps the two, with a hint line', async () => {
+    const first = coach.locator('.slot .shirt').first();
+    const name = (await first.locator('.name').textContent())?.trim() ?? '';
+    expect(name).not.toBe('');
+    await first.click();
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+    await expect(coach.getByText(`Tap a player to swap with ${name}`, { exact: false })).toBeVisible();
+    const benchShirt = coach.locator('.bslot .shirt').first();
+    const benchName = (await benchShirt.locator('.name').textContent())?.trim() ?? '';
+    await benchShirt.click();
+    await expect(coach.locator('.slot .shirt').first().locator('.name')).toHaveText(benchName, {
+      ignoreCase: true,
+    });
+    await expect(coach.locator('.bslot .shirt').first().locator('.name')).toHaveText(name, {
+      ignoreCase: true,
+    });
+    benchPlayer = name;
+    await coach.setViewportSize({ width: 412, height: 915 });
+  });
+
+  test('coach starts a clock game; both devices read the same clock and the parent is read-only', async () => {
+    await coach.goto('/games');
+    await coach.getByRole('button', { name: 'Add' }).click();
+    await coach
+      .getByRole('dialog', { name: 'Add to the schedule' })
+      .getByRole('button', { name: 'New game' })
+      .click();
+    const sheet = coach.getByRole('dialog', { name: 'New game' });
+    await sheet.getByLabel('Opponent').fill('Lions');
+    await sheet.getByRole('button', { name: 'Start game now' }).click();
+    await expect(sheet).toBeHidden();
+    await coach.goto('/field');
+    await expect(coach.getByRole('heading', { level: 2, name: 'H1' })).toBeVisible();
+    await expect(coach.getByLabel('20:00 left, paused')).toBeVisible();
+    await coach.getByRole('button', { name: 'Start clock' }).click();
+    await expect(coach.locator('.gclock.run')).toBeVisible();
+    await expect(coach.getByRole('button', { name: 'Pause' })).toBeVisible();
+    // the parent's phone: same period, running clock, no controls
+    await parent.goto('/field');
+    await expect(parent.getByRole('heading', { level: 2, name: 'H1' })).toBeVisible();
+    await expect(parent.locator('.gclock.run')).toBeVisible({ timeout: 15_000 });
+    await expect(parent.getByRole('button', { name: /Start clock|Pause|End H1|Undo/ })).toHaveCount(0);
+    await expect(parent.locator('.slot .shirt').first()).toBeDisabled();
+    await expect(parent.getByRole('group', { name: 'Bench' })).toContainText('Bench · 1');
+  });
+
+  test('a substitution on the running clock shows on both devices; undo reverses it', async () => {
+    const benchShirt = coach.locator('.bslot .shirt').first();
+    const benchName = (await benchShirt.locator('.name').textContent())?.trim() ?? '';
+    const target = coach.locator('.slot .shirt').first();
+    const offName = (await target.locator('.name').textContent())?.trim() ?? '';
+    await benchShirt.click();
+    await target.click();
+    await expect(coach.getByRole('status').filter({ hasText: `on for ${offName}` })).toBeVisible();
+    await expect(coach.locator('.slot .shirt').first().locator('.name')).toHaveText(benchName, {
+      ignoreCase: true,
+    });
+    await expect(parent.locator('.slot .shirt').first().locator('.name')).toHaveText(benchName, {
+      ignoreCase: true,
+      timeout: 15_000,
+    });
+    await expect(parent.locator('.bslot .shirt').first().locator('.name')).toHaveText(offName, {
+      ignoreCase: true,
+    });
+    await coach.getByRole('button', { name: 'Undo' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Substitution undone' })).toBeVisible();
+    await expect(coach.locator('.slot .shirt').first().locator('.name')).toHaveText(offName, {
+      ignoreCase: true,
+    });
+    await expect(parent.locator('.slot .shirt').first().locator('.name')).toHaveText(offName, {
+      ignoreCase: true,
+      timeout: 15_000,
+    });
+  });
+
+  test('pause, end the half: the second half starts at zero with the same players', async () => {
+    // let the clock run a few seconds so the first half has a length to correct against later
+    await expect(coach.getByLabel(/19:5[0-6] left, running/)).toBeVisible({ timeout: 20_000 });
+    await coach.getByRole('button', { name: 'Pause' }).click();
+    await expect(coach.getByLabel(/left, paused/)).toBeVisible();
+    await coach.getByRole('button', { name: 'End H1' }).click();
+    const confirm = coach.getByRole('dialog', { name: /End H1 at/ });
+    await confirm.getByRole('button', { name: 'End H1' }).click();
+    await expect(coach.getByRole('heading', { level: 2, name: 'H2' })).toBeVisible();
+    await expect(coach.getByLabel('20:00 left, paused')).toBeVisible();
+    await expect(coach.locator('.slot .shirt.open')).toHaveCount(0);
+    await expect(coach.getByRole('button', { name: 'Suggest starters' })).toBeVisible();
+    await expect(parent.getByRole('heading', { level: 2, name: 'H2' })).toBeVisible({ timeout: 15_000 });
+  });
+
+  test('a goal in clock mode is stamped with the half and the minute (D74)', async () => {
+    await coach.getByRole('button', { name: 'Start clock' }).click();
+    await coach.getByRole('button', { name: /Add a goal/ }).click();
+    const sheet = coach.getByRole('dialog', { name: 'Goal · vs Lions' });
+    await expect(sheet.getByRole('radiogroup', { name: 'Half' })).toHaveCount(0); // the period comes from the clock
+    await sheet.getByLabel('Scorer').selectOption({ label: '#1 Ava' });
+    await sheet.getByRole('button', { name: 'Add our goal' }).click();
+    await expect(sheet).toBeHidden();
+    await coach.goto('/games');
+    await coach.getByRole('button', { name: /In progress · vs Lions/ }).click();
+    const log = coach.locator('.section', { hasText: 'Goals · 1' }).locator('xpath=following-sibling::*[1]');
+    await expect(log.locator('.qtag')).toHaveText(/^H2 1'$/);
+    await expect(coach.getByText('Playing time · live')).toBeVisible();
+  });
+
+  test('Rotation in clock mode: minutes bars and the on-field dot, parents read-only (D72)', async () => {
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Rotation' }).click();
+    await expect(coach.locator('.minrow.onfield')).toHaveCount(7);
+    await expect(coach.locator('.minbar').first()).toBeVisible();
+    await expect(coach.getByText(/Playing time · vs Lions/)).toBeVisible();
+    await parent.goto('/team');
+    await parent.getByRole('radio', { name: 'Rotation' }).click();
+    await expect(parent.locator('.minrow')).toHaveCount(PLAYERS.length);
+    await expect(parent.getByRole('switch')).toHaveCount(0);
+    await expect(parent.locator('.minrow').first()).toContainText('Ava'); // own child first
+  });
+
+  test('finishing keeps the starters as the template; Stats show minutes (D73, D76)', async () => {
+    await coach.goto('/field');
+    await expect(coach.locator('.slot .shirt .name')).toHaveCount(7);
+    const starters = await coach.locator('.slot .shirt .name').allTextContents();
+    await coach.goto('/games');
+    await coach.getByRole('button', { name: /In progress · vs Lions/ }).click();
+    await coach.getByRole('button', { name: 'Finish game' }).click();
+    const confirm = coach.getByRole('dialog', { name: 'Finish game vs Lions?' });
+    await expect(confirm).toContainText('starting lineup stays your plan');
+    await confirm.getByRole('button', { name: 'Finish game' }).click();
+    await expect(confirm).toBeHidden();
+    await coach.goto('/field');
+    await expect(coach.getByRole('heading', { level: 2, name: 'Starters' })).toBeVisible();
+    await expect(coach.locator('.slot .shirt .name')).toHaveCount(7);
+    expect(await coach.locator('.slot .shirt .name').allTextContents()).toEqual(starters);
+    await coach.goto('/stats');
+    await coach.getByRole('radio', { name: 'Season' }).click();
+    await expect(coach.locator('.stathead .stat', { hasText: 'MIN' })).toBeVisible();
+    await expect(coach.locator('.stathead .stat', { hasText: 'QP' })).toHaveCount(0);
+    const avaRow = coach.locator('.prow', { has: coach.getByRole('link', { name: /^Ava/ }) });
+    await expect(avaRow.getByLabel(/Minutes played: \d+/)).toBeVisible();
+  });
+
+  test('corrections after the game: add a stint for the bench player, with the checks (D75)', async () => {
+    await coach.goto('/stats');
+    await coach.getByRole('radio', { name: 'Season' }).click();
+    await coach.getByRole('link', { name: /vs Lions/ }).click();
+    await expect(coach.getByText('Playing time', { exact: true })).toBeVisible();
+    const row = coach.locator('.group').getByRole('button', { name: new RegExp(`^${benchPlayer}`) });
+    await expect(row).toContainText('0 min');
+    await row.click();
+    const sheet = coach.getByRole('dialog', { name: `${benchPlayer} · playing time` });
+    await sheet.getByRole('button', { name: 'Add a stint' }).click();
+    const to = sheet.getByLabel('To (m:ss)');
+    await to.fill('99:00');
+    await sheet.getByRole('button', { name: 'Save stint' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'inside the period' })).toBeVisible();
+    await to.fill('0:01');
+    await sheet.getByRole('button', { name: 'Save stint' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Stint added' })).toBeVisible();
+    await expect(sheet.getByRole('group', { name: /H1 · [A-Z]+ 0:00 to 0:01/ })).toBeVisible();
+    await coach.keyboard.press('Escape');
+    await expect(row).toContainText('1 shift');
+  });
+
+  test('switching back to periods brings back the four quarter cards, untouched', async () => {
+    await coach.goto('/settings/team');
+    await coach
+      .getByRole('radiogroup', { name: 'Track playing time by' })
+      .getByRole('radio', { name: 'Periods' })
+      .click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Playing time by periods' })).toBeVisible();
+    await coach.goto('/field');
+    await expect(coach.locator('.qcard')).toHaveCount(4);
+    await expect(coach.locator('.benchrow')).toHaveCount(0);
   });
 });
 
