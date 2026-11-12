@@ -63,6 +63,7 @@ const team: Team = {
   join_code: 'ABCD2345',
   join_code_rotated_at: '',
   join_enabled: true,
+  require_approval: false,
   timezone: 'America/Chicago',
   parent_stats: 'own',
   time_mode: 'clock',

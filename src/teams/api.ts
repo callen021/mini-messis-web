@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { defaultsPayload } from '@/skills/defaults';
 import { SPORTS, defaultFormation } from '@/sports/definitions';
 import { type SportKey } from '@/sports/types';
+import { invalidateTeamCaches, patchTeamCaches } from './teamCache';
 
 export type Team = Tables<'teams'>;
 export type Membership = Tables<'team_members'>;
@@ -354,15 +355,20 @@ export function useRotateJoinCode(teamId: string) {
     unwrap(await supabase.rpc('rotate_join_code', { p_team_id: teamId })),
   );
 }
-/** Turn the invite link (and the typed code) off or on without changing it (coach). */
+/** Turn the invite link (and the typed code) off or on without changing it (coach). Optimistic (D88). */
 export function useSetJoinEnabled(teamId: string) {
-  return useTeamMutation(teamId, async (enabled: boolean) =>
-    unwrap(
-      await supabase
-        .rpc('set_join_enabled', { p_team_id: teamId, p_enabled: enabled })
-        .then((r) => ({ data: true, error: r.error })),
-    ),
-  );
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (enabled: boolean) =>
+      unwrap(
+        await supabase
+          .rpc('set_join_enabled', { p_team_id: teamId, p_enabled: enabled })
+          .then((r) => ({ data: true, error: r.error })),
+      ),
+    onMutate: (enabled) => ({ restore: patchTeamCaches(qc, teamId, { join_enabled: enabled }) }),
+    onError: (_e, _v, ctx) => ctx?.restore(),
+    onSettled: () => invalidateTeamCaches(qc, teamId),
+  });
 }
 export function useTransferOwnership(teamId: string) {
   const qc = useQueryClient();

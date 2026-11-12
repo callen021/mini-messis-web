@@ -1,4 +1,5 @@
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useCallback, useEffect, useRef } from 'react';
 import { Navigate } from 'react-router';
 import { useIsCoach, useIsStaff } from '@/auth/guards';
 import { Footer, Group, Row, Section } from '@/components/List';
@@ -8,13 +9,14 @@ import { Stepper } from '@/components/Stepper';
 import { Switch } from '@/components/Switch';
 import { useToast } from '@/components/Toast';
 import { type Json } from '@/lib/database.types';
-import { qk } from '@/lib/query-keys';
-import { errorMessage, supabase } from '@/lib/supabase';
+import { dbError } from '@/lib/errors';
+import { supabase } from '@/lib/supabase';
 import { toEnginePlayers, useLiveGame } from '@/lineups/api';
 import { periodsToPayload, rowsToPeriods } from '@/lineups/convert';
 import { formationByName, SPORTS, periodPlural } from '@/sports/definitions';
 import { fixPeriods, resizePeriods } from '@/sports/lineup';
 import { type Team, usePlayers } from '@/teams/api';
+import { COALESCE_MS, SAVE_FAILED, invalidateTeamCaches, patchTeamCaches } from '@/teams/teamCache';
 import { useCurrentTeam } from '@/teams/TeamContext';
 
 type Setup = Pick<
@@ -59,7 +61,7 @@ function useUpdateSetup(teamId: string) {
   return useMutation({
     mutationFn: async (patch: Partial<Setup>) => {
       const { error } = await supabase.from('teams').update(patch).eq('id', teamId);
-      if (error) throw new Error(error.message);
+      if (error) throw dbError(error);
       const structural = 'side_size' in patch || 'has_gk' in patch || 'periods_count' in patch;
       if (!structural) return;
       const next = { ...team, ...patch };
@@ -69,12 +71,12 @@ function useUpdateSetup(teamId: string) {
         let q = supabase.from('lineups').select('*').eq('team_id', teamId);
         q = gameId === null ? q.is('game_id', null) : q.eq('game_id', gameId);
         const { data: lineups, error: e1 } = await q.order('period_index');
-        if (e1) throw new Error(e1.message);
+        if (e1) throw dbError(e1);
         const ids = (lineups ?? []).map((l) => l.id);
         const { data: slots, error: e2 } = ids.length
           ? await supabase.from('lineup_slots').select('*').in('lineup_id', ids)
           : { data: [], error: null };
-        if (e2) throw new Error(e2.message);
+        if (e2) throw dbError(e2);
         const periods = rowsToPeriods(lineups ?? [], slots ?? []);
         const fixed = fixPeriods(
           resizePeriods(periods, next.periods_count, forms, S),
@@ -87,26 +89,69 @@ function useUpdateSetup(teamId: string) {
           p_game_id: gameId ?? undefined,
           p_periods: periodsToPayload(fixed, (n) => formationByName(forms, n)) as unknown as Json,
         });
-        if (e3) throw new Error(e3.message);
+        if (e3) throw dbError(e3);
       };
       await sync(null);
       if (live.data) await sync(live.data.id);
     },
-    onMutate: async (patch) => {
-      await qc.cancelQueries({ queryKey: qk.team(teamId) });
-      const previous = qc.getQueryData<Team>(qk.team(teamId));
-      if (previous) qc.setQueryData(qk.team(teamId), { ...previous, ...patch });
-      return { previous };
-    },
-    onError: (_e, _v, ctx) => {
-      if (ctx?.previous) qc.setQueryData(qk.team(teamId), ctx.previous);
-    },
+    onMutate: (patch) => ({ restore: patchTeamCaches(qc, teamId, patch) }),
+    onError: (_e, _v, ctx) => ctx?.restore(),
     onSettled: () => {
-      void qc.invalidateQueries({ queryKey: qk.team(teamId) });
-      void qc.invalidateQueries({ queryKey: ['memberships'] });
+      invalidateTeamCaches(qc, teamId);
       void qc.invalidateQueries({ queryKey: ['team', teamId, 'lineups'] });
     },
   });
+}
+
+/**
+ * Every control on this page updates the screen at once and saves a moment later (D88): taps
+ * closer together than COALESCE_MS merge into one request (a stepper tapped three times saves
+ * once), the message shows right away, and a failed save puts every copy of the team back and
+ * says so in plain words. Whatever is still queued is sent when the page is left.
+ */
+function useCoalescedSetup(teamId: string) {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const update = useUpdateSetup(teamId);
+  const queued = useRef<Partial<Setup>>({});
+  const restore = useRef<(() => void) | null>(null);
+  const timer = useRef<number | undefined>(undefined);
+
+  // stable across renders: useMutation hands back a new object each time, and the flush must only
+  // ever run on a timer or when the page is left
+  const mutate = useRef(update.mutate);
+  const say = useRef(toast);
+  useEffect(() => {
+    mutate.current = update.mutate;
+    say.current = toast;
+  });
+
+  const flush = useCallback(() => {
+    window.clearTimeout(timer.current);
+    const patch = queued.current;
+    const undo = restore.current;
+    queued.current = {};
+    restore.current = null;
+    if (Object.keys(patch).length === 0) return;
+    mutate.current(patch, {
+      onError: () => {
+        undo?.();
+        say.current(SAVE_FAILED);
+      },
+    });
+  }, []);
+
+  useEffect(() => flush, [flush]); // leaving the page sends what is still queued
+
+  const patch = (p: Partial<Setup>, msg?: string) => {
+    const undo = patchTeamCaches(qc, teamId, p);
+    restore.current ??= undo; // the state before the first tap of this burst
+    queued.current = { ...queued.current, ...p };
+    if (msg) toast(msg);
+    window.clearTimeout(timer.current);
+    timer.current = window.setTimeout(flush, COALESCE_MS);
+  };
+  return { patch, isPending: update.isPending };
 }
 
 /** Settings → Team setup: name, players on the field, goalkeeper, periods, formations read-out, jersey colors. */
@@ -115,15 +160,11 @@ export function TeamSetupPage() {
   const S = SPORTS[sport];
   const isStaff = useIsStaff();
   const isCoach = useIsCoach();
-  const toast = useToast();
-  const update = useUpdateSetup(teamId);
+  const { patch } = useCoalescedSetup(teamId);
   const live = useLiveGame(teamId);
 
   if (!isStaff) return <Navigate to="/settings" replace />;
 
-  const onError = (e: unknown) => toast(errorMessage(e));
-  const patch = (p: Partial<Setup>, msg?: string) =>
-    update.mutate(p, { onError, onSuccess: () => msg && toast(msg) });
   const forms = S.formations({ size: team.side_size, gk: team.has_gk });
   const clock = team.time_mode === 'clock';
   const N = clock ? team.clock_periods : team.periods_count;
