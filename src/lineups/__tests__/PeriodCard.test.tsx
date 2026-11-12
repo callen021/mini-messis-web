@@ -50,6 +50,7 @@ function renderCard(over: Partial<Parameters<typeof PeriodCard>[0]> = {}) {
     highlight: new Set<string>(),
     onFormationChange: vi.fn(),
     onAssign: vi.fn(),
+    onSwap: vi.fn(),
     onAutoFill: vi.fn(),
     onRedo: vi.fn(),
     ...over,
@@ -59,13 +60,23 @@ function renderCard(over: Partial<Parameters<typeof PeriodCard>[0]> = {}) {
 }
 
 describe('PeriodCard', () => {
-  it('shows the open count, sitting-out list and out players', () => {
-    renderCard();
+  it('shows the open count, a bench row of small jerseys (fewest periods first) and out players (D77)', () => {
+    renderCard({ activePlayers: [...active, mk('p5', 'Milo', '5')], counts: { p1: 2, p2: 1, p3: 1, p5: 0 } });
     expect(screen.getByText('5 open', { selector: '.openpill' })).toBeInTheDocument();
-    expect(screen.getByText('Sitting out · 1')).toBeInTheDocument();
-    expect(screen.getByText(/Jack/)).toBeInTheDocument();
-    expect(screen.getByText(/Out: Hal/)).toBeInTheDocument();
+    const bench = screen.getByRole('group', { name: 'Bench' });
+    expect(bench).toHaveTextContent('Bench · 2');
+    expect(bench).toHaveTextContent('Out: Hal');
+    const names = within(bench)
+      .getAllByRole('button')
+      .map((b) => b.getAttribute('aria-label'));
+    expect(names).toEqual(['Bench: Milo #5, 0 quarters', 'Bench: Jack #3, 1 quarter']);
+    expect(document.querySelectorAll('.bslot')).toHaveLength(2);
+    expect(screen.queryByText(/Sitting out/)).not.toBeInTheDocument();
     expect(screen.getAllByRole('button', { name: /Quarter 1,/ })).toHaveLength(7);
+    // the bench row sits above the hint line
+    const row = document.querySelector('.benchrow') as HTMLElement;
+    const hint = document.querySelector('.taphint') as HTMLElement;
+    expect(row.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('tapping an open jersey lists the bench first, then moves, and assigns the pick', async () => {
@@ -86,12 +97,34 @@ describe('PeriodCard', () => {
     expect(props.onAssign).toHaveBeenCalledWith(1, 'p3');
   });
 
-  it('an assigned jersey offers Clear and moving another player in', async () => {
+  it('select-then-target: field then bench substitutes, two jerseys swap, both get the gold outline (D77)', async () => {
     const props = renderCard();
-    await userEvent.click(screen.getByRole('button', { name: 'Quarter 1, STRIKER: Nolan' }));
-    const dialog = await screen.findByRole('dialog');
-    await userEvent.click(within(dialog).getByRole('button', { name: /Clear jersey · Nolan/ }));
+    const nolan = screen.getByRole('button', { name: 'Quarter 1, STRIKER: Nolan' });
+    await userEvent.click(nolan);
+    expect(nolan).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('Tap a player to swap with Nolan')).toBeInTheDocument();
+    const jack = screen.getByRole('button', { name: /^Bench: Jack/ });
+    await userEvent.click(jack);
+    expect(props.onAssign).toHaveBeenCalledWith(0, 'p3');
+    expect(nolan).toHaveAttribute('aria-pressed', 'false');
+    // the second tap is confirmed the same way as the first
+    expect(nolan).toHaveClass('flash');
+    expect(jack).toHaveClass('flash');
+    await userEvent.click(nolan);
+    await userEvent.click(screen.getByRole('button', { name: 'Quarter 1, GOALIE: Teddy' }));
+    expect(props.onSwap).toHaveBeenCalledWith(0, 6);
+  });
+
+  it('a selected jersey can be opened with no replacement; the same jersey again cancels', async () => {
+    const props = renderCard();
+    const nolan = screen.getByRole('button', { name: 'Quarter 1, STRIKER: Nolan' });
+    await userEvent.click(nolan);
+    await userEvent.click(screen.getByRole('button', { name: 'Open the spot' }));
     expect(props.onAssign).toHaveBeenCalledWith(0, '');
+    await userEvent.click(nolan);
+    await userEvent.click(nolan);
+    expect(nolan).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.queryByRole('button', { name: 'Open the spot' })).not.toBeInTheDocument();
   });
 
   it('formation select and Auto-fill call back', async () => {

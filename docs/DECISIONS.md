@@ -778,3 +778,21 @@ the moment it was tapped. At a venue with no signal a sub recorded late lands at
 This is a known gap: the venues have good signal, and the correction sheet (D75) fixes any stint
 after the game. Queuing taps with their intended second is possible later by adding a `p_at`
 argument to the functions.
+
+### D77. Jersey-and-swap on every field; the second tap is confirmed too; no layout jump
+
+Phone testing of the clock round changed three things. The bench row of small jerseys and the
+select-then-target taps now live on the period cards as well (the user preferred them to the
+picker list): each quarter card draws its sitting-out players as jerseys under the field, fewest
+periods first with the count beneath, and the first tap selects while the second completes (field
+and bench substitute, two field jerseys swap, an empty spot moves the selected player, the same
+jersey again cancels, two bench jerseys does nothing). An open spot with nothing selected still
+opens the picker sheet, and a selected on-field jersey offers **Open the spot** (period mode and
+the clock template clear the spot; a live clock game takes the player off with nobody on, the
+injury case). Auto-fill and Redo moved into that hint line. The jerseys sit above the hint text.
+Both jerseys of a completed tap get the same gold outline for a moment (`.shirt.flash`), so a coach
+does not have to look back to check which player they tapped. The "Saving…" pill in the subtitle
+is gone from the clock page: it wrapped the line and shifted the whole field up and down on every
+Start / Pause; a visually hidden live region says "Saving" instead, and the hint line has a fixed
+height so a change of text never moves the field either. PeriodCard, ClockFieldPage and the
+flows cover the new taps; the earlier "small jerseys only in clock mode" note is superseded.

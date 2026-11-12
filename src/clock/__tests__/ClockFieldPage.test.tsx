@@ -187,6 +187,10 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     // marked out: not on the bench
     expect(screen.queryByRole('button', { name: /Atlas/ })).not.toBeInTheDocument();
     expect(document.querySelectorAll('.bslot')).toHaveLength(2);
+    // the jerseys come before the hint text (D77)
+    const row = document.querySelector('.benchrow') as HTMLElement;
+    const hint = document.querySelector('.taphint') as HTMLElement;
+    expect(row.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('field then bench swaps those two players; the hint names the selected player', async () => {
@@ -196,6 +200,9 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     expect(screen.getByText('Tap a player to swap with Nolan')).toBeInTheDocument();
     await userEvent.click(bench('Hal'));
     expect(saveStarters).toHaveBeenCalledTimes(1);
+    // both jerseys of the completed tap get the gold outline for a moment (D77)
+    expect(bench('Hal')).toHaveClass('flash');
+    expect(field('Nolan')).toHaveClass('flash'); // the save is mocked, so Nolan still stands there
     const arg = saveStarters.mock.calls[0]?.[0] as { starters: { slots: string[] }; count: number };
     expect(arg.starters.slots[0]).toBe('p8');
     expect(arg.starters.slots).not.toContain('p1');
@@ -226,6 +233,14 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     await userEvent.click(bench('Nick'));
     expect(bench('Hal')).toHaveAttribute('aria-pressed', 'true');
     expect(saveStarters).not.toHaveBeenCalled();
+  });
+
+  it('a selected starter can be taken off with nobody on (Open the spot)', async () => {
+    renderPage();
+    await userEvent.click(field('Nolan'));
+    await userEvent.click(screen.getByRole('button', { name: 'Open the spot' }));
+    const arg = saveStarters.mock.calls[0]?.[0] as { starters: { slots: string[] } };
+    expect(arg.starters.slots[0]).toBe('');
   });
 
   it('an empty spot still opens the picker sheet', async () => {
@@ -275,6 +290,10 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(act).toHaveBeenCalledWith({ kind: 'start' }, expect.anything());
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(act).toHaveBeenCalledWith({ kind: 'undo' }, expect.anything());
+    // in a live game, opening a selected spot empties it on the clock (an injury with no sub)
+    await userEvent.click(field('Nolan'));
+    await userEvent.click(screen.getByRole('button', { name: 'Open the spot' }));
+    expect(act).toHaveBeenCalledWith({ kind: 'empty', off: 'p1' }, expect.anything());
   });
 
   it('the bench is ordered by fewest minutes, then longest rest', () => {

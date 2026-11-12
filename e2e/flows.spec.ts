@@ -107,8 +107,8 @@ test.describe('coach and parent flows', () => {
     const box = await shirt.boundingBox();
     const code = await shirt.locator('.code').boundingBox();
     expect(box && code && code.x >= box.x - 1 && code.x + code.width <= box.x + box.width + 1).toBe(true);
-    // the sitting-out strip is readable above the sticky action bar
-    const bench = coach.locator('.bench').last();
+    // the bench row is readable above the sticky action bar
+    const bench = coach.locator('.benchrow').last();
     await bench.scrollIntoViewIfNeeded();
     const benchBox = await bench.boundingBox();
     const bar = await coach.locator('.actionbar').boundingBox();
@@ -119,7 +119,7 @@ test.describe('coach and parent flows', () => {
   test('coach auto-fills every period on the Field', async () => {
     await coach.goto('/field');
     const cards = coach.locator('.qcard');
-    await expect(cards.first().locator('.shirt')).toHaveCount(7);
+    await expect(cards.first().locator('.slot .shirt')).toHaveCount(7); // the bench row holds the other eight
     // every card has its own Auto-fill; the sticky toolbar's fills all periods at once
     await coach.locator('.actionbar').getByRole('button', { name: 'Auto-fill' }).click();
     await expect(coach.getByRole('status').filter({ hasText: /jerseys filled/ })).toBeVisible();
@@ -521,12 +521,29 @@ test.describe('coach and parent flows', () => {
 
   /* ---------- clock-based playing time (D65–D76) ---------- */
 
-  test('period mode is untouched: four quarter cards and the sitting-out strip', async () => {
+  test('period mode keeps four quarter cards, each with its own bench row and swap taps (D77)', async () => {
     await coach.goto('/field');
     await expect(coach.locator('.qcard')).toHaveCount(4);
     await expect(coach.locator('.qcard h2').first()).toHaveText('Q1');
-    await expect(coach.locator('.bench strong').first()).toContainText('Sitting out');
-    await expect(coach.locator('.benchrow')).toHaveCount(0);
+    await expect(coach.locator('.benchrow')).toHaveCount(4);
+    const card = coach.locator('.qcard').first();
+    const first = card.locator('.slot .shirt').first();
+    const name = (await first.locator('.name').textContent())?.trim() ?? '';
+    await first.click();
+    await expect(first).toHaveAttribute('aria-pressed', 'true');
+    const benchShirt = card.locator('.bslot .shirt').first();
+    const benchName = (await benchShirt.locator('.name').textContent())?.trim() ?? '';
+    await benchShirt.click();
+    await expect(card.locator('.slot .shirt').first().locator('.name')).toHaveText(benchName, {
+      ignoreCase: true,
+    });
+    await expect(card.locator('.bslot .shirt').first().locator('.name')).toHaveText(name, {
+      ignoreCase: true,
+    });
+    // the other quarters are untouched
+    await expect(
+      coach.locator('.qcard').nth(1).locator('.slot .shirt').first().locator('.name'),
+    ).not.toHaveText(benchName, { ignoreCase: true });
   });
 
   test('coach switches the team to the clock in Team setup (D65)', async () => {
@@ -733,7 +750,7 @@ test.describe('coach and parent flows', () => {
     await expect(coach.getByRole('status').filter({ hasText: 'Playing time by periods' })).toBeVisible();
     await coach.goto('/field');
     await expect(coach.locator('.qcard')).toHaveCount(4);
-    await expect(coach.locator('.benchrow')).toHaveCount(0);
+    await expect(coach.locator('.benchrow')).toHaveCount(4);
   });
 });
 

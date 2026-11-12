@@ -4,13 +4,13 @@ import { type Player } from '@/teams/api';
 
 export interface BenchEntry {
   player: Player;
-  /** Second line under the jersey ("12 min · rest 3:20"); empty on the template. */
+  /** Second line under the jersey ("12 min · rest 3:20", "2 quarters"); empty when there is nothing to say. */
   time?: string;
 }
 
 /**
- * The bench under a clock-mode field (D70): the same jersey art at about two-thirds size, at least
- * a 44px tap target, wrapping as needed. Players marked out are not shown. Staff tap to select a
+ * The bench under a field (D70, D77): the same jersey art at about two-thirds size, at least a
+ * 44px tap target, wrapping as needed. Players marked out are not shown. Staff tap to select a
  * player for a substitution; parents see it read-only.
  */
 export function BenchRow({
@@ -19,22 +19,31 @@ export function BenchRow({
   entries,
   canEdit,
   selectedId,
+  flashing,
   highlight,
   onTap,
   emptyText,
+  extra,
 }: {
   S: SportDefinition;
   color: string;
   entries: readonly BenchEntry[];
   canEdit: boolean;
   selectedId: string | null;
+  /** Ids a just-completed tap touched, outlined for a moment (D77). */
+  flashing?: ReadonlySet<string>;
   highlight: ReadonlySet<string>;
   onTap: (playerId: string) => void;
   emptyText: string;
+  /** Trailing note, e.g. the players marked out for this game. */
+  extra?: string;
 }) {
   return (
     <div className="benchrow" role="group" aria-label="Bench">
-      <span className="benchlabel">Bench · {entries.length}</span>
+      <span className="benchlabel">
+        Bench · {entries.length}
+        {extra && <small> · {extra}</small>}
+      </span>
       {entries.length === 0 && <span className="benchempty">{emptyText}</span>}
       {entries.map(({ player, time }) => (
         <div key={player.id} className="bslot">
@@ -50,6 +59,7 @@ export function BenchRow({
             readOnly={!canEdit}
             highlighted={highlight.has(player.id)}
             selected={canEdit ? selectedId === player.id : undefined}
+            flash={flashing?.has(player.id)}
             time={time}
           />
         </div>

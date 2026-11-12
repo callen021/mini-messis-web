@@ -168,6 +168,18 @@ function PeriodFieldPage() {
     commit(next, msg);
   };
 
+  const onSwap = (i: number, a: number, b: number) => {
+    const q = periods[i];
+    if (!q) return;
+    const slots = [...q.slots];
+    const pa = slots[a] ?? '';
+    slots[a] = slots[b] ?? '';
+    slots[b] = pa;
+    const next = [...periods];
+    next[i] = { ...q, slots, auto: q.auto.filter((k) => k !== a && k !== b) };
+    commit(next, `${nameOf(slots[a] ?? '')} and ${nameOf(slots[b] ?? '')} swap positions`);
+  };
+
   const onAutoFill = (i: number, redo: boolean) => {
     const r = autoFill(periods, i, forms, S, enginePlayers, { redo });
     if (redo) commit(r.periods, 'Auto-fill redone');
@@ -266,6 +278,7 @@ function PeriodFieldPage() {
                 highlight={highlight}
                 onFormationChange={(name) => onFormationChange(i, name)}
                 onAssign={(slot, pid) => onAssign(i, slot, pid)}
+                onSwap={(a, b) => onSwap(i, a, b)}
                 onAutoFill={() => onAutoFill(i, false)}
                 onRedo={() => onAutoFill(i, true)}
                 headerExtra={scoreButton(i)}

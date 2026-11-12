@@ -27,8 +27,10 @@ export interface JerseyProps {
   /** Read-only variant (parents): still focusable for the highlight, but not announced as a button action. */
   readOnly?: boolean;
   highlighted?: boolean;
-  /** Clock mode (D70): the jersey is the first tap of a select-then-target change. */
+  /** The jersey is the first tap of a select-then-target change (D70, D77). */
   selected?: boolean;
+  /** A completed tap just touched this jersey: the same gold outline for a moment (D77). */
+  flash?: boolean;
   /** Clock mode: a small time line under the shirt ("4:12" on the field, "12 min" on the bench). */
   time?: string;
 }
@@ -50,6 +52,7 @@ export const Jersey = memo(function Jersey({
   readOnly,
   highlighted,
   selected,
+  flash,
   time,
 }: JerseyProps) {
   const open = !name;
@@ -67,6 +70,7 @@ export const Jersey = memo(function Jersey({
         auto && 'auto',
         highlighted && 'highlight',
         selected && 'selected',
+        flash && 'flash',
       )}
       style={style}
       aria-label={label}

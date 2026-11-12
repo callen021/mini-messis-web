@@ -493,3 +493,48 @@
 .clockbar .btn.sm {
   min-width: 0;
 }
+
+/* the hint line sits under the bench row and holds a small action (D77); a fixed height so a
+   change of text never moves the field */
+.taphint {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 44px;
+  padding: 6px 14px 8px;
+}
+.taphint span {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.taphint .btn.sm {
+  flex: none;
+}
+.benchlabel small {
+  color: var(--text3);
+  font-weight: 500;
+}
+/* the second tap gets the same gold outline, for a moment (D77) */
+.shirt.flash {
+  outline: 3px solid #ffd54a;
+  outline-offset: 3px;
+  border-radius: 12px;
+  animation: flashout 1.1s ease-out forwards;
+}
+@keyframes flashout {
+  0%,
+  60% {
+    outline-color: #ffd54a;
+    filter: drop-shadow(0 0 8px rgba(255, 213, 74, 0.9)) drop-shadow(0 3px 2px rgba(0, 0, 0, 0.35));
+  }
+  100% {
+    outline-color: transparent;
+    filter: drop-shadow(0 3px 2px rgba(0, 0, 0, 0.35));
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .shirt.flash {
+    animation: none;
+  }
+}

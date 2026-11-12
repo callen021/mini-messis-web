@@ -1,5 +1,6 @@
 import { type ReactNode } from 'react';
 import { OpenPill } from '@/components/Badge';
+import { Button } from '@/components/Button';
 import { FieldStage } from '@/lineups/FieldStage';
 import { Jersey } from '@/lineups/Jersey';
 import { playerName } from '@/lineups/api';
@@ -29,7 +30,11 @@ export interface ClockCardProps {
   canChangeFormation: boolean;
   highlight: ReadonlySet<string>;
   selected: Selection;
+  /** Ids a just-completed tap touched (D77). */
+  flashing: ReadonlySet<string>;
   hint: string;
+  /** With an on-field jersey selected: take that player off with nobody on (injury, or clear a starter). */
+  onOpenSpot?: () => void;
   onFormationChange: (name: string) => void;
   onTapSlot: (slot: number) => void;
   onTapBench: (playerId: string) => void;
@@ -55,7 +60,9 @@ export function ClockCard({
   canChangeFormation,
   highlight,
   selected,
+  flashing,
   hint,
+  onOpenSpot,
   onFormationChange,
   onTapSlot,
   onTapBench,
@@ -114,6 +121,7 @@ export function ClockCard({
               code={pos.code}
               highlighted={!!pid && highlight.has(pid)}
               selected={canEdit ? isSel : undefined}
+              flash={!!pid && flashing.has(pid)}
               time={pid ? slotTimes?.[i] : undefined}
               label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}`}
               onClick={canEdit ? () => onTapSlot(i) : undefined}
@@ -122,21 +130,29 @@ export function ClockCard({
           );
         }}
       />
-      {canEdit && (
-        <p className={`taphint${hint ? ' on' : ''}`} aria-live="polite">
-          {hint || 'Tap a jersey, then another, to swap them. Tap an open spot to pick a player.'}
-        </p>
-      )}
       <BenchRow
         S={S}
         color={benchColor}
         entries={bench}
         canEdit={canEdit}
         selectedId={selected?.kind === 'bench' ? selected.playerId : null}
+        flashing={flashing}
         highlight={highlight}
         onTap={onTapBench}
         emptyText={benchEmptyText}
       />
+      {canEdit && (
+        <div className={`taphint${hint ? ' on' : ''}`} aria-live="polite">
+          <span>
+            {hint || 'Tap a jersey, then another, to swap them. Tap an open spot to pick a player.'}
+          </span>
+          {selected?.kind === 'field' && onOpenSpot && (
+            <Button size="sm" variant="gray" onClick={onOpenSpot}>
+              Open the spot
+            </Button>
+          )}
+        </div>
+      )}
     </article>
   );
 }

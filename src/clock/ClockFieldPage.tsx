@@ -43,6 +43,7 @@ import {
 import { ClockCard } from './ClockCard';
 import { ClockDisplay } from './ClockDisplay';
 import { type Selection, type TapOutcome, resolveTap, selectionHint } from './tap';
+import { useFlash } from './useFlash';
 import { useServerNow } from './useNow';
 import { useSaveStarters } from './template';
 import { useWakeLock } from './useWakeLock';
@@ -79,6 +80,7 @@ export function ClockFieldPage() {
   const createGame = useCreateGame(teamId);
   const seasonMinutes = useSeasonMinutes(teamId, isStaff);
   const [selected, setSelected] = useState<Selection>(null);
+  const [flashing, flash] = useFlash();
   const [picking, setPicking] = useState<number | null>(null);
   const [scoring, setScoring] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -235,8 +237,21 @@ export function ClockFieldPage() {
       setPicking(o.slot);
       return;
     }
+    flash(o.action === 'swap' ? [o.a, o.b] : o.action === 'sub' ? [o.off, o.on] : [o.playerId]);
     if (live) liveTap(o);
     else templateTap(o);
+  };
+  /** Take the selected on-field player off with nobody on: an injury in a live game, an open starter spot otherwise. */
+  const openSpot = () => {
+    if (!selected || selected.kind !== 'field') return;
+    const { slot, playerId } = selected;
+    setSelected(null);
+    if (live)
+      act.mutate(
+        { kind: 'empty', off: playerId },
+        { onError, onSuccess: () => toast(`${nameOf(playerId)} off · spot open`) },
+      );
+    else onPick(slot, '');
   };
 
   const onPick = (slot: number, playerId: string) => {
@@ -414,14 +429,11 @@ export function ClockFieldPage() {
     <section className="page">
       <JerseyDefs />
       <EditableTitle value={team.name} onSave={onRename} editable={isCoach} />
-      <p className="sub">
-        {sub}
-        {(saveStarters.isPending || act.isPending) && (
-          <span className="pill" style={{ marginLeft: 8 }}>
-            Saving…
-          </span>
-        )}
-      </p>
+      <p className="sub">{sub}</p>
+      {/* no "Saving…" pill in the flow of the page: it shifted the field up and down on every tap (D77) */}
+      <span className="sr-only" aria-live="polite">
+        {saveStarters.isPending || act.isPending ? 'Saving' : ''}
+      </span>
       <div className="quarters">
         <ClockCard
           sport={sport}
@@ -439,7 +451,9 @@ export function ClockFieldPage() {
           canChangeFormation={!live || atZero}
           highlight={highlight}
           selected={selected}
+          flashing={flashing}
           hint={selectionHint(selected, nameOf)}
+          onOpenSpot={openSpot}
           onFormationChange={onFormationChange}
           onTapSlot={(slot) => tap({ kind: 'field', slot, playerId: slots[slot] ?? '' })}
           onTapBench={(playerId) => tap({ kind: 'bench', playerId })}
