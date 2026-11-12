@@ -23,7 +23,7 @@ function App() {
   const qc = makeQueryClient();
   return (
     <QueryClientProvider client={qc}>
-      <SyncBanner />
+      <SyncBanner savingDelayMs={0} />
       <SaveButton />
     </QueryClientProvider>
   );
@@ -59,6 +59,26 @@ describe('SyncBanner', () => {
     await act(async () => {
       resolvers.splice(0).forEach((r) => r());
       await new Promise((res) => setTimeout(res, 0));
+    });
+    await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
+  });
+});
+
+describe('SyncBanner · saving never moves the page (D78)', () => {
+  it('a quick online save shows nothing; a slow one shows a floating pill after the delay', async () => {
+    const qc = makeQueryClient();
+    render(
+      <QueryClientProvider client={qc}>
+        <SyncBanner savingDelayMs={50} />
+        <SaveButton />
+      </QueryClientProvider>,
+    );
+    act(() => screen.getByRole('button', { name: 'Save' }).click());
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+    await screen.findByText(/Saving 1 unsaved change/);
+    expect(screen.getByRole('status')).toHaveClass('saving');
+    await act(async () => {
+      resolvers.splice(0).forEach((r) => r());
     });
     await waitFor(() => expect(screen.queryByRole('status')).not.toBeInTheDocument());
   });

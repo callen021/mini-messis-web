@@ -232,14 +232,11 @@ function PeriodFieldPage() {
     <section className="page">
       <JerseyDefs />
       <EditableTitle value={team.name} onSave={onRename} editable={isCoach} />
-      <p className="sub">
-        {sub}
-        {save.isPending && (
-          <span className="pill" style={{ marginLeft: 8 }}>
-            Saving…
-          </span>
-        )}
-      </p>
+      <p className="sub">{sub}</p>
+      {/* no inline "Saving…" pill: it wrapped the line and moved the cards on every edit (D78) */}
+      <span className="sr-only" aria-live="polite">
+        {save.isPending ? 'Saving' : ''}
+      </span>
       {foldLineup && (
         <Segmented<'field' | 'lineup'>
           wide

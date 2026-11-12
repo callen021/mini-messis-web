@@ -796,3 +796,14 @@ is gone from the clock page: it wrapped the line and shifted the whole field up 
 Start / Pause; a visually hidden live region says "Saving" instead, and the hint line has a fixed
 height so a change of text never moves the field either. PeriodCard, ClockFieldPage and the
 flows cover the new taps; the earlier "small jerseys only in clock mode" note is superseded.
+
+### D78. Saving never moves the page
+
+The sync banner at the top of every tab page said "Saving 1 unsaved change…" for the fraction of
+a second each save was in flight, in the page flow, so every jersey tap, score and settings change
+pushed the whole page down and back up (the "glitch" seen on the phone; D77 had only removed the
+clock page's own pill). Online saving is now a floating pill fixed under the status bar that takes
+no layout space, and it appears only once a save has run for 1.2 seconds, so a normal save shows
+nothing at all. The offline strip is unchanged (it is persistent and worth the space). The
+period-mode Field page's inline "Saving…" pill is gone the same way as the clock page's, replaced
+by a visually hidden live region.

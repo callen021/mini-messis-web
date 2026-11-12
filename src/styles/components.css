@@ -2522,3 +2522,18 @@ a.prow.dir .pname {
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
+
+/* saving online: a floating pill, no layout space, so the page never jumps (D78) */
+.syncbar.saving {
+  position: fixed;
+  top: calc(env(safe-area-inset-top) + 10px);
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 50;
+  margin: 0;
+  width: max-content;
+  max-width: calc(100vw - 32px);
+  box-shadow: var(--shadow);
+  background: var(--panel);
+  pointer-events: none;
+}
