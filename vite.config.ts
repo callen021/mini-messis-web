@@ -36,6 +36,7 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
         // Field artwork is large and per sport; cache it on first use rather than precaching it all.
+        globIgnores: ['**/fields/**'],
         runtimeCaching: [
           {
             urlPattern: ({ url }) => url.pathname.includes('/fields/'),

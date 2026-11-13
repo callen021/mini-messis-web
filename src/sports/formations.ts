@@ -178,46 +178,49 @@ export function baseballFormations(size: number): Formation[] {
   return forms.map((f) => ({ ...f, w: 16 }));
 }
 
-/* ---------- basketball (full-court box, far basket at top) ---------- */
+/* ---------- basketball (half court, our basket at the top) ---------- */
 
 /**
- * Court coordinates in field-% (D103): the front line stands at the far basket (y 20), the wings
- * mid-court (y ~50) and the guards back (y 86), so that at the fixed jersey size the rows clear
- * each other and their shift times in both views; neighbours in a row are at least a jersey apart.
+ * Half-court coordinates in field-% (D106): y 0 is the baseline, 100 the half-court line; the key
+ * runs to y 40 and the three-point arc bottoms out near y 53. Post players stand on the blocks
+ * (x 20–28 / 72–80, y 16–20), a lone centre at the free-throw line (under the basket the hoop
+ * overlay would be hidden), wings out wide (x 10–14) and the point guard at the top (y 92, a
+ * little floor left under the jersey). Spots were tuned so that at the fixed jersey size no
+ * jersey, shift-time pill or the hoop overlaps another in either view at a 343px stage.
  */
 const BK = (role: string, x: number, y: number): Position => ({ role, code: role, x, y });
 
 export const BASKETBALL_FORMS: Readonly<Record<number, readonly RawForm[]>> = {
   3: [
-    { name: '1-2', positions: [BK('PG', 50, 80), BK('F', 26, 24), BK('F', 74, 24)] },
-    { name: '2-1', positions: [BK('G', 30, 80), BK('G', 70, 80), BK('C', 50, 24)] },
-    { name: '1-1-1', positions: [BK('PG', 50, 86), BK('F', 50, 52), BK('C', 50, 20)] },
+    { name: '1-2', positions: [BK('PG', 50, 92), BK('F', 26, 20), BK('F', 74, 20)] },
+    { name: '2-1', positions: [BK('G', 24, 76), BK('G', 76, 76), BK('C', 50, 40)] },
+    { name: '1-1-1', positions: [BK('PG', 50, 92), BK('F', 52, 52), BK('C', 22, 16)] },
   ],
   4: [
-    { name: '1-2-1', positions: [BK('PG', 50, 86), BK('SG', 16, 52), BK('SF', 84, 52), BK('C', 50, 20)] },
-    { name: '2-2', positions: [BK('G', 28, 80), BK('G', 72, 80), BK('F', 28, 24), BK('F', 72, 24)] },
-    { name: '1-3', positions: [BK('PG', 50, 86), BK('F', 16, 30), BK('C', 50, 30), BK('F', 84, 30)] },
+    { name: '1-2-1', positions: [BK('PG', 50, 92), BK('SG', 12, 58), BK('SF', 88, 58), BK('C', 50, 38)] },
+    { name: '2-2', positions: [BK('G', 24, 80), BK('G', 76, 80), BK('F', 26, 20), BK('F', 74, 20)] },
+    { name: '1-3', positions: [BK('PG', 50, 92), BK('F', 14, 44), BK('C', 50, 40), BK('F', 86, 44)] },
   ],
   5: [
     {
       name: '1-2-2',
-      positions: [BK('PG', 50, 86), BK('SG', 12, 52), BK('SF', 88, 52), BK('PF', 34, 20), BK('C', 66, 20)],
+      positions: [BK('PG', 50, 92), BK('SG', 10, 64), BK('SF', 90, 64), BK('PF', 26, 16), BK('C', 74, 16)],
     },
     {
       name: '2-1-2',
-      positions: [BK('PG', 30, 86), BK('SG', 70, 86), BK('SF', 50, 52), BK('PF', 22, 20), BK('C', 78, 20)],
+      positions: [BK('PG', 24, 86), BK('SG', 76, 86), BK('SF', 50, 52), BK('PF', 20, 20), BK('C', 80, 20)],
     },
     {
       name: '1-3-1',
-      positions: [BK('PG', 50, 86), BK('SG', 12, 52), BK('SF', 88, 52), BK('PF', 50, 52), BK('C', 50, 20)],
+      positions: [BK('PG', 50, 92), BK('SG', 10, 64), BK('SF', 90, 64), BK('PF', 54, 48), BK('C', 22, 16)],
     },
     {
       name: '2-3',
-      positions: [BK('G', 30, 86), BK('G', 70, 86), BK('F', 14, 48), BK('C', 50, 48), BK('F', 86, 48)],
+      positions: [BK('G', 24, 80), BK('G', 76, 80), BK('F', 14, 36), BK('C', 50, 38), BK('F', 86, 36)],
     },
     {
       name: '1-4 high',
-      positions: [BK('PG', 50, 86), BK('SG', 12, 52), BK('SF', 88, 52), BK('PF', 33, 20), BK('C', 67, 20)],
+      positions: [BK('PG', 50, 92), BK('SG', 10, 69), BK('SF', 90, 69), BK('PF', 28, 31), BK('C', 72, 31)],
     },
   ],
 };

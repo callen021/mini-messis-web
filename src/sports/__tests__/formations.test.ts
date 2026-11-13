@@ -124,13 +124,15 @@ describe('basketballFormations', () => {
       expect(inBounds(f)).toBe(true);
     }
   });
-  it('spreads the rows over the court: front line at the far basket, guards back (D103)', () => {
+  it('is a half court (D106): posts on the blocks, the point guard at the top of the key', () => {
     const f = basketballFormations(5)[0];
     const pg = f?.positions.find((p) => p.role === 'PG');
     const c = f?.positions.find((p) => p.role === 'C');
+    expect(f?.name).toBe('1-2-2');
     expect(pg?.x).toBe(50);
-    expect(pg?.y).toBe(86);
-    expect(c?.y).toBe(20);
+    expect(pg?.y).toBe(92);
+    expect(c?.y).toBe(16);
+    expect(c?.x).toBe(74);
   });
   it('falls back to 5 for unknown sizes', () => {
     expect(basketballFormations(7)).toHaveLength(BASKETBALL_FORMS[5]?.length ?? 0);

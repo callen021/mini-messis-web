@@ -38,14 +38,17 @@ export const FIELDS: Readonly<
     },
     flat: { src: 'fields/baseball-flat.webp', w: 1200, h: 1200, H: [12, 0, 0, 0, 12, 0, 0, 0, 1] },
   },
+  // Basketball is a half court (D106): y 0 is the baseline under our basket, y 100 the half-court
+  // line. The artwork is vector, drawn by scripts/gen-court.mjs from these same homographies; the
+  // 3D tilt is gentle (far end 75% of the near end) so the back row is not squeezed.
   basketball: {
     persp: {
-      src: 'fields/basketball-persp.webp',
+      src: 'fields/basketball-persp.svg',
       w: 1200,
-      h: 1180,
-      H: [8.88, -2.41935484, 156.0, 0, 5.5678871, 129.8, 0, -0.00403226, 1],
+      h: 1060,
+      H: [9, -1.34482759, 150, 0, 5.10431034, 215, 0, -0.00224138, 1],
     },
-    flat: { src: 'fields/basketball-flat.webp', w: 1000, h: 1170, H: [9.4, 0, 30, 0, 11.1, 30, 0, 0, 1] },
+    flat: { src: 'fields/basketball-flat.svg', w: 1000, h: 900, H: [9.2, 0, 40, 0, 7.78, 100, 0, 0, 1] },
   },
   lacrosse: {
     persp: { src: 'fields/lacrosse-persp.webp', w: 1200, h: 1300, H: PERSP_PITCH },
@@ -205,9 +208,7 @@ export const STANDING: Readonly<Record<SportKey, readonly Standing[]>> = {
     ['goal-near', 50, 85.2, 9],
   ],
   football: [['post', 50, 6.25, 13]],
-  basketball: [
-    ['hoop-far', 50, 7, 15],
-    ['hoop-near', 50, 93, 20],
-  ],
+  // half court (D106): one basket, its stanchion standing just behind the baseline
+  basketball: [['hoop-far', 50, -6, 15]],
   baseball: [],
 };

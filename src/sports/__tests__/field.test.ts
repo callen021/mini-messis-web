@@ -21,7 +21,7 @@ describe('field geometry', () => {
     for (const s of ALL_SPORTS) {
       for (const v of ['persp', 'flat'] as const) {
         const F = fieldImage(s, v);
-        expect(F.src).toMatch(/^fields\/[a-z]+-(persp|flat)\.webp$/);
+        expect(F.src).toMatch(/^fields\/[a-z]+-(persp|flat).(webp|svg)$/);
         expect(F.w).toBeGreaterThan(0);
         expect(F.h).toBeGreaterThan(0);
         expect(F.H).toHaveLength(9);
@@ -75,7 +75,7 @@ describe('field geometry', () => {
   it('standing overlays exist per sport', () => {
     expect(STANDING.soccer).toHaveLength(2);
     expect(STANDING.baseball).toHaveLength(0);
-    expect(STANDING.basketball.map((s) => s[0])).toEqual(['hoop-far', 'hoop-near']);
+    expect(STANDING.basketball.map((s) => s[0])).toEqual(['hoop-far']); // half court (D106)
     expect(STANDING.football[0]?.[0]).toBe('post');
   });
 });
@@ -177,8 +177,8 @@ describe('widestRow', () => {
   it('clusters hand-placed positions by y: baseball infield corners and middle infield are separate rows', () => {
     const [std] = SPORTS.baseball.formations({ size: 9, gk: false });
     expect(widestRow(std as NonNullable<typeof std>)).toBe(2);
-    const bk = SPORTS.basketball.formations({ size: 5, gk: false });
-    expect(widestRow(bk.find((f) => f.name === '1-3-1') as (typeof bk)[number])).toBe(3);
+    const bk = SPORTS.basketball.formations({ size: 4, gk: false });
+    expect(widestRow(bk.find((f) => f.name === '1-3') as (typeof bk)[number])).toBe(3); // half court (D106): the 4-player 1-3 is the one with three across
     expect(widestRow({ positions: [] })).toBe(0);
   });
 });
