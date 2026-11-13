@@ -240,6 +240,42 @@
 .shirt.basketball .num {
   font-size: clamp(12px, 26cqw, 32px);
 }
+/* basketball (D98): the name sits in a white pill across the chest, the number below it, the
+   position small at the hem. The pill hugs the text, never wraps and never outgrows the shirt:
+   the font shrinks with the name length (--n, set by the Jersey). Open spots keep the plain look. */
+.shirt.basketball:not(.open) .name {
+  top: 31%;
+  left: 50%;
+  width: auto;
+  max-width: 68%;
+  transform: translateX(-50%);
+  padding: 0 5%;
+  border-radius: 999px;
+  background: #fff;
+  color: #1b2822;
+  text-shadow: none;
+  box-shadow: 0 1px 1px rgba(0, 0, 0, 0.3);
+  font-size: clamp(6px, calc(80cqw / var(--n, 6)), 13px);
+  line-height: 1.5;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  overflow-wrap: normal;
+}
+.shirt.basketball:not(.open) .num,
+.shirt.basketball.hasnum:not(.open) .num {
+  top: 50%;
+}
+.shirt.basketball:not(.open) .code,
+.shirt.basketball.hasnum:not(.open) .code {
+  top: 84%;
+  font-size: clamp(6px, 10cqw, 11px);
+  letter-spacing: 0.6px;
+}
+.shirt.basketball.highlight:not(.open) .name {
+  background: #ffd54a;
+  color: #4a3600;
+}
 .shirt .name.empty {
   font-weight: 600;
   text-transform: none;

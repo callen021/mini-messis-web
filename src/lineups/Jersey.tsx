@@ -86,7 +86,10 @@ export const Jersey = memo(function Jersey({
           +
         </span>
       ) : (
-        <span className="name">{name}</span>
+        // --n lets the basketball pill size its text by name length so it never wraps or overflows (D98)
+        <span className="name" style={{ '--n': Math.max(3, name.length) } as React.CSSProperties}>
+          {name}
+        </span>
       )}
       {number && <span className="num">{number}</span>}
       <span className="code">{code}</span>
