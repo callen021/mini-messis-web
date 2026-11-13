@@ -431,8 +431,10 @@ test.describe('coach and parent flows', () => {
     await expect(strip).toHaveCount(1);
     await expect(strip).toHaveCSS('position', 'fixed');
     expect(await strip.evaluate((el) => getComputedStyle(el).top)).toBe('0px');
-    await parent.evaluate(() => window.scrollTo(0, 300));
-    await expect.poll(() => parent.evaluate(() => window.scrollY)).toBeGreaterThan(50);
+    await parent.evaluate(() => document.querySelector('.app-main')?.scrollTo(0, 300));
+    await expect
+      .poll(() => parent.evaluate(() => document.querySelector('.app-main')?.scrollTop ?? 0))
+      .toBeGreaterThan(50);
     // still fixed at the top after scrolling, above the content
     expect(await strip.evaluate((el) => Number(getComputedStyle(el).zIndex))).toBeGreaterThan(10);
     await expect(parent.getByRole('button', { name: 'Team', exact: true })).toHaveCount(1);
@@ -463,14 +465,18 @@ test.describe('coach and parent flows', () => {
     await coach.setViewportSize({ width: 375, height: 420 });
     await coach.goto('/stats');
     await coach.getByRole('radio', { name: 'Skills' }).click();
-    await coach.evaluate(() => window.scrollTo(0, 400));
-    await expect.poll(() => coach.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    await coach.evaluate(() => document.querySelector('.app-main')?.scrollTo(0, 400));
+    await expect
+      .poll(() => coach.evaluate(() => document.querySelector('.app-main')?.scrollTop ?? 0))
+      .toBeGreaterThan(100);
     await coach.locator('.matrix').getByRole('link', { name: 'Ava' }).click();
     await expect(coach).toHaveURL(/\/skills$/);
     await coach.getByRole('button', { name: 'Skills', exact: true }).click();
     await expect(coach).toHaveURL(/\/stats$/);
     await expect(coach.getByRole('radio', { name: 'Skills' })).toHaveAttribute('aria-checked', 'true');
-    await expect.poll(() => coach.evaluate(() => window.scrollY)).toBeGreaterThan(100);
+    await expect
+      .poll(() => coach.evaluate(() => document.querySelector('.app-main')?.scrollTop ?? 0))
+      .toBeGreaterThan(100);
     await coach.setViewportSize({ width: 412, height: 915 });
     // Roster → card → back to Team
     await parent.goto('/team');
@@ -1201,10 +1207,10 @@ test.describe('coach and parent flows', () => {
     await expect(coach.locator('.gclock.run')).toBeVisible();
     await expect(coach.getByRole('group', { name: 'Quick scoring' })).toBeVisible();
     // the whole page fits: no vertical scrolling at 375 × 812
-    const fits = await coach.evaluate(() => ({
-      scroll: document.documentElement.scrollHeight,
-      inner: window.innerHeight,
-    }));
+    const fits = await coach.evaluate(() => {
+      const main = document.querySelector('.app-main') as HTMLElement;
+      return { scroll: main.scrollHeight, inner: main.clientHeight };
+    });
     expect(fits.scroll, `page scrolls: ${fits.scroll} > ${fits.inner}`).toBeLessThanOrEqual(fits.inner + 1);
     await expect(noHeaderOverlap(coach), 'basketball header overlap').resolves.toEqual([]);
     await test.info().attach('basketball-live-375', {

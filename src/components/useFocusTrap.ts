@@ -70,14 +70,18 @@ export function useFocusTrap(
   }, [ref, active]);
 }
 
-/** Prevents the page behind a sheet from scrolling. */
+/** Prevents the page behind a sheet from scrolling: the body, and the app shell's scroller (D110). */
 export function useScrollLock(active: boolean): void {
   useEffect(() => {
     if (!active) return;
+    const main = document.querySelector<HTMLElement>('.app-main');
     const { overflow } = document.body.style;
+    const mainOverflow = main?.style.overflowY ?? '';
     document.body.style.overflow = 'hidden';
+    if (main) main.style.overflowY = 'hidden';
     return () => {
       document.body.style.overflow = overflow;
+      if (main) main.style.overflowY = mainOverflow;
     };
   }, [active]);
 }

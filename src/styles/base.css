@@ -33,11 +33,20 @@
   box-sizing: border-box;
   -webkit-tap-highlight-color: transparent;
 }
+/* The app shell (D110): the document never scrolls — `main` is the scroller — so the fixed tab
+   bar, action bar and status strip never travel with the page on iOS, whatever the page length. */
+html,
+body,
+#root {
+  height: 100%;
+}
 html {
   background: var(--bg);
+  overscroll-behavior: none;
 }
 body {
   margin: 0;
+  overflow: hidden;
   background: var(--bg);
   color: var(--text);
   font: 17px/1.35 var(--font-ui);
@@ -72,8 +81,13 @@ button:disabled {
   outline: none;
 }
 
-/* The tab bar is fixed at the bottom; the page content pads around it. */
+/* The tab bar is fixed at the bottom; the page content pads around it. main is the only scroller. */
 .app-main {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior-y: none;
   max-width: 760px;
   margin: auto;
   padding-top: calc(8px + env(safe-area-inset-top));

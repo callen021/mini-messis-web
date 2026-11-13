@@ -1326,3 +1326,24 @@ untouched.
   second start, the score and the second-period refusals. The Playwright clock flow starts a game
   and sees it running, resets it, and starts the clock again; the basketball flow hits the lineup
   check on an empty template, fixes it, and kicks off.
+
+### D110. The app shell scrolls inside main, never the document
+
+On iPhone the fixed tab bar travelled with the page on long screens (the Schedule was the report;
+any long page did it). Chromium and WebKit at 375px showed no page wider than the viewport, so
+the cause is iOS's own treatment of fixed elements while the document scrolls, not a layout bug.
+The robust answer is the app-shell pattern: `html`, `body` and `#root` are 100% tall, the body is
+`overflow: hidden`, and `main.app-main` is the one scroller (`overflow-y: auto`, momentum
+scrolling, `overscroll-behavior: none` on the root and the scroller). The tab bar, the action bar,
+the status strip, toasts and sheets stay `position: fixed`, now against a viewport that never
+moves. Every layout already rendered `main.app-main`, so the auth, admin, error and dev screens got
+the shell for free.
+
+- The router's `ScrollRestoration` watches the window, so it is replaced by `useMainScroll`: a new
+  page starts at the top, going back returns to where that page was, keyed by the history entry
+  and kept in `sessionStorage` (the last 50 entries).
+- A sheet's scroll lock (`useScrollLock`) now locks the scroller as well as the body.
+- Checked in Chromium and in WebKit (the Safari engine, iPhone emulation): on every coach and
+  parent page the bar's bottom edge equals the viewport height before and after scrolling to the
+  end, and no page is wider than the viewport. The flows that scroll (D61 back-with-scroll, D63
+  status strip, the basketball no-scroll check) measure the scroller instead of the window.

@@ -1,5 +1,5 @@
-import { useEffect, useMemo } from 'react';
-import { Outlet, ScrollRestoration } from 'react-router';
+import { useEffect, useMemo, useRef } from 'react';
+import { Outlet } from 'react-router';
 import { BoardButton } from '@/board/BoardButton';
 import { SyncBanner } from '@/components/SyncBanner';
 import { Tabbar } from '@/components/Tabbar';
@@ -10,6 +10,7 @@ import { preloadFieldImage } from '@/sports/field';
 import { useUIStore } from '@/lib/ui-store';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
+import { useMainScroll } from '../useMainScroll';
 import { TeamSwitcher } from '@/teams/TeamSwitcher';
 import { homeTabLabel, tabsFor } from '../tabs';
 
@@ -27,11 +28,14 @@ export function TabLayout() {
     return (players.data ?? []).filter((p) => ids.has(p.id));
   }, [children.data, players.data]);
   const tabs = useMemo(() => tabsFor(S, role, homeTabLabel(mine)), [S, role, mine]);
+  // main is the scroller (D110): restore its position on back, start new pages at the top
+  const mainRef = useRef<HTMLElement>(null);
+  useMainScroll(mainRef);
   return (
     <>
       <ProfileSync />
       <div className="statusbar-bg" aria-hidden="true" />
-      <main className="app-main">
+      <main className="app-main" ref={mainRef}>
         <SyncBanner />
         <div className="topbar">
           <TeamSwitcher />
@@ -40,7 +44,6 @@ export function TabLayout() {
         <Outlet />
       </main>
       <Tabbar tabs={tabs} />
-      <ScrollRestoration />
     </>
   );
 }
