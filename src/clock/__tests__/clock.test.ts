@@ -2,6 +2,8 @@ import { describe, expect, it } from 'vitest';
 import {
   type ClockState,
   type Stint,
+  atLimit,
+  capNote,
   cumulativeSeconds,
   elapsedAt,
   formatClock,
@@ -47,6 +49,33 @@ describe('clock maths (D66): elapsed from server timestamps, never a counter', (
     expect(elapsedAt(s, at(1800))).toBe(1890); // 30 minutes later, straight from the timestamp
     // a second device with the same row reads the same number
     expect(elapsedAt({ ...s }, at(1800))).toBe(1890);
+  });
+
+  it('a running stretch never passes its limit; the safety stop is a pause at the limit (D105)', () => {
+    const s: ClockState = {
+      periodIndex: 0,
+      clockSeconds: 600,
+      runningSince: iso(0),
+      periodLengths: [],
+      limitSeconds: 2400,
+    };
+    expect(elapsedAt(s, at(1000))).toBe(1600);
+    expect(atLimit(s, at(1000))).toBe(false);
+    expect(elapsedAt(s, at(1800))).toBe(2400);
+    expect(atLimit(s, at(1800))).toBe(true);
+    expect(elapsedAt(s, at(9000))).toBe(2400); // an hour later: still the cap, never the wall clock
+    expect(stintSeconds(stint({ clock_start: 0 }), s, at(9000))).toBe(2400);
+    // no limit known (an older row): the raw reading
+    expect(elapsedAt({ ...s, limitSeconds: null }, at(9000))).toBe(9600);
+    expect(atLimit({ ...s, limitSeconds: null }, at(9000))).toBe(false);
+    // paused at the limit: nothing to clamp
+    expect(elapsedAt({ ...s, clockSeconds: 2400, runningSince: null }, at(9000))).toBe(2400);
+    expect(capNote({ ...s, clockSeconds: 2400, runningSince: null, autoPaused: true }, 10)).toBe(
+      'Clock paused automatically at 40:00 · it ran 30 minutes past the 10-minute period length. Resume runs it for up to another 30 minutes.',
+    );
+    expect(capNote({ ...s, clockSeconds: 5400, runningSince: null, autoPaused: true }, null)).toMatch(
+      /^Clock paused automatically at 90:00 · it ran 90 minutes\./,
+    );
   });
 
   it('a clock skewed into the future never goes negative', () => {

@@ -376,6 +376,23 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(act).toHaveBeenCalledWith({ kind: 'bench', a: 'p8', b: 'p9' }, expect.anything());
   });
 
+  it('the safety stop shows a short note on the game (D105)', () => {
+    clock = {
+      periodIndex: 0,
+      clockSeconds: 3300,
+      runningSince: null,
+      periodLengths: [],
+      limitSeconds: 3300,
+      autoPaused: true,
+    };
+    renderPage();
+    expect(screen.getByText(/Clock paused automatically/)).toHaveTextContent(
+      'Clock paused automatically at 55:00 · it ran 30 minutes past the 25-minute period length.',
+    );
+    expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
+    clock = { periodIndex: 0, clockSeconds: 120, runningSince: null, periodLengths: [] };
+  });
+
   it('a running clock reads from the timestamp and "Pause" is offered', () => {
     clock = { ...clock, clockSeconds: 0, runningSince: '2026-11-12T14:58:30Z' };
     renderPage();
