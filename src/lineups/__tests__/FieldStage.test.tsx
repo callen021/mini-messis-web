@@ -53,27 +53,38 @@ describe('FieldStage', () => {
     const flat = render(
       <FieldStage sport="soccer" view="flat" formation={f33} jerseyWidth={30} renderSlot={() => null} />,
     );
-    expect(slotWidths(flat.container)[0]).toBeCloseTo(30 * fieldFrac(FIELDS.soccer.flat, 50), 5);
+    expect(slotWidths(flat.container)[0]).toBeCloseTo(30, 5); // one size in both views (D102)
   });
 
-  it('flat view: the tuned width (soccer) or the formation width, times the affine field fraction', () => {
+  it('flat view: the same stage width as the 3D view, for a tuned and an untuned sport (D102)', () => {
     const { container } = render(
       <FieldStage sport="soccer" view="flat" formation={f33} renderSlot={() => null} />,
     );
     const widths = slotWidths(container);
     expect(new Set(widths).size).toBe(1);
     expect(JERSEY_W.soccer).toBeDefined();
-    expect(widths[0]).toBeCloseTo(jerseyWidth('soccer', f33, 'flat') * fieldFrac(FIELDS.soccer.flat, 50), 5);
+    expect(widths[0]).toBeCloseTo(perspJerseyWidth('soccer', f33), 5);
+    expect(widths[0]).toBeGreaterThan(jerseyWidth('soccer', f33, 'flat') * fieldFrac(FIELDS.soccer.flat, 50));
     expect(container.querySelectorAll('.standing')).toHaveLength(2);
 
-    // an untuned sport still uses the formation's w
+    // an untuned sport uses the formation's w with the 3D factor
     const [std] = SPORTS.baseball.formations({ size: 9, gk: false });
     const f = std as NonNullable<typeof std>;
     const bb = render(<FieldStage sport="baseball" view="flat" formation={f} renderSlot={() => null} />);
-    expect(slotWidths(bb.container)[0]).toBeCloseTo(
-      Math.max(f.w, 9) * fieldFrac(FIELDS.baseball.flat, 50),
-      5,
+    expect(slotWidths(bb.container)[0]).toBeCloseTo(perspJerseyWidth('baseball', f), 5);
+  });
+
+  it('goals and hoops sit behind every jersey (D103)', () => {
+    const { container } = render(
+      <FieldStage sport="soccer" view="persp" formation={f33} renderSlot={() => null} />,
     );
+    const standing = Array.from(container.querySelectorAll<HTMLElement>('.standing')).map((el) =>
+      parseInt(el.style.zIndex, 10),
+    );
+    const slots = Array.from(container.querySelectorAll<HTMLElement>('.slot')).map((el) =>
+      parseInt(el.style.zIndex, 10),
+    );
+    expect(Math.max(...standing)).toBeLessThan(Math.min(...slots));
   });
 });
 

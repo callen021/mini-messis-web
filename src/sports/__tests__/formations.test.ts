@@ -124,11 +124,13 @@ describe('basketballFormations', () => {
       expect(inBounds(f)).toBe(true);
     }
   });
-  it('maps half-court coordinates into the full-court box (far basket at top)', () => {
+  it('spreads the rows over the court: front line at the far basket, guards back (D103)', () => {
     const f = basketballFormations(5)[0];
     const pg = f?.positions.find((p) => p.role === 'PG');
-    expect(pg?.x).toBeCloseTo(((0.5 + 0.55 * 50) / 56) * 100, 5);
-    expect(pg?.y).toBeCloseTo(2 + 0.62 * 80, 5);
+    const c = f?.positions.find((p) => p.role === 'C');
+    expect(pg?.x).toBe(50);
+    expect(pg?.y).toBe(86);
+    expect(c?.y).toBe(20);
   });
   it('falls back to 5 for unknown sizes', () => {
     expect(basketballFormations(7)).toHaveLength(BASKETBALL_FORMS[5]?.length ?? 0);

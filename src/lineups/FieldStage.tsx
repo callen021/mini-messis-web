@@ -32,7 +32,7 @@ export interface FieldStageProps {
 /**
  * The field artwork with goals/hoops and one absolutely-positioned slot per formation position.
  * Pure layout: the sport's homography places everything; goals and hoops shrink with depth, jerseys
- * keep one size in the 3D view (D37) unless `depthScale` asks for the legacy look.
+ * keep one size in both views (D37, D102) unless `depthScale` asks for the legacy look.
  */
 export function FieldStage({
   sport,
@@ -47,7 +47,8 @@ export function FieldStage({
   const F = fieldImage(sport, view);
   const base = import.meta.env.BASE_URL;
   const w = Math.max(jerseyWidth ?? widthFor(sport, formation, 'flat'), 9);
-  const fixed = view === 'persp' && !depthScale;
+  // one on-field size in both views (D102): the 3D width, as a percent of the stage
+  const fixed = !depthScale;
   const fixedW = jerseyWidth ?? widthFor(sport, formation, 'persp');
   return (
     <div className="pitchwrap">
@@ -64,11 +65,12 @@ export function FieldStage({
         />
         {STANDING[sport].map(([kind, x, y, sw], i) => {
           const p = place(F, x, y, sw);
+          // goals and hoops sit behind every jersey (D103): the keeper's label is never behind the net
           return (
             <div
               key={`${kind}-${i}`}
               className="standing"
-              style={{ left: p.left, top: p.top, width: p.width, zIndex: p.zIndex }}
+              style={{ left: p.left, top: p.top, width: p.width, zIndex: 5 }}
               dangerouslySetInnerHTML={{ __html: STANDING_SVG[kind] }}
             />
           );

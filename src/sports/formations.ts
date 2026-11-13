@@ -47,6 +47,35 @@ export const SOCCER_CODES: Readonly<Record<string, Readonly<Record<number, reado
   },
 };
 
+/**
+ * Row depths (field-%) for a shape of R rows, far row first (D103). Rows are spread so that in the
+ * 3D view two jerseys of the fixed size (D102) with the shift time under them clear each other
+ * where the perspective allows: the far row starts where a shirt just fits inside the stage, the
+ * keeper stands in the goal mouth, and the rows between are even in screen pixels, not field
+ * metres. Four rows cannot all clear at this size; they are spread as far as the field allows.
+ */
+const SOCCER_ROWS: Readonly<Record<string, readonly number[]>> = {
+  gk1: [40],
+  gk2: [18, 75],
+  gk3: [18, 50.5, 75],
+  gk4: [18, 41, 59, 75],
+  open1: [40],
+  open2: [18, 88],
+  open3: [18, 50, 88],
+  open4: [18, 39, 60, 88],
+};
+const SOCCER_GK_Y = 98;
+
+/**
+ * Across a row of k, centred, with a spread wide enough that neighbours clear each other at the
+ * fixed jersey size in both views (up to `max` field-% apart, never past the touchlines).
+ */
+export function rowX(k: number, i: number, max = 29): number {
+  if (k <= 1) return 50;
+  const s = Math.min(max, 80 / (k - 1));
+  return 50 + (i - (k - 1) / 2) * s;
+}
+
 const fallbackShape3 = (n: number): string => {
   const a = Math.ceil(n / 3);
   const b = Math.round(n / 3);
@@ -70,23 +99,22 @@ export function soccerFormations(size: number, gk: boolean): Formation[] {
             ? ['DEF', 'MID', 'ST']
             : ['DEF', 'MID', 'MID', 'ST'];
     const codeSets = R === 4 ? ['DEF', 'DM', 'AM', 'ST'] : roles;
-    const top = 26;
-    const bottom = gk ? 70 : 84;
     const maxRow = Math.max(...parts, gk ? 1 : 0);
     const w = Math.min(24, 100 / (maxRow + 1) - 2);
+    const rows = SOCCER_ROWS[`${gk ? 'gk' : 'open'}${Math.min(4, R)}`] ?? SOCCER_ROWS.gk3 ?? [];
     const positions: Position[] = [];
     for (let r = R - 1; r >= 0; r--) {
       // draw FWD row first (top of field)
       const k = parts[r] ?? 0;
       const role = roles[r] ?? 'ST';
-      const y = R === 1 ? 40 : top + ((R - 1 - r) * (bottom - top)) / (R - 1);
+      const y = rows[R - 1 - r] ?? 50;
       const codes =
         SOCCER_CODES[codeSets[r] ?? role]?.[k] ?? Array.from({ length: k }, (_, i) => role + (i + 1));
       for (let i = 0; i < k; i++) {
-        positions.push({ role, code: codes[i] ?? role, x: (100 * (i + 1)) / (k + 1), y });
+        positions.push({ role, code: codes[i] ?? role, x: rowX(k, i), y });
       }
     }
-    if (gk) positions.push({ role: 'GK', code: 'GK', x: 50, y: 90 });
+    if (gk) positions.push({ role: 'GK', code: 'GK', x: 50, y: SOCCER_GK_Y });
     return { name, positions, w };
   });
 }
@@ -150,46 +178,46 @@ export function baseballFormations(size: number): Formation[] {
   return forms.map((f) => ({ ...f, w: 16 }));
 }
 
-/* ---------- basketball (half-court % → full-court box, 56×100 ft, far basket at top) ---------- */
+/* ---------- basketball (full-court box, far basket at top) ---------- */
 
-const BK = (role: string, x: number, y: number): Position => ({
-  role,
-  code: role,
-  x: ((0.5 + 0.55 * x) / 56) * 100,
-  y: 2 + 0.62 * y,
-});
+/**
+ * Court coordinates in field-% (D103): the front line stands at the far basket (y 20), the wings
+ * mid-court (y ~50) and the guards back (y 86), so that at the fixed jersey size the rows clear
+ * each other and their shift times in both views; neighbours in a row are at least a jersey apart.
+ */
+const BK = (role: string, x: number, y: number): Position => ({ role, code: role, x, y });
 
 export const BASKETBALL_FORMS: Readonly<Record<number, readonly RawForm[]>> = {
   3: [
-    { name: '1-2', positions: [BK('PG', 50, 76), BK('F', 26, 40), BK('F', 74, 40)] },
-    { name: '2-1', positions: [BK('G', 30, 72), BK('G', 70, 72), BK('C', 50, 30)] },
-    { name: '1-1-1', positions: [BK('PG', 50, 80), BK('F', 50, 52), BK('C', 50, 26)] },
+    { name: '1-2', positions: [BK('PG', 50, 80), BK('F', 26, 24), BK('F', 74, 24)] },
+    { name: '2-1', positions: [BK('G', 30, 80), BK('G', 70, 80), BK('C', 50, 24)] },
+    { name: '1-1-1', positions: [BK('PG', 50, 86), BK('F', 50, 52), BK('C', 50, 20)] },
   ],
   4: [
-    { name: '1-2-1', positions: [BK('PG', 50, 78), BK('SG', 22, 52), BK('SF', 78, 52), BK('C', 50, 26)] },
-    { name: '2-2', positions: [BK('G', 30, 74), BK('G', 70, 74), BK('F', 28, 32), BK('F', 72, 32)] },
-    { name: '1-3', positions: [BK('PG', 50, 78), BK('F', 20, 42), BK('C', 50, 32), BK('F', 80, 42)] },
+    { name: '1-2-1', positions: [BK('PG', 50, 86), BK('SG', 16, 52), BK('SF', 84, 52), BK('C', 50, 20)] },
+    { name: '2-2', positions: [BK('G', 28, 80), BK('G', 72, 80), BK('F', 28, 24), BK('F', 72, 24)] },
+    { name: '1-3', positions: [BK('PG', 50, 86), BK('F', 16, 30), BK('C', 50, 30), BK('F', 84, 30)] },
   ],
   5: [
     {
       name: '1-2-2',
-      positions: [BK('PG', 50, 80), BK('SG', 18, 58), BK('SF', 82, 58), BK('PF', 27, 33), BK('C', 73, 33)],
+      positions: [BK('PG', 50, 86), BK('SG', 12, 52), BK('SF', 88, 52), BK('PF', 34, 20), BK('C', 66, 20)],
     },
     {
       name: '2-1-2',
-      positions: [BK('PG', 32, 80), BK('SG', 68, 80), BK('SF', 50, 54), BK('PF', 22, 32), BK('C', 78, 32)],
+      positions: [BK('PG', 30, 86), BK('SG', 70, 86), BK('SF', 50, 52), BK('PF', 22, 20), BK('C', 78, 20)],
     },
     {
       name: '1-3-1',
-      positions: [BK('PG', 50, 82), BK('SG', 14, 56), BK('SF', 86, 56), BK('PF', 50, 54), BK('C', 50, 30)],
+      positions: [BK('PG', 50, 86), BK('SG', 12, 52), BK('SF', 88, 52), BK('PF', 50, 52), BK('C', 50, 20)],
     },
     {
       name: '2-3',
-      positions: [BK('G', 30, 80), BK('G', 70, 80), BK('F', 14, 46), BK('C', 50, 34), BK('F', 86, 46)],
+      positions: [BK('G', 30, 86), BK('G', 70, 86), BK('F', 14, 48), BK('C', 50, 48), BK('F', 86, 48)],
     },
     {
       name: '1-4 high',
-      positions: [BK('PG', 50, 82), BK('SG', 12, 56), BK('SF', 88, 56), BK('PF', 33, 34), BK('C', 67, 34)],
+      positions: [BK('PG', 50, 86), BK('SG', 12, 52), BK('SF', 88, 52), BK('PF', 33, 20), BK('C', 67, 20)],
     },
   ],
 };
@@ -509,7 +537,9 @@ export function lacrosseFormations(size: number, gk: boolean): Formation[] {
   return names.map((name) => {
     const parts = name.split('-').map(Number); // DEF-MID-ATT
     const roles = ['DEF', 'MID', 'ATT'] as const;
-    const rows: Record<string, number> = { DEF: gk ? 66 : 72, MID: 48, ATT: gk ? 29 : 26 };
+    // rows spread so the shift times clear the next row in the flat view (D103); the keeper
+    // stays in the crease in front of the goal (y 85)
+    const rows: Record<string, number> = { DEF: gk ? 64 : 72, MID: gk ? 44.5 : 48, ATT: gk ? 22 : 24 };
     const maxRow = Math.max(...parts, gk ? 1 : 0);
     const w = Math.min(17, 100 / (maxRow + 1) - 2);
     const positions: Position[] = [];
@@ -522,10 +552,10 @@ export function lacrosseFormations(size: number, gk: boolean): Formation[] {
         const code = codes[i] ?? role;
         let y = rows[role] ?? 48;
         if (role === 'ATT' && code.includes('X')) y = 9;
-        positions.push({ role, code, x: (100 * (i + 1)) / (k + 1), y });
+        positions.push({ role, code, x: rowX(k, i, 25), y });
       }
     }
-    if (gk) positions.push({ role: 'GK', code: 'GK', x: 50, y: 80 });
+    if (gk) positions.push({ role: 'GK', code: 'GK', x: 50, y: 81 });
     return { name, positions, w };
   });
 }
