@@ -28,6 +28,7 @@ import {
 import { useGameClock } from '@/clock/api';
 import { directionsUrl } from './directions';
 import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
+import { useStartCheck } from '@/clock/useStartCheck';
 import { useMyChildren } from '@/lineups/api';
 import { useRsvps } from '@/rsvp/api';
 import { type RsvpMark, RsvpCountMark, RsvpMarks } from '@/rsvp/RsvpMarks';
@@ -171,6 +172,7 @@ export function GamesPage() {
   const practices = usePractices(teamId);
   const create = useCreateGame(teamId);
   const createPractices = useCreatePractices(teamId);
+  const confirmStart = useStartCheck(teamId);
   const players = usePlayers(teamId);
   const rsvps = useRsvps(teamId);
   const children = useMyChildren();
@@ -217,15 +219,22 @@ export function GamesPage() {
   };
 
   const onCreate = (input: Parameters<typeof create.mutate>[0]) => {
-    create.mutate(input, {
-      onSuccess: (g) => {
+    void (async () => {
+      // starting now: the lineup check first (D109), then straight to the Field
+      if (input.start && !(await confirmStart(null))) {
         setCreating(false);
-        toast(input.start ? `Game on · vs ${g.opponent}` : 'Game scheduled');
-        if (input.start) void navigate(`/games/${g.id}`);
-        else if (view === 'practices') setView('all');
-      },
-      onError: (e) => toast(errorMessage(e)),
-    });
+        return;
+      }
+      create.mutate(input, {
+        onSuccess: (g) => {
+          setCreating(false);
+          toast(input.start ? `Game on · vs ${g.opponent}` : 'Game scheduled');
+          if (input.start) void navigate('/field');
+          else if (view === 'practices') setView('all');
+        },
+        onError: (e) => toast(errorMessage(e)),
+      });
+    })();
   };
   const onCreatePractices = (input: Parameters<typeof createPractices.mutate>[0]) => {
     createPractices.mutate(input, {

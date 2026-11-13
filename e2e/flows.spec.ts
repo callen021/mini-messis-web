@@ -647,6 +647,11 @@ test.describe('coach and parent flows', () => {
     await coach.getByRole('link', { name: /vs Tigers/ }).click();
     await expect(coach.getByRole('heading', { level: 1, name: 'vs Tigers' })).toBeVisible();
     await coach.getByRole('button', { name: 'Start game' }).click();
+    // any Start game opens the Field for that game (D109)
+    await expect(coach).toHaveURL(/\/field$/);
+    await expect(coach.getByText(/Live vs Tigers/)).toBeVisible();
+    await coach.goto('/games');
+    await coach.getByRole('button', { name: /In progress · vs Tigers/ }).click();
     await expect(coach.getByRole('button', { name: 'Finish game' })).toBeVisible();
     await expect(coach.getByLabel('Us 0, them 0')).toBeVisible();
     await expect(parent.getByText('In progress · vs Tigers')).toBeVisible({ timeout: 15_000 });
@@ -847,14 +852,12 @@ test.describe('coach and parent flows', () => {
     await sheet.getByLabel('Opponent').fill('Lions');
     await sheet.getByRole('button', { name: 'Start game now' }).click();
     await expect(sheet).toBeHidden();
-    await coach.goto('/field');
+    // Start game is kickoff: the Field opens with the clock already running (D109)
+    await expect(coach).toHaveURL(/\/field$/);
     await expect(coach.getByRole('heading', { level: 2, name: 'H1' })).toBeVisible();
-    // the clock never ran: the chip is amber and, for staff, a button (D108)
-    await expect(coach.locator('.gclock.warn')).toBeVisible();
-    await expect(coach.getByRole('button', { name: /Clock not started, 20:00/ })).toBeVisible();
-    await coach.getByRole('button', { name: 'Start clock' }).click();
     await expect(coach.locator('.gclock.run')).toBeVisible();
     await expect(coach.getByRole('button', { name: 'Pause' })).toBeVisible();
+    await expect(coach.getByRole('button', { name: 'Start clock' })).toHaveCount(0);
     // the parent's phone: same period, running clock, no controls
     await parent.goto('/field');
     await expect(parent.getByRole('heading', { level: 2, name: 'H1' })).toBeVisible();
@@ -862,7 +865,24 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByRole('button', { name: /Start clock|Pause|End H1|Undo/ })).toHaveCount(0);
     await expect(parent.locator('.slot .shirt').first()).toBeDisabled();
     await expect(parent.getByRole('group', { name: 'Bench' })).toContainText('Bench · 1');
-    await expect(parent.getByRole('button', { name: /Start the clock/ })).toHaveCount(0);
+  });
+
+  test('an early start: Reset clock while paused in the first period puts the clock and the minutes back to 0:00 (D109)', async () => {
+    // a few seconds on the clock first: at 0:00 there is nothing to reset
+    await expect(coach.getByLabel(/19:5[0-7] left, running/)).toBeVisible({ timeout: 20_000 });
+    await coach.getByRole('button', { name: 'Pause' }).click();
+    await expect(coach.getByLabel(/left, paused/)).toBeVisible();
+    await coach.getByRole('button', { name: 'Reset clock' }).click();
+    const confirm = coach.getByRole('dialog', { name: 'Reset the clock to 0:00?' });
+    await confirm.getByRole('button', { name: 'Reset clock' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Clock reset to 0:00' })).toBeVisible();
+    await expect(coach.getByLabel('20:00 left, paused')).toBeVisible();
+    await expect(coach.getByRole('button', { name: 'Start clock' })).toBeVisible();
+    await expect(coach.getByRole('button', { name: 'Reset clock' })).toHaveCount(0);
+    await expect(coach.locator('.slot .shirt .jtime').first()).toHaveText('0:00');
+    await coach.getByRole('button', { name: 'Start clock' }).click();
+    await expect(coach.locator('.gclock.run')).toBeVisible();
+    await expect(parent.locator('.gclock.run')).toBeVisible({ timeout: 15_000 });
   });
 
   test('the game bar at 375px: formation chip, clock and score never overlap, light and dark (D108)', async () => {
@@ -1161,10 +1181,24 @@ test.describe('coach and parent flows', () => {
     const form = coach.getByRole('dialog', { name: 'Start a game to record the score' });
     await form.getByLabel('Opponent').fill('Hawks');
     await form.getByRole('button', { name: 'Start game' }).click();
+    // the starters are empty: the lineup check lists the open spots; Fix lineup stops the start (D109)
+    const check = coach.getByRole('dialog', { name: 'Check the lineup' });
+    await expect(check).toContainText('5 open spots');
+    await check.getByRole('button', { name: 'Fix lineup' }).click();
     await expect(form).toBeHidden();
-    await expect(coach.locator('.gclock.warn')).toBeVisible();
-    await coach.getByRole('button', { name: 'Auto-fill' }).click();
+    await expect(coach.getByRole('heading', { level: 2, name: 'Starters' })).toBeVisible();
+    await coach.locator('.actionbar').getByRole('button', { name: 'Auto-fill' }).click();
     await expect(coach.locator('.slot .shirt.open')).toHaveCount(0);
+    await coach.getByRole('button', { name: /Start a game and record points/ }).click();
+    await coach
+      .getByRole('dialog', { name: 'Start a game' })
+      .getByRole('button', { name: 'New game' })
+      .click();
+    await form.getByLabel('Opponent').fill('Hawks');
+    await form.getByRole('button', { name: 'Start game' }).click();
+    await expect(form).toBeHidden();
+    // kickoff: the clock runs at once
+    await expect(coach.locator('.gclock.run')).toBeVisible();
     await expect(coach.getByRole('group', { name: 'Quick scoring' })).toBeVisible();
     // the whole page fits: no vertical scrolling at 375 × 812
     const fits = await coach.evaluate(() => ({
@@ -1177,14 +1211,12 @@ test.describe('coach and parent flows', () => {
       body: await coach.screenshot(),
       contentType: 'image/png',
     });
-    // Them: one tap. The first score with the clock never run asks once.
+    // Them: one tap
     await coach.getByRole('button', { name: 'Them +3, three-pointer' }).click();
-    const nudge = coach.getByRole('dialog', { name: 'Start the clock?' });
-    await expect(nudge).toBeVisible();
-    await nudge.getByRole('button', { name: 'Not now' }).click();
     await expect(coach.getByLabel('Score 0 to 3. Add a score')).toBeVisible();
     await expect(coach.locator('.qslast')).toContainText('Hawks +3');
-    // Us: who scored? → a jersey
+    // Us: who scored? → a jersey (after the 400 ms double-tap guard)
+    await coach.waitForTimeout(500);
     await coach.getByRole('button', { name: 'Us +2, field goal' }).click();
     await expect(coach.getByText('Who scored the +2?')).toBeVisible();
     await expect(coach.locator('.slot .shirt.pickable')).toHaveCount(5);
@@ -1193,7 +1225,6 @@ test.describe('coach and parent flows', () => {
     await first.click();
     await expect(coach.getByLabel('Score 2 to 3. Add a score')).toBeVisible();
     await expect(coach.locator('.qslast')).toContainText(new RegExp(`${scorer} \\+2`, 'i'));
-    await expect(coach.getByRole('dialog', { name: 'Start the clock?' })).toHaveCount(0);
     await expect(coach.locator('.slot .shirt.pickable')).toHaveCount(0);
     // Undo removes the last entry
     await coach.locator('.qslast').getByRole('button', { name: 'Undo' }).click();
@@ -1211,9 +1242,6 @@ test.describe('coach and parent flows', () => {
     await first.click();
     await expect(coach.getByText(new RegExp(`Tap a player to swap with ${scorer}`, 'i'))).toBeVisible();
     await first.click();
-    // the amber chip starts the clock
-    await coach.locator('.gclock.warn').click();
-    await expect(coach.locator('.gclock.run')).toBeVisible();
     await coach.emulateMedia({ colorScheme: 'dark' });
     await expect(noHeaderOverlap(coach), 'basketball header overlap (dark)').resolves.toEqual([]);
     await test.info().attach('basketball-live-375-dark', {

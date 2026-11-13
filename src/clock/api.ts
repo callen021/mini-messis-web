@@ -126,6 +126,8 @@ type ClockCall =
       formation: string;
       slots: { position_role: string; position_code: string; player_id: string | null }[];
     }
+  /** An early start (D109): the clock and the first period's minutes go back to 0:00. */
+  | { kind: 'reset' }
   | { kind: 'undo' };
 
 /** One mutation for every clock action: each is a single atomic server function (D66, D67). */
@@ -182,6 +184,9 @@ export function useClockAction(teamId: string, gameId: string) {
               })
             ).error,
           );
+          return null;
+        case 'reset':
+          fail((await supabase.rpc('clock_reset', g)).error);
           return null;
         case 'undo': {
           const res = await supabase.rpc('clock_undo', g);

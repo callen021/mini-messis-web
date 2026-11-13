@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-import { act as reactAct, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, act as reactAct, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
@@ -13,6 +13,7 @@ import { type StoredPeriod } from '@/lineups/convert';
 import { SPORTS, formationByName } from '@/sports/definitions';
 import { type Player, type Team } from '@/teams/api';
 import { TeamProviderForTests, type TeamContextValue } from '@/teams/TeamContext';
+import { todayISO } from '@/games/format';
 import { ClockFieldPage } from '../ClockFieldPage';
 import { type ClockState, type Stint } from '../clock';
 
@@ -53,8 +54,9 @@ vi.mock('@/teams/api', async () => {
   return { ...actual, usePlayers: () => ({ data: players, isPending: false }) };
 });
 vi.mock('@/teams/teamMutations', () => ({ useRenameTeam: () => ({ mutate: vi.fn() }) }));
+let scoreEvents: Record<string, unknown>[] = [];
 vi.mock('@/games/api', () => ({
-  useScoreEvents: () => ({ data: [] }),
+  useScoreEvents: () => ({ data: scoreEvents }),
   useAddScoreEvent: () => ({ mutate: vi.fn() }),
   useDeleteScoreEvent: () => ({ mutate: vi.fn() }),
   useCreateGame: () => ({ mutate: vi.fn(), isPending: false }),
@@ -91,6 +93,7 @@ vi.mock('@/rsvp/api', () => ({
     isPending: false,
   }),
   useSetRsvp: () => ({ mutate: vi.fn(), isPending: false }),
+  useRsvps: () => ({ data: [], isPending: false }),
 }));
 
 const mk = (id: string, first_name: string, n: string, is_available = true): Player => ({
@@ -489,29 +492,88 @@ describe('ClockFieldPage · the live game round (D108)', () => {
       stint({ player_id: id, slot_index: i, position_code: f33.positions[i]?.code ?? '' }),
     );
     clock = { periodIndex: 0, clockSeconds: 0, runningSince: null, periodLengths: [] };
-    localStorage.clear();
+    scoreEvents = [];
   });
 
-  it('the clock that never ran is an amber button for staff that starts it; a plain chip for parents', async () => {
+  it('the bar reads Start clock at 0:00 and Resume past it; the chip is never a button (D109)', () => {
     renderPage();
-    const chip = screen.getByRole('button', { name: /Clock not started, 25:00. Start the clock/ });
-    expect(chip).toHaveClass('warn');
-    await userEvent.click(chip);
-    expect(act).toHaveBeenCalledWith({ kind: 'start' }, expect.anything());
-  });
-
-  it('once the clock has run the chip is the plain clock again', () => {
+    expect(screen.getByRole('button', { name: 'Start clock' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Start the clock/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Reset clock' })).not.toBeInTheDocument();
+    cleanup();
     clock = { periodIndex: 0, clockSeconds: 120, runningSince: null, periodLengths: [] };
     renderPage();
-    expect(screen.queryByRole('button', { name: /Start the clock/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
     expect(screen.getByLabelText('23:00 left, paused')).toBeInTheDocument();
   });
 
-  it('parents never get the start button', () => {
-    staff = false;
+  it('paused past 0:00 in the first period with no score: Reset clock asks, then resets (D109)', async () => {
+    clock = { periodIndex: 0, clockSeconds: 120, runningSince: null, periodLengths: [] };
     renderPage();
-    expect(screen.queryByRole('button', { name: /Start the clock/ })).not.toBeInTheDocument();
-    expect(screen.getByLabelText('25:00 left, paused')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Reset clock' }));
+    const confirm = await screen.findByRole('dialog', { name: 'Reset the clock to 0:00?' });
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Reset clock' }));
+    expect(act).toHaveBeenCalledWith({ kind: 'reset' }, expect.anything());
+  });
+
+  it('no Reset clock while running, in a later period, or once a score is in (D109)', () => {
+    clock = { periodIndex: 0, clockSeconds: 120, runningSince: '2026-11-12T14:59:00Z', periodLengths: [] };
+    renderPage();
+    expect(screen.queryByRole('button', { name: 'Reset clock' })).not.toBeInTheDocument();
+    cleanup();
+    clock = { periodIndex: 1, clockSeconds: 120, runningSince: null, periodLengths: [1500] };
+    renderPage();
+    expect(screen.queryByRole('button', { name: 'Reset clock' })).not.toBeInTheDocument();
+    cleanup();
+    clock = { periodIndex: 0, clockSeconds: 120, runningSince: null, periodLengths: [] };
+    scoreEvents = [
+      {
+        id: 'e1',
+        game_id: 'g1',
+        side: 'us',
+        points: 1,
+        event_type: 'goal',
+        period_index: 0,
+        scorer_player_id: null,
+        assist_player_id: null,
+        occurred_at: '2026-11-12T14:00:00Z',
+        clock_seconds: 30,
+      },
+    ];
+    renderPage();
+    expect(screen.queryByRole('button', { name: 'Reset clock' })).not.toBeInTheDocument();
+  });
+
+  it('before a start the lineup check lists open spots: Fix lineup stops, Start anyway starts (D109)', async () => {
+    liveGame = null;
+    plannedGame = {
+      id: 'g9',
+      opponent: 'Bears',
+      game_date: todayISO(),
+      start_time: null,
+      status: 'upcoming',
+    };
+    periods = [stored(['p1', '', 'p3', 'p4', 'p5', 'p6', 'p7'], 0), stored(STARTERS, 1)];
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /Start a game and record/ }));
+    await userEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Start a game' })).getByRole('button', {
+        name: /Start vs Bears/,
+      }),
+    );
+    const warn = await screen.findByRole('dialog', { name: 'Check the lineup' });
+    expect(warn).toHaveTextContent('1 open spot (ST)');
+    await userEvent.click(within(warn).getByRole('button', { name: 'Fix lineup' }));
+    expect(startGame).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: /Start a game and record/ }));
+    await userEvent.click(
+      within(await screen.findByRole('dialog', { name: 'Start a game' })).getByRole('button', {
+        name: /Start vs Bears/,
+      }),
+    );
+    const warn2 = await screen.findByRole('dialog', { name: 'Check the lineup' });
+    await userEvent.click(within(warn2).getByRole('button', { name: 'Start anyway' }));
+    expect(startGame).toHaveBeenCalledWith('g9', expect.anything());
   });
 
   it('soccer, paused mid-period: the formation select changes shape with the same players (nearest spots)', async () => {

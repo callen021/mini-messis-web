@@ -47,7 +47,8 @@ import {
 import { ClockCard } from './ClockCard';
 import { ClockDisplay } from './ClockDisplay';
 import { ClockStamp } from './ClockStamp';
-import { markNudged, neverRun, nudgeAsked, remapByDistance } from './formation';
+import { remapByDistance } from './formation';
+import { useStartCheck } from './useStartCheck';
 import { QuickScoreRow } from './QuickScoreRow';
 import { PeriodOverAlert } from './PeriodOverAlert';
 import { type Selection, type TapOutcome, resolveTap, selectionHint } from './tap';
@@ -88,6 +89,7 @@ export function ClockFieldPage() {
   const deleteEvent = useDeleteScoreEvent(teamId, gameId ?? '');
   const createGame = useCreateGame(teamId);
   const startGame = useStartGame(teamId);
+  const confirmStart = useStartCheck(teamId);
   const seasonMinutes = useSeasonMinutes(teamId, isStaff);
   const [selected, setSelected] = useState<Selection>(null);
   const [flashing, flash] = useFlash();
@@ -100,7 +102,6 @@ export function ClockFieldPage() {
   const clock = clockQ.data ?? PAUSED_CLOCK;
   const running = !!live && isRunning(clock);
   const atZero = !!live && clock.clockSeconds === 0 && !isRunning(clock);
-  const clockNeverRun = !!live && neverRun(clock);
   const quickScoring = sport === 'basketball' && !!live && isStaff;
   // soccer may change shape mid-game while the clock is paused (D108); every sport may at 0:00
   const canChangeFormationLive = !!live && sport === 'soccer' && !running;
@@ -165,19 +166,6 @@ export function ClockFieldPage() {
   const onError = (e: unknown) => toast(errorMessage(e));
 
   /* ---------- scoring on the clock (D108) ---------- */
-  /** Once per game: a score with a clock that never ran offers to start it. */
-  const askClock = () => {
-    if (!live || !neverRun(clock) || nudgeAsked(live.id)) return;
-    markNudged(live.id);
-    void sheet({
-      title: 'Start the clock?',
-      message: 'The score is in, but the game clock has not started. Minutes count only while it runs.',
-      actions: [{ label: 'Start clock', value: true }],
-      cancel: 'Not now',
-    }).then((ok) => {
-      if (ok) act.mutate({ kind: 'start' }, { onError });
-    });
-  };
   const recordScore = (side: 'us' | 'them', points: number, scorerId: string | null) => {
     const kind = S.scoring.events.find((k) => k.points === points);
     if (!kind || !live || !scoreTapAllowed()) return;
@@ -199,9 +187,19 @@ export function ClockFieldPage() {
           ? `${live.opponent} +${kind.points}`
           : `${scorerId ? nameOf(scorerId) : 'Team'} +${kind.points}`,
     });
-    askClock();
   };
   const lastEvent = log[log.length - 1];
+  // an early start (D109): while paused in the first period with no score, the clock can go back to 0:00
+  const canReset = !!live && !running && periodIndex === 0 && clock.clockSeconds > 0 && log.length === 0;
+  const resetClock = async () => {
+    const ok = await sheet({
+      title: 'Reset the clock to 0:00?',
+      message:
+        'Minutes played so far are cleared. The lineup stays as it is; Start clock then runs from 0:00.',
+      actions: [{ label: 'Reset clock', value: true, destructive: true }],
+    });
+    if (ok) act.mutate({ kind: 'reset' }, { onError, onSuccess: () => toast('Clock reset to 0:00') });
+  };
   const undoLast = () => {
     if (!lastEvent || lastEvent.id.startsWith('temp-')) return;
     deleteEvent.mutate(lastEvent.id, { onError });
@@ -472,6 +470,7 @@ export function ClockFieldPage() {
       });
       if (!ok) return;
     }
+    if (!(await confirmStart(next.id))) return;
     startGame.mutate(next.id, {
       onError,
       onSuccess: () => {
@@ -608,18 +607,7 @@ export function ClockFieldPage() {
           onTapBench={(playerId) => tap({ kind: 'bench', playerId })}
           headerExtra={
             <>
-              {live && (
-                <ClockDisplay
-                  state={clock}
-                  periodMinutes={team.period_minutes}
-                  fullTime={fullTime}
-                  onStart={
-                    isStaff && clockNeverRun && !fullTime
-                      ? () => act.mutate({ kind: 'start' }, { onError })
-                      : undefined
-                  }
-                />
-              )}
+              {live && <ClockDisplay state={clock} periodMinutes={team.period_minutes} fullTime={fullTime} />}
               {scoreButton()}
             </>
           }
@@ -662,7 +650,6 @@ export function ClockFieldPage() {
           events={log}
           onAdd={(ev) => {
             addEvent.mutate({ ...ev, period_index: periodIndex }, { onError });
-            askClock();
             toast(
               ev.side === 'them'
                 ? `${live.opponent} scored · ${N === 1 ? '' : `${shortPeriod(S, N, periodIndex)} `}${formatClock(elapsedAt(clock, serverNow()))}`
@@ -683,17 +670,23 @@ export function ClockFieldPage() {
           startOnly
           busy={createGame.isPending}
           onSubmit={(input) =>
-            createGame.mutate(
-              { ...input, start: true },
-              {
-                onSuccess: (g) => {
-                  setStarting(false);
-                  toast(`Game on · vs ${g.opponent}`);
-                  void navigate('/field');
+            void confirmStart(null).then((ok) => {
+              if (!ok) {
+                setStarting(false);
+                return;
+              }
+              createGame.mutate(
+                { ...input, start: true },
+                {
+                  onSuccess: (g) => {
+                    setStarting(false);
+                    toast(`Game on · vs ${g.opponent}`);
+                    void navigate('/field');
+                  },
+                  onError,
                 },
-                onError,
-              },
-            )
+              );
+            })
           }
         />
       )}
@@ -715,6 +708,11 @@ export function ClockFieldPage() {
                   onClick={() => act.mutate({ kind: running ? 'pause' : 'start' }, { onError })}
                 >
                   {running ? 'Pause' : clock.clockSeconds > 0 ? 'Resume' : 'Start clock'}
+                </Button>
+              )}
+              {!fullTime && canReset && (
+                <Button variant="gray" disabled={act.isPending} onClick={() => void resetClock()}>
+                  Reset clock
                 </Button>
               )}
               {!fullTime && N > 1 && (

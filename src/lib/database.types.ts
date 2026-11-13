@@ -837,6 +837,9 @@ isOneToOne: false
 "clock_pause":
 { Args: { "p_game_id": string }; Returns: undefined
                            },
+"clock_reset":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
 "clock_set_lineup":
 { Args: { "p_formation_name": string,"p_game_id": string,"p_slots": Json }; Returns: undefined
                            },

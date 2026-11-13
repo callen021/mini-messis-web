@@ -6,19 +6,15 @@ import { useServerNow } from './useNow';
  * The clock in a card header (D66): "12:05" counting up, or "7:55" left with a period length,
  * red once over. The label says which it is for screen readers and tiny screens. It ticks on
  * its own (D95), so the page and any open sheet around it are not re-rendered every second.
- * With `onStart` (staff, the clock never run, D108) it is an amber button that starts the clock.
  */
 export function ClockDisplay({
   state,
   periodMinutes,
   fullTime,
-  onStart,
 }: {
   state: ClockState;
   periodMinutes: number | null;
   fullTime: boolean;
-  /** Set only while the clock has never run and the viewer may start it: the chip becomes a button. */
-  onStart?: () => void;
 }) {
   const nowMs = useServerNow(!fullTime && isRunning(state));
   if (fullTime) {
@@ -32,20 +28,6 @@ export function ClockDisplay({
   const left = remainingAt(state, periodMinutes, nowMs);
   const over = left !== null && left <= 0;
   const text = left === null ? formatClock(elapsed) : formatClock(Math.max(0, left));
-  if (onStart) {
-    return (
-      <button
-        type="button"
-        className="gclock warn"
-        aria-label={`Clock not started, ${text}. Start the clock`}
-        title="The clock has not started · tap to start it"
-        onClick={onStart}
-      >
-        <b>{text}</b>
-        <small>start</small>
-      </button>
-    );
-  }
   const label =
     left === null
       ? `Clock ${formatClock(elapsed)}${isRunning(state) ? ', running' : ', paused'}`

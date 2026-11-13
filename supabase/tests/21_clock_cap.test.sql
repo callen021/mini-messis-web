@@ -77,10 +77,11 @@ insert into public.games (id, team_id, season_id, opponent) values
   ('a8000000-0000-0000-0000-000000000002', (select v from ctx where k = 'open'), (select id from public.seasons where team_id = (select v from ctx where k = 'open')), 'Owls');
 
 -- ---------- the stretch limit is written on start ----------
+-- start_game is kickoff (D109): the clock runs, and the limit is written, from the start of the game
 select public.start_game('a8000000-0000-0000-0000-000000000001');
-select is((select clock_limit from public.games where id = 'a8000000-0000-0000-0000-000000000001'), null, 'no limit before the clock runs');
+select is((select clock_limit from public.games where id = 'a8000000-0000-0000-0000-000000000001'), 3000, 'start writes the limit: 20 minutes plus 30 (from start_game, D109)');
 select public.clock_start('a8000000-0000-0000-0000-000000000001');
-select is((select clock_limit from public.games where id = 'a8000000-0000-0000-0000-000000000001'), 3000, 'start writes the limit: 20 minutes plus 30');
+select is((select clock_limit from public.games where id = 'a8000000-0000-0000-0000-000000000001'), 3000, 'an explicit clock_start on the running clock keeps it (D109)');
 select pg_temp.pass('a8000000-0000-0000-0000-000000000001', 2990);
 select is(pg_temp.state('a8000000-0000-0000-0000-000000000001'), '2990/' || (select clock_running_since::text from public.games where id = 'a8000000-0000-0000-0000-000000000001') || '/false/3000', 'ten seconds short of the cap the clock runs on');
 

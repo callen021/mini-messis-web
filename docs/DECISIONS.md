@@ -1260,11 +1260,9 @@ Five changes to the clock-mode Field during a game, after the first games with r
   No assists for basketball; entries are edited on the game page as before. To fit at 375 × 812
   without scrolling the court is drawn at 84% width and the long help paragraph is not shown
   during a live basketball game. Soccer and the other sports keep the score sheet.
-- **The clock never starts on its own.** While a live game's clock has never run (first period,
-  nothing banked, nothing ended, paused) staff see the clock chip in amber and it is a button that
-  starts the clock; parents see the plain chip. The first score with the clock never run asks
-  "Start the clock?" once per game on that device (`localStorage`); a substitution does not ask,
-  because coaches rearrange the lineup before kickoff and the amber chip covers that case.
+- **The clock never starts on its own** (superseded the same day by D109, where Start game is the
+  kickoff: the amber chip and the "Start the clock?" prompt described here were built and then
+  removed).
 - **The score tap with no live game** opens a sheet: "Start vs Lions · Fri, Nov 20 · 10:00 AM"
   for the next scheduled game (the same `plannedGame()` rule as D107: first upcoming dated today
   or later), then "New game", which opens the existing start form. A game not dated today asks
@@ -1294,3 +1292,37 @@ Five changes to the clock-mode Field during a game, after the first games with r
   only; the title side of the header may shrink and clip, the formation pill clips with an
   ellipsis, the select is capped at 104px, and the clock and score chips keep their size, so
   nothing overlaps at 375px in light or dark (D97 amended; D70 amended for the formation change).
+
+### D109. Start game is kickoff: the clock starts with the game, and an early start can be reset
+
+In clock mode the game and its clock no longer start in two steps. `start_game` starts the clock in
+the same transaction (the same write as `clock_start`: `running_since`, the safety-stop limit,
+auto-pause off), so every start path — the Field's score tap and its sheet, the new-game form,
+the Schedule's "Start game now" and the game page's Start game — kicks off at once, and every one
+of them then opens the Field for that game. The bar shows Pause from the first second; Pause and
+Resume are unchanged; "Start clock" is the label whenever the clock is paused at 0:00 in any period
+(the start of a later period, or after a reset) and "Resume" when paused past 0:00. Period mode is
+untouched.
+
+- **Before any clock-mode start, a lineup check.** With an open starting spot, or a placed player
+  who is marked out (the coach's flag or a reply for that game), a sheet lists them — "2 open spots
+  (LM, RFB). Marked out but still placed: Nolan (parent)." — with Fix lineup (which goes to the
+  Field and does not start) and Start anyway. Nothing starts until the coach picks one
+  (`useStartCheck`, pure `startIssues` / `startWarning`). The confirmation for a scheduled game not
+  dated today (D108) stays, before the check. A game with no scheduled lineup rows (no template)
+  starts without the check.
+- **Reset for an early start.** While paused in the first period with no score recorded on either
+  side, the bar offers Reset clock. It confirms ("Minutes played so far are cleared. The lineup
+  stays as it is; Start clock then runs from 0:00."), then `clock_reset` sets the clock to 0:00
+  paused, clears the stretch limit and auto-pause, deletes the period's closed stints and its clock
+  ops (so nothing from before the reset can be undone — chosen over refusing a reset after a
+  substitution), and reopens every on-field stint at 0:00 without a continuation. The lineup row,
+  the slots and the bench queue stay. Refusals: another period (P0019), a running clock (P0020), a
+  score on the board (P0021). The clock-cap test's "no limit before the clock runs" became "the
+  start writes the limit".
+- **Dropped from D108:** the amber "never run" chip and the one-time "Start the clock?" prompt. Both
+  were built and are removed again, with their tests.
+- pgTAP 24 (45 assertions) walks start, reset while running, a sub then a reset, undo refused, a
+  second start, the score and the second-period refusals. The Playwright clock flow starts a game
+  and sees it running, resets it, and starts the clock again; the basketball flow hits the lineup
+  check on an empty template, fixes it, and kicks off.

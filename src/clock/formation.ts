@@ -1,10 +1,8 @@
 /**
  * Pure rules for the live game (D108): a mid-game formation change keeps the same players and
- * puts each in the nearest position of the new shape; the clock "never run" test behind the
- * amber chip and the one-time "Start the clock?" prompt.
+ * puts each in the nearest position of the new shape.
  */
 import { type Formation } from '@/sports/types';
-import { type ClockState, isRunning } from './clock';
 
 /**
  * Place the players of `slots` (by index in `from`) into `to`: a player in a GK spot keeps a GK
@@ -55,29 +53,4 @@ export function remapByDistance(
     if (j >= 0) claim(j, id);
   });
   return out;
-}
-
-/** The clock of a live game has never run: first period, nothing banked, nothing ended, paused. */
-export const neverRun = (clock: ClockState): boolean =>
-  clock.periodIndex === 0 &&
-  clock.clockSeconds === 0 &&
-  clock.periodLengths.length === 0 &&
-  !isRunning(clock);
-
-const NUDGE = 'clock-nudge:';
-
-/** The "Start the clock?" prompt is asked once per game on this device (D108). */
-export function nudgeAsked(gameId: string): boolean {
-  try {
-    return localStorage.getItem(NUDGE + gameId) === '1';
-  } catch {
-    return false;
-  }
-}
-export function markNudged(gameId: string): void {
-  try {
-    localStorage.setItem(NUDGE + gameId, '1');
-  } catch {
-    /* private mode: ask again next time */
-  }
 }

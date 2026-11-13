@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
+import { useStartCheck } from '@/clock/useStartCheck';
 import { AttendanceSection } from '@/rsvp/AttendanceSection';
 import { ParentRsvpSection } from '@/rsvp/ParentRsvpSection';
 import { useOfferBoardPost } from '@/board/offer';
@@ -102,6 +103,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
 
   const update = useUpdateGame(teamId, game.id);
   const start = useStartGame(teamId);
+  const confirmStart = useStartCheck(teamId);
   const finish = useFinishGame(teamId);
   const remove = useDeleteGame(teamId);
   const addEvent = useAddScoreEvent(teamId, game.id);
@@ -150,8 +152,18 @@ function GameDetail({ game }: { game: GameWithScore }) {
 
   /* ---------- actions ---------- */
 
+  // the lineup check first (D109); a started game opens on the Field, where the clock is already running
   const startFlow = () =>
-    start.mutate(game.id, { onSuccess: () => toast(`Game on · vs ${game.opponent}`), onError });
+    void confirmStart(game.id).then((ok) => {
+      if (!ok) return;
+      start.mutate(game.id, {
+        onSuccess: () => {
+          toast(`Game on · vs ${game.opponent}`);
+          void navigate('/field');
+        },
+        onError,
+      });
+    });
 
   const finishFlow = async () => {
     const ok = await sheet({

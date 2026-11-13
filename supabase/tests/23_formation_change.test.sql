@@ -119,6 +119,8 @@ select is(pg_temp.shape('a6000000-0000-0000-0000-000000000001', 0), '2-3-1|LB,RB
 select is((select clock_seconds from public.clock_ops where game_id = 'a6000000-0000-0000-0000-000000000001' order by seq desc limit 1), 0, 'the lineup op is stamped with the clock second (0)');
 
 -- ---------- guards ----------
+-- start_game started the clock (D109): pause it so the guard under test is the zero clock, not the running one
+select public.clock_pause('a6000000-0000-0000-0000-000000000001');
 select throws_ok($$select public.clock_change_formation('a6000000-0000-0000-0000-000000000001', '3-2-1', pg_temp.shape321('e6000000-0000-0000-0000-000000000003'))$$, 'P0017', null, 'at 0:00 the lineup edit is the way, not a formation change');
 select public.clock_start('a6000000-0000-0000-0000-000000000001');
 select pg_temp.pass('a6000000-0000-0000-0000-000000000001', 600);

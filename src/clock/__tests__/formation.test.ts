@@ -1,8 +1,7 @@
-import { afterEach, describe, expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { soccerFormations } from '@/sports/formations';
 import { type Formation } from '@/sports/types';
-import { PAUSED_CLOCK } from '../clock';
-import { markNudged, neverRun, nudgeAsked, remapByDistance } from '../formation';
+import { remapByDistance } from '../formation';
 
 const byName = (forms: Formation[], name: string): Formation => {
   const f = forms.find((x) => x.name === name);
@@ -55,24 +54,5 @@ describe('mid-game formation change (D108): same players, nearest spots, keeper 
     const to = byName(soccerFormations(7, false), soccerFormations(7, false)[0]?.name ?? '');
     const out = remapByDistance(from, to, ['a', 'b', 'c', 'd', 'e', 'f', 'gk']);
     expect(out).toContain('gk');
-  });
-});
-
-describe('the clock has never run (D108)', () => {
-  it('is true only for a paused first period with nothing banked and nothing ended', () => {
-    expect(neverRun(PAUSED_CLOCK)).toBe(true);
-    expect(neverRun({ ...PAUSED_CLOCK, clockSeconds: 5 })).toBe(false);
-    expect(neverRun({ ...PAUSED_CLOCK, runningSince: '2026-11-13T10:00:00Z' })).toBe(false);
-    // the second period starts at zero too, but the first one has a length
-    expect(neverRun({ ...PAUSED_CLOCK, periodIndex: 1, periodLengths: [1200] })).toBe(false);
-  });
-
-  afterEach(() => localStorage.clear());
-
-  it('the prompt is remembered per game on the device', () => {
-    expect(nudgeAsked('g1')).toBe(false);
-    markNudged('g1');
-    expect(nudgeAsked('g1')).toBe(true);
-    expect(nudgeAsked('g2')).toBe(false);
   });
 });

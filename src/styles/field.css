@@ -629,17 +629,6 @@
 }
 
 /* ---------- live game round (D108) ---------- */
-/* the clock before it has ever run: amber, and a button for staff */
-.gclock.warn {
-  background: rgba(255, 149, 0, 0.18);
-  color: var(--orange);
-  border: 0;
-  cursor: pointer;
-  font-family: inherit;
-}
-.gclock.warn small {
-  color: var(--orange);
-}
 /* the header never overlaps at phone width: the title side may clip, the chips keep their size */
 .qleft {
   flex: 1 1 auto;
