@@ -4,6 +4,7 @@ import { Footer, Group, Section } from '@/components/List';
 import { Switch } from '@/components/Switch';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
+import { usePlannedGame, useSetRsvp } from '@/rsvp/api';
 import { playerName, toEnginePlayers, useCurrentPlan, useFormations, useSavePlan } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
 import { textColor } from '@/sports/colors';
@@ -42,9 +43,12 @@ export function RotationView({
   const save = useSavePlan(teamId, plan.gameId);
   const setAvailable = useSetAvailable(teamId);
   const everyoneBack = useEveryoneBack(teamId);
+  const planned = usePlannedGame(teamId);
+  const setRsvp = useSetRsvp(teamId);
+  const parentOut = planned.parentOut;
   const [picking, setPicking] = useState<{ player: Player; periodIndex: number } | null>(null);
 
-  const enginePlayers = useMemo(() => toEnginePlayers(players), [players]);
+  const enginePlayers = useMemo(() => toEnginePlayers(players, parentOut), [players, parentOut]);
   const periods: Period[] = useMemo(
     () => fixPeriods(toEnginePeriods(plan.periods), forms, S, enginePlayers),
     [plan.periods, forms, S, enginePlayers],
@@ -54,8 +58,9 @@ export function RotationView({
   const key = useMemo(() => usedPositions(S, periods, formationFor), [S, periods, formationFor]);
   const noun = S.periodName(N).toLowerCase();
   const colors = (team.colors ?? {}) as Record<string, string>;
-  const active = players.filter((p) => p.is_available);
-  const outs = players.filter((p) => !p.is_available);
+  // a parent's "can't make it" for the planned game counts as out here too (D107)
+  const active = players.filter((p) => p.is_available && !parentOut.has(p.id));
+  const outs = players.filter((p) => !p.is_available || parentOut.has(p.id));
   const bal = balance(periods, enginePlayers);
 
   const commit = (next: Period[], msg?: string) => {
@@ -64,6 +69,15 @@ export function RotationView({
   };
 
   const toggle = (p: Player, on: boolean) => {
+    if (on && parentOut.has(p.id) && planned.game) {
+      // the coach overrides the parent's reply for that game (which also lifts the coach flag)
+      setRsvp.mutate(
+        { event: { kind: 'game', id: planned.game.id }, playerId: p.id, status: 'going' },
+        { onError: (e) => toast(errorMessage(e)) },
+      );
+      toast(`${p.first_name} is back in · reply set to Going`);
+      return;
+    }
     setAvailable.mutate({ id: p.id, available: on }, { onError: (e) => toast(errorMessage(e)) });
     toast(on ? `${p.first_name} is back in` : `${p.first_name} out · positions cleared`);
   };
@@ -119,6 +133,11 @@ export function RotationView({
         {p.first_name}
         {p.jersey_number && <small>#{p.jersey_number}</small>}
       </div>
+      {isOut && parentOut.has(p.id) && (
+        <span className="pnote">
+          {planned.byParent.has(p.id) ? 'Parent: can’t make it' : 'Out for this game'}
+        </span>
+      )}
       {!isOut && (
         <>
           <div className="qchips">

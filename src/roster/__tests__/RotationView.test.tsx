@@ -30,6 +30,16 @@ vi.mock('../api', () => ({
   useSetAvailable: () => ({ mutate: setAvailableMutate }),
   useEveryoneBack: () => ({ mutate: vi.fn() }),
 }));
+vi.mock('@/rsvp/api', () => ({
+  usePlannedGame: () => ({
+    game: null,
+    replies: new Map(),
+    parentOut: new Set<string>(),
+    byParent: new Set<string>(),
+    isPending: false,
+  }),
+  useSetRsvp: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 
 const team: Team = {
   id: 't1',

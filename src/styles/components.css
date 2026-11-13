@@ -2587,3 +2587,119 @@ a.prow.dir .pname {
   justify-self: start;
   font-size: 14px;
 }
+
+/* ---------- RSVP (D107) ---------- */
+/* the two reply buttons: both always visible, the current choice filled */
+.rsvpbtns {
+  display: flex;
+  gap: 8px;
+  margin-top: 6px;
+}
+.rsvpbtns .btn {
+  flex: 1 1 0;
+  height: 40px;
+  font-size: 15px;
+  white-space: nowrap;
+}
+.rsvpbtns .btn.out.on {
+  background: var(--red);
+  color: #fff;
+}
+.rsvpbtns .btn:disabled {
+  opacity: 0.55;
+}
+.homecard .rsvpbtns {
+  margin: 0 12px 10px;
+}
+.homecard .rsvpnote {
+  margin: 0 12px 10px;
+  font-size: 13px;
+  color: var(--text2);
+}
+/* the schedule-row marks: a small check or cross next to the date */
+.rsvpico {
+  width: 16px;
+  height: 16px;
+  vertical-align: -3px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex: none;
+}
+.rsvpico.going {
+  color: var(--green, #34c759);
+}
+.rsvpico.out {
+  color: var(--red);
+}
+.rsvpmarks {
+  display: inline-flex;
+  gap: 6px;
+  margin-left: 6px;
+  vertical-align: baseline;
+}
+.rsvpmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.rsvpmark small {
+  display: inline;
+  font-size: 12px;
+  color: var(--text2);
+}
+.rsvpcount {
+  margin-left: 6px;
+  font-weight: 600;
+  color: var(--text2);
+  white-space: nowrap;
+}
+.rsvpcount.hasout {
+  color: var(--red);
+}
+/* the coach's attendance lists */
+.rsvpseg {
+  flex: none;
+  min-width: 128px;
+}
+.rsvpseg button {
+  padding: 5px 4px;
+  font-size: 12px;
+}
+.atthead .pname {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+}
+.attrow .lbl small {
+  display: inline;
+}
+.attrow .lbl > small:last-child {
+  display: block;
+}
+.attempty .lbl {
+  color: var(--text3);
+}
+/* the parent's own control on an event page */
+.rsvprow .lbl .rsvpstate {
+  display: inline;
+  color: var(--text2);
+}
+.rsvprow .rsvpbtns {
+  margin-top: 8px;
+}
+/* rotation rows: who set the out (a sibling of the name, so the strike-through does not reach it) */
+.prow .pnote {
+  flex: 0 1 auto;
+  margin-left: auto;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--red);
+  white-space: nowrap;
+}
+/* the Field's note when a player marked out by a reply still holds a spot */
+.sub.outnote {
+  color: var(--red);
+}

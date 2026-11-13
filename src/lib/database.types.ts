@@ -91,6 +91,50 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"event_rsvps": {
+                  Row: {
+                    "game_id": string | null,"id": string,"player_id": string,"practice_id": string | null,"set_by": string | null,"set_by_role": Database["public"]['Enums']["rsvp_setter"],"status": Database["public"]['Enums']["rsvp_status"],"team_id": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "game_id"?: string | null,"id"?: string,"player_id": string,"practice_id"?: string | null,"set_by"?: string | null,"set_by_role": Database["public"]['Enums']["rsvp_setter"],"status": Database["public"]['Enums']["rsvp_status"],"team_id": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "game_id"?: string | null,"id"?: string,"player_id"?: string,"practice_id"?: string | null,"set_by"?: string | null,"set_by_role"?: Database["public"]['Enums']["rsvp_setter"],"status"?: Database["public"]['Enums']["rsvp_status"],"team_id"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "event_rsvps_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "game_scores"
+      referencedColumns: ["game_id"]
+    },{
+      foreignKeyName: "event_rsvps_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "games"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "event_rsvps_player_id_fkey"
+      columns: ["player_id"]
+isOneToOne: false
+      referencedRelation: "players"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "event_rsvps_practice_id_fkey"
+      columns: ["practice_id"]
+isOneToOne: false
+      referencedRelation: "practices"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "event_rsvps_team_id_fkey"
+      columns: ["team_id"]
+isOneToOne: false
+      referencedRelation: "teams"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"game_coach_notes": {
                   Row: {
                     "game_id": string,"notes": string,"updated_at": string,"updated_by": string | null
@@ -680,6 +724,9 @@ isOneToOne: false
 "board_unread":
 { Args: { "p_team_id": string }; Returns: boolean
                            },
+"can_rsvp_for":
+{ Args: { "p_player_id": string }; Returns: boolean
+                           },
 "can_see_contact":
 { Args: { "p_player_id": string,"p_shared": boolean }; Returns: boolean
                            },
@@ -944,6 +991,9 @@ isOneToOne: false
 "rotate_join_code":
 { Args: { "p_team_id": string }; Returns: string
                            },
+"rsvp_out_for_game":
+{ Args: { "p_game_id": string,"p_player_id": string }; Returns: boolean
+                           },
 "save_lineups":
 { Args: { "p_game_id"?: string,"p_periods"?: Json,"p_team_id": string }; Returns: undefined
                            },
@@ -978,6 +1028,9 @@ isOneToOne: false
                            },
 "set_player_available":
 { Args: { "p_available": boolean,"p_player_id": string }; Returns: undefined
+                           },
+"set_rsvp":
+{ Args: { "p_game_id"?: string,"p_player_id": string,"p_practice_id"?: string,"p_status": Database["public"]['Enums']["rsvp_status"] }; Returns: undefined
                            },
 "set_skill_test_order":
 { Args: { "p_ids": (string)[],"p_team_id": string }; Returns: undefined
@@ -1036,7 +1089,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "body_side": "left"|"right","field_view": "persp"|"flat","game_status": "upcoming"|"live"|"done","guardian_status": "pending"|"approved","home_away": "home"|"away"|"neutral","member_role": "coach"|"assistant"|"parent","member_status": "pending"|"active"|"removed","pa_result": "none"|"single"|"double"|"triple"|"home_run"|"walk"|"hit_by_pitch"|"strikeout"|"out"|"sacrifice"|"fielders_choice"|"reached_on_error","parent_stats": "own"|"team","practice_status": "scheduled"|"cancelled","score_side": "us"|"them","shirt_size": "YXS"|"YS"|"YM"|"YL"|"YXL"|"AS"|"AM"|"AL"|"AXL","skill_metric": "count"|"time_seconds"|"distance"|"made_of_attempted","sport": "soccer"|"baseball"|"basketball"|"lacrosse"|"football","theme": "light"|"dark"|"auto","time_mode": "periods"|"clock"
+            "body_side": "left"|"right","field_view": "persp"|"flat","game_status": "upcoming"|"live"|"done","guardian_status": "pending"|"approved","home_away": "home"|"away"|"neutral","member_role": "coach"|"assistant"|"parent","member_status": "pending"|"active"|"removed","pa_result": "none"|"single"|"double"|"triple"|"home_run"|"walk"|"hit_by_pitch"|"strikeout"|"out"|"sacrifice"|"fielders_choice"|"reached_on_error","parent_stats": "own"|"team","practice_status": "scheduled"|"cancelled","rsvp_setter": "parent"|"coach","rsvp_status": "going"|"out"|"none","score_side": "us"|"them","shirt_size": "YXS"|"YS"|"YM"|"YL"|"YXL"|"AS"|"AM"|"AL"|"AXL","skill_metric": "count"|"time_seconds"|"distance"|"made_of_attempted","sport": "soccer"|"baseball"|"basketball"|"lacrosse"|"football","theme": "light"|"dark"|"auto","time_mode": "periods"|"clock"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1152,7 +1205,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "body_side": ["left", "right"],"field_view": ["persp", "flat"],"game_status": ["upcoming", "live", "done"],"guardian_status": ["pending", "approved"],"home_away": ["home", "away", "neutral"],"member_role": ["coach", "assistant", "parent"],"member_status": ["pending", "active", "removed"],"pa_result": ["none", "single", "double", "triple", "home_run", "walk", "hit_by_pitch", "strikeout", "out", "sacrifice", "fielders_choice", "reached_on_error"],"parent_stats": ["own", "team"],"practice_status": ["scheduled", "cancelled"],"score_side": ["us", "them"],"shirt_size": ["YXS", "YS", "YM", "YL", "YXL", "AS", "AM", "AL", "AXL"],"skill_metric": ["count", "time_seconds", "distance", "made_of_attempted"],"sport": ["soccer", "baseball", "basketball", "lacrosse", "football"],"theme": ["light", "dark", "auto"],"time_mode": ["periods", "clock"]
+            "body_side": ["left", "right"],"field_view": ["persp", "flat"],"game_status": ["upcoming", "live", "done"],"guardian_status": ["pending", "approved"],"home_away": ["home", "away", "neutral"],"member_role": ["coach", "assistant", "parent"],"member_status": ["pending", "active", "removed"],"pa_result": ["none", "single", "double", "triple", "home_run", "walk", "hit_by_pitch", "strikeout", "out", "sacrifice", "fielders_choice", "reached_on_error"],"parent_stats": ["own", "team"],"practice_status": ["scheduled", "cancelled"],"rsvp_setter": ["parent", "coach"],"rsvp_status": ["going", "out", "none"],"score_side": ["us", "them"],"shirt_size": ["YXS", "YS", "YM", "YL", "YXL", "AS", "AM", "AL", "AXL"],"skill_metric": ["count", "time_seconds", "distance", "made_of_attempted"],"sport": ["soccer", "baseball", "basketball", "lacrosse", "football"],"theme": ["light", "dark", "auto"],"time_mode": ["periods", "clock"]
           }
         }
 } as const

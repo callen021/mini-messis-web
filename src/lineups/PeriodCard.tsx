@@ -7,6 +7,7 @@ import { Button } from '@/components/Button';
 import { type FieldView } from '@/sports/field';
 import { type Formation, type Period, type SportDefinition, type SportKey } from '@/sports/types';
 import { type Player } from '@/teams/api';
+import { outCaption } from '@/rsvp/rsvp';
 import { playerName } from './api';
 import { FieldStage } from './FieldStage';
 import { Jersey } from './Jersey';
@@ -38,7 +39,13 @@ export interface PeriodCardProps {
   onRedo: () => void;
   /** Optional trailing control in the header (score button, Phase 5). */
   headerExtra?: ReactNode;
+  /** Players a parent's reply marks out for the planned game (D107): red OUT tag if still placed, listed as out. */
+  parentOut?: ReadonlySet<string>;
+  /** The subset of `parentOut` a parent set, for the "(parent)" note (D107). */
+  byParent?: ReadonlySet<string>;
 }
+
+const NOBODY: ReadonlySet<string> = new Set();
 
 /**
  * One period of the plan: the field, then the bench row of small jerseys (sitting out, fewest
@@ -68,6 +75,8 @@ export function PeriodCard({
   onAutoFill,
   onRedo,
   headerExtra,
+  parentOut = NOBODY,
+  byParent = NOBODY,
 }: PeriodCardProps) {
   const [selected, setSelected] = useState<Selection>(null);
   const [flashing, flash] = useFlash();
@@ -80,7 +89,6 @@ export function PeriodCard({
       return p && !period.slots.includes(id) ? [p] : [];
     });
   }, [activePlayers, period.slots, benchOrder]);
-  const out = players.filter((p) => !p.is_available);
   const autoN = period.auto.filter((i) => period.slots[i]).length;
   const nameOf = (id: string) => byId.get(id)?.first_name ?? 'player';
   const benchColor = colors[S.groups[0]?.[0] ?? ''] ?? '#888';
@@ -176,7 +184,8 @@ export function PeriodCard({
               highlighted={!!pid && highlight.has(pid)}
               selected={canEdit ? !!selected && selected.kind === 'field' && selected.slot === i : undefined}
               flash={!!pid && flashing.has(pid)}
-              label={`${S.periodName(0)} ${periodIndex + 1}, ${roleLabel}: ${player ? playerName(player) : 'open'}`}
+              heldOut={!!pid && parentOut.has(pid)}
+              label={`${S.periodName(0)} ${periodIndex + 1}, ${roleLabel}: ${player ? playerName(player) : 'open'}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}`}
               onClick={canEdit ? () => tap({ kind: 'field', slot: i, playerId: pid }) : undefined}
               readOnly={!canEdit}
             />
@@ -193,7 +202,7 @@ export function PeriodCard({
         highlight={highlight}
         onTap={(playerId) => tap({ kind: 'bench', playerId })}
         emptyText={`Everyone is ${S.unit}`}
-        extra={out.length > 0 ? `Out: ${out.map((p) => p.first_name).join(', ')}` : undefined}
+        extra={outCaption(players, parentOut, byParent)}
       />
       {canEdit && (
         <div className={`taphint${selected ? ' on' : ''}`} aria-live="polite">

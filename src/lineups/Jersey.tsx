@@ -33,6 +33,8 @@ export interface JerseyProps {
   flash?: boolean;
   /** Clock mode: a small time line under the shirt ("4:12" on the field, "12 min" on the bench). */
   time?: string;
+  /** A parent's reply says this player can't make it, yet they still hold the spot (D107): red OUT tag. */
+  heldOut?: boolean;
 }
 
 /**
@@ -54,6 +56,7 @@ export const Jersey = memo(function Jersey({
   selected,
   flash,
   time,
+  heldOut,
 }: JerseyProps) {
   const open = !name;
   const tc = textColor(color);
@@ -71,6 +74,7 @@ export const Jersey = memo(function Jersey({
         highlighted && 'highlight',
         selected && 'selected',
         flash && 'flash',
+        heldOut && !open && 'heldout',
       )}
       style={style}
       aria-label={label}
@@ -97,6 +101,11 @@ export const Jersey = memo(function Jersey({
       {highlighted && !open && (
         <span className="starbadge" title="Your child" aria-hidden="true">
           ★
+        </span>
+      )}
+      {heldOut && !open && (
+        <span className="outbadge" title="Marked out for this game" aria-hidden="true">
+          OUT
         </span>
       )}
       {time && <span className="jtime">{time}</span>}

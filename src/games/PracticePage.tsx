@@ -1,5 +1,8 @@
 import { useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
+import { AttendanceSection } from '@/rsvp/AttendanceSection';
+import { ParentRsvpSection } from '@/rsvp/ParentRsvpSection';
+import { parentLocked } from '@/rsvp/rsvp';
 import { useOfferBoardPost } from '@/board/offer';
 import { Textarea } from '@/components/Form';
 import { DirectionsIcon } from '@/components/icons';
@@ -225,6 +228,18 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
           <Row label={p.notes ?? 'No notes from the coach.'} />
         )}
       </Group>
+      {cancelled ? null : isStaff ? (
+        <AttendanceSection event={{ kind: 'practice', id: p.id }} />
+      ) : (
+        <ParentRsvpSection
+          event={{ kind: 'practice', id: p.id }}
+          locked={parentLocked(
+            { kind: 'practice', status: p.status, date: p.practice_date, time: p.start_time },
+            new Date(),
+          )}
+          lockedText="Replies closed: the practice has started."
+        />
+      )}
       {isStaff && (
         <>
           <Group style={{ marginTop: 18 }}>

@@ -46,7 +46,13 @@ export interface ClockCardProps {
   /** Clock display and score button, right of the title. */
   headerExtra?: ReactNode;
   benchEmptyText: string;
+  /** Players a parent's reply marks out for the planned game (D107): red OUT tag if still placed, listed as out. */
+  parentOut?: ReadonlySet<string>;
+  /** Trailing bench note: the players marked out, coach flag or parent reply (D107). */
+  outText?: string;
 }
+
+const NOBODY: ReadonlySet<string> = new Set();
 
 /** One field for the whole game (clock mode, D70): the on-field jerseys, then the bench row. */
 export function ClockCard({
@@ -75,6 +81,8 @@ export function ClockCard({
   onTapBench,
   headerExtra,
   benchEmptyText,
+  parentOut = NOBODY,
+  outText,
 }: ClockCardProps) {
   const byId = new Map(players.map((p) => [p.id, p]));
   // the only thing on the page that re-renders every second (D95)
@@ -143,7 +151,8 @@ export function ClockCard({
               selected={canEdit ? isSel : undefined}
               flash={!!pid && flashing.has(pid)}
               time={pid ? slotTimes?.[i] : undefined}
-              label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}`}
+              heldOut={!!pid && parentOut.has(pid)}
+              label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}`}
               onClick={canEdit ? () => onTapSlot(i) : undefined}
               readOnly={!canEdit}
             />
@@ -160,6 +169,7 @@ export function ClockCard({
         highlight={highlight}
         onTap={onTapBench}
         emptyText={benchEmptyText}
+        extra={outText}
       />
       {canEdit && (
         <div className={`taphint${hint ? ' on' : ''}`} aria-live="polite">

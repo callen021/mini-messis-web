@@ -42,6 +42,7 @@ vi.mock('../practices', async () => {
   };
 });
 vi.mock('@/board/AnnouncementBanner', () => ({ AnnouncementBanner: () => null }));
+vi.mock('@/rsvp/api', () => ({ useRsvps: () => ({ data: [], isPending: false }) }));
 vi.mock('@/clock/api', () => ({ useGameClock: () => ({ data: undefined, isPending: false }) }));
 vi.mock('../places', () => ({
   useTeamPlaces: () => ({ data: [], isPending: false }),
@@ -52,6 +53,7 @@ vi.mock('@/lineups/api', async () => {
   return {
     ...actual,
     useCurrentPlan: () => ({ gameId: null, liveGame: null, periods: [], isPending: false, error: null }),
+    useMyChildren: () => ({ data: new Set<string>(), isPending: false }),
   };
 });
 vi.mock('@/teams/api', async () => {

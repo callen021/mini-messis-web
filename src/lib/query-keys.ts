@@ -13,6 +13,8 @@ export const qk = {
   liveGame: (teamId: string) => ['team', teamId, 'live-game'] as const,
   practices: (teamId: string) => ['team', teamId, 'practices'] as const,
   practice: (practiceId: string) => ['practice', practiceId] as const,
+  /** Every RSVP on the team, games and practices together (D107). */
+  rsvps: (teamId: string) => ['team', teamId, 'rsvps'] as const,
   /** Per-player stats; `scope` is 'season' or a game id. */
   stats: (teamId: string, scope: string) => ['team', teamId, 'stats', scope] as const,
   guardians: (userId: string) => ['guardians', userId] as const,

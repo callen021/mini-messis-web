@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { useNavigate, useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
+import { AttendanceSection } from '@/rsvp/AttendanceSection';
+import { ParentRsvpSection } from '@/rsvp/ParentRsvpSection';
 import { useOfferBoardPost } from '@/board/offer';
 import { PeriodTag, Scoreline } from '@/components/Badge';
 import { Button, Toolbar } from '@/components/Button';
@@ -467,6 +469,19 @@ function GameDetail({ game }: { game: GameWithScore }) {
           <Row label={game.parent_notes ?? 'No notes from the coach.'} />
         )}
       </Group>
+      {isStaff ? (
+        <AttendanceSection event={{ kind: 'game', id: game.id }} />
+      ) : (
+        <ParentRsvpSection
+          event={{ kind: 'game', id: game.id }}
+          locked={!isUpcoming}
+          lockedText={
+            isDone
+              ? 'This game is over.'
+              : 'Replies closed: the game has started. Ask the coach to change it.'
+          }
+        />
+      )}
 
       {!isUpcoming && S.scoring.panel !== 'goal' && log.length > 0 && periodCount > 1 && (
         <>

@@ -28,6 +28,10 @@ import {
 import { useGameClock } from '@/clock/api';
 import { directionsUrl } from './directions';
 import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
+import { useMyChildren } from '@/lineups/api';
+import { useRsvps } from '@/rsvp/api';
+import { type RsvpMark, RsvpCountMark, RsvpMarks } from '@/rsvp/RsvpMarks';
+import { type EventRef, repliesFor, rsvpCount, statusOf } from '@/rsvp/rsvp';
 import { GameBadge } from './GameBadge';
 import { downloadScheduleIcs } from './ics';
 import { makeNameLookup, periodSuffix } from './names';
@@ -71,7 +75,16 @@ function DirectionsLink({ href, place }: { href: string | null; place: string | 
 }
 
 /** One practice line on the schedule: quieter than a game, struck through when cancelled. */
-export function PracticeRow({ practice: p, today }: { practice: Practice; today: string }) {
+export function PracticeRow({
+  practice: p,
+  today,
+  mark,
+}: {
+  practice: Practice;
+  today: string;
+  /** RSVP marks or the coach's count, right of the date (D107). */
+  mark?: React.ReactNode;
+}) {
   const cancelled = p.status === 'cancelled';
   const directions = cancelled ? null : directionsUrl(p.address, p.location);
   return (
@@ -83,6 +96,7 @@ export function PracticeRow({ practice: p, today }: { practice: Practice; today:
         detail={
           <>
             <When date={p.practice_date} time={p.start_time} end={p.end_time} />
+            {!cancelled && mark}
             {(p.location || (p.notes && !cancelled)) && (
               <>
                 <br />
@@ -100,7 +114,16 @@ export function PracticeRow({ practice: p, today }: { practice: Practice; today:
   );
 }
 
-function GameRow({ game: g, today }: { game: GameWithScore; today: string }) {
+function GameRow({
+  game: g,
+  today,
+  mark,
+}: {
+  game: GameWithScore;
+  today: string;
+  /** RSVP marks or the coach's count, right of the date (D107). */
+  mark?: React.ReactNode;
+}) {
   const directions = directionsUrl(g.address, g.location);
   const place = [g.location, g.home_away ? HOME_AWAY_LABEL[g.home_away] : ''].filter(Boolean).join(' · ');
   return (
@@ -112,6 +135,7 @@ function GameRow({ game: g, today }: { game: GameWithScore; today: string }) {
         detail={
           <>
             <When date={g.game_date} time={g.start_time} />
+            {mark}
             {(place || g.parent_notes) && (
               <>
                 <br />
@@ -147,6 +171,9 @@ export function GamesPage() {
   const practices = usePractices(teamId);
   const create = useCreateGame(teamId);
   const createPractices = useCreatePractices(teamId);
+  const players = usePlayers(teamId);
+  const rsvps = useRsvps(teamId);
+  const children = useMyChildren();
   const [creating, setCreating] = useState(false);
   const [addingPractice, setAddingPractice] = useState(false);
 
@@ -159,6 +186,17 @@ export function GamesPage() {
   const gameCount = upcoming.filter((i) => i.kind === 'game').length;
   const practiceCount = upcoming.length - gameCount;
   const events = scheduleEvents(upcoming, team.name);
+  // RSVP (D107): the coach sees "9 in · 2 out" on every row, a parent their own children's marks
+  const markFor = (ev: EventRef): React.ReactNode => {
+    const replies = repliesFor(rsvps.data ?? [], ev);
+    const roster = players.data ?? [];
+    if (isStaff) return <RsvpCountMark count={rsvpCount(roster, replies)} />;
+    const ids = children.data ?? new Set<string>();
+    const marks: RsvpMark[] = roster
+      .filter((p) => ids.has(p.id))
+      .map((p) => ({ playerId: p.id, name: p.first_name, status: statusOf(replies, p.id) }));
+    return <RsvpMarks marks={marks} />;
+  };
 
   const addFlow = async () => {
     const choice = await sheet<AddChoice>({
@@ -262,9 +300,19 @@ export function GamesPage() {
       <Group>
         {shown.map((item) =>
           item.kind === 'game' ? (
-            <GameRow key={item.game.id} game={item.game} today={today} />
+            <GameRow
+              key={item.game.id}
+              game={item.game}
+              today={today}
+              mark={markFor({ kind: 'game', id: item.game.id })}
+            />
           ) : (
-            <PracticeRow key={item.practice.id} practice={item.practice} today={today} />
+            <PracticeRow
+              key={item.practice.id}
+              practice={item.practice}
+              today={today}
+              mark={markFor({ kind: 'practice', id: item.practice.id })}
+            />
           ),
         )}
         {shown.length === 0 && <Row label={empty} />}

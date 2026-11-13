@@ -584,6 +584,48 @@ test.describe('coach and parent flows', () => {
     await parent.goto('/games'); // the live-game checks that follow expect the schedule
   });
 
+  test("RSVP: the parent says Ava can't make it from Home; the coach sees the count, the tagged jersey and the attendance list; the switch overrides it (D107)", async () => {
+    await parent.goto('/home');
+    const out = parent.getByRole('button', { name: 'Can’t make it' });
+    await expect(out).toBeVisible();
+    await out.click();
+    await expect(out).toHaveAttribute('aria-pressed', 'true');
+    await expect(parent.getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'false');
+    // the schedule row shows a cross by the date, named for screen readers
+    await parent.goto('/games');
+    await expect(parent.locator('.rsvpmark')).toHaveAttribute('aria-label', 'Ava: can’t make it');
+    // the coach: the row count, the attendance list, the Field
+    await coach.goto('/games');
+    await expect(coach.locator('.rsvpcount')).toHaveText('7 in · 1 out');
+    await coach.getByRole('link', { name: /vs Tigers/ }).click();
+    await expect(coach.getByRole('heading', { level: 1, name: 'vs Tigers' })).toBeVisible();
+    const outGroup = coach.locator('.attgroup').nth(1);
+    await expect(outGroup).toContainText('Ava');
+    await expect(outGroup).toContainText('by parent');
+    await coach.goto('/field');
+    // Ava was auto-filled into the plan: she keeps her spot with the red OUT tag and the note names her
+    await expect(coach.locator('.shirt.heldout').first()).toBeVisible();
+    await expect(
+      coach.getByRole('status').filter({ hasText: 'A parent says Ava can’t make it' }),
+    ).toBeVisible();
+    await expect(coach.locator('.benchlabel').first()).toContainText('Out: Ava (parent)');
+    await expect(coach.locator('.benchq .shirt', { hasText: 'Ava' })).toHaveCount(0);
+    // the rotation view lists her out with the parent note; the switch overrides the reply
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Rotation' }).click();
+    await expect(coach.getByText('Parent: can’t make it')).toBeVisible();
+    await coach.getByRole('switch', { name: /Ava is out/ }).click();
+    await expect(coach.getByText('Parent: can’t make it')).toHaveCount(0);
+    await coach.goto('/games');
+    await expect(coach.locator('.rsvpcount')).toHaveText('8 in · 0 out');
+    await coach.getByRole('link', { name: /vs Tigers/ }).click();
+    await expect(coach.locator('.attgroup').nth(0)).toContainText('by coach');
+    // the parent sees the coach's answer
+    await parent.goto('/home');
+    await expect(parent.getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'true');
+    await parent.goto('/games');
+  });
+
   test('coach starts the game; the parent sees it go live', async () => {
     await coach.goto('/games');
     await coach.getByRole('link', { name: /vs Tigers/ }).click();
@@ -593,6 +635,26 @@ test.describe('coach and parent flows', () => {
     await expect(coach.getByLabel('Us 0, them 0')).toBeVisible();
     await expect(parent.getByText('In progress · vs Tigers')).toBeVisible({ timeout: 15_000 });
     await expect(parent.getByLabel('Us 0, them 0')).toBeVisible();
+  });
+
+  test("once the game has started the parent's reply is locked; the coach can still change it (D107)", async () => {
+    await parent.goto('/home');
+    await parent.getByText('In progress · vs Tigers').click();
+    await expect(parent.getByRole('heading', { level: 1, name: 'vs Tigers' })).toBeVisible();
+    await expect(parent.getByRole('button', { name: 'Going' })).toBeDisabled();
+    await expect(parent.getByRole('button', { name: 'Can’t make it' })).toBeDisabled();
+    await expect(parent.getByText('Replies closed: the game has started.')).toBeVisible();
+    await coach
+      .getByRole('radiogroup', { name: 'Ava: attendance' })
+      .getByRole('radio', { name: 'Out' })
+      .click();
+    await expect(coach.locator('.attgroup').nth(1)).toContainText('Ava');
+    await coach
+      .getByRole('radiogroup', { name: 'Ava: attendance' })
+      .getByRole('radio', { name: 'In' })
+      .click();
+    await expect(coach.locator('.attgroup').nth(0)).toContainText('Ava');
+    await parent.goto('/games');
   });
 
   test('coach adds a goal; the parent sees the score update live', async () => {

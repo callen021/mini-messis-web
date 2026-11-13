@@ -73,6 +73,16 @@ vi.mock('../useNow', () => ({
   useServerNow: (active: boolean, stepMs?: number) => useNowImpl(active, stepMs),
 }));
 vi.mock('../useWakeLock', () => ({ useWakeLock: () => undefined }));
+vi.mock('@/rsvp/api', () => ({
+  usePlannedGame: () => ({
+    game: null,
+    replies: new Map(),
+    parentOut: new Set<string>(),
+    byParent: new Set<string>(),
+    isPending: false,
+  }),
+  useSetRsvp: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 
 const mk = (id: string, first_name: string, n: string, is_available = true): Player => ({
   id,

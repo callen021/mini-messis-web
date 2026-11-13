@@ -8,9 +8,9 @@ import { type EnginePlayer, type Formation, type Period, type SportDefinition } 
    ===================================================================== */
 
 export const isIn = (p: EnginePlayer | undefined): p is EnginePlayer =>
-  !!p && p.name.trim() !== '' && p.active;
+  !!p && p.name.trim() !== '' && p.active && !p.held;
 
-/** Players who can be placed: named and not marked out. */
+/** Players who can be placed: named, not marked out, not held out by a reply (D107). */
 export const activePlayers = (players: readonly EnginePlayer[]): EnginePlayer[] => players.filter(isIn);
 
 export function emptyPeriod(f: Formation): Period {

@@ -16,6 +16,8 @@ import { NewGameSheet } from '@/games/NewGameSheet';
 import { ScorePanel } from '@/games/ScorePanel';
 import { describeEvent, scoreNoun as scoreNounFor } from '@/games/scoring';
 import { errorMessage } from '@/lib/supabase';
+import { usePlannedGame } from '@/rsvp/api';
+import { heldOutNote } from '@/rsvp/rsvp';
 import { useUIStore } from '@/lib/ui-store';
 import { SPORTS, shortPeriod, periodCountText } from '@/sports/definitions';
 import { assignSlot, autoFill, autoFillAll, clearAll, fixPeriods, openCount, remap } from '@/sports/lineup';
@@ -56,6 +58,7 @@ function PeriodFieldPage() {
   const save = useSavePlan(teamId, plan.gameId);
   const rename = useRenameTeam(teamId);
   const children = useMyChildren();
+  const planned = usePlannedGame(teamId);
   const navigate = useNavigate();
   const events = useScoreEvents(plan.gameId ?? undefined);
   const addEvent = useAddScoreEvent(teamId, plan.gameId ?? '');
@@ -69,8 +72,14 @@ function PeriodFieldPage() {
   const [fieldTab, setFieldTab] = useState<'field' | 'lineup'>('field');
 
   const allPlayers = useMemo(() => players.data ?? [], [players.data]);
-  const enginePlayers = useMemo(() => toEnginePlayers(allPlayers), [allPlayers]);
-  const activePlayers = useMemo(() => allPlayers.filter((p) => p.is_available), [allPlayers]);
+  // a parent's "can't make it" for the planned game (D107): out of the bench and Auto-fill, but a
+  // player already placed keeps the spot and shows the red OUT tag until the coach replaces them
+  const parentOut = planned.parentOut;
+  const enginePlayers = useMemo(() => toEnginePlayers(allPlayers, parentOut), [allPlayers, parentOut]);
+  const activePlayers = useMemo(
+    () => allPlayers.filter((p) => p.is_available && !parentOut.has(p.id)),
+    [allPlayers, parentOut],
+  );
   // Render a consistent plan even if settings changed underneath it; saving happens on the next edit.
   const periods: Period[] = useMemo(
     () => fixPeriods(toEnginePeriods(plan.periods), forms, S, enginePlayers),
@@ -229,6 +238,12 @@ function PeriodFieldPage() {
 
   if (plan.isPending || players.isPending) return <LoadingScreen />;
 
+  const heldNote = heldOutNote(
+    allPlayers
+      .filter((p) => parentOut.has(p.id) && periods.some((q) => q.slots.includes(p.id)))
+      .map((p) => ({ name: p.first_name, byParent: planned.byParent.has(p.id) })),
+    planned.game?.opponent ?? null,
+  );
   const sub = plan.liveGame
     ? `Live vs ${plan.liveGame.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ` · tap a score to add ${scoreNoun === 'score' ? 'points' : `a ${scoreNoun}`}` : ''}`
     : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${periodCountText(S, N)}${isStaff ? ' · tap a jersey to assign · tap a score to start a game' : ''}`;
@@ -238,6 +253,11 @@ function PeriodFieldPage() {
       <JerseyDefs />
       <EditableTitle value={team.name} onSave={onRename} editable={isCoach} />
       <p className="sub">{sub}</p>
+      {isStaff && heldNote && (
+        <p className="sub capnote outnote" role="status">
+          {heldNote} The red OUT tag marks the jersey: tap it, then a bench player, to replace them.
+        </p>
+      )}
       {/* no inline "Saving…" pill: it wrapped the line and moved the cards on every edit (D78) */}
       <span className="sr-only" aria-live="polite">
         {save.isPending ? 'Saving' : ''}
@@ -284,6 +304,8 @@ function PeriodFieldPage() {
                 onAutoFill={() => onAutoFill(i, false)}
                 onRedo={() => onAutoFill(i, true)}
                 headerExtra={scoreButton(i)}
+                parentOut={parentOut}
+                byParent={planned.byParent}
               />
             ))}
           </div>

@@ -34,6 +34,16 @@ vi.mock('../api', () => ({
   useStints: () => ({ data: stints, isPending: false }),
 }));
 vi.mock('../useNow', () => ({ useServerNow: () => Date.parse('2026-11-12T15:00:00Z') }));
+vi.mock('@/rsvp/api', () => ({
+  usePlannedGame: () => ({
+    game: null,
+    replies: new Map(),
+    parentOut: new Set<string>(),
+    byParent: new Set<string>(),
+    isPending: false,
+  }),
+  useSetRsvp: () => ({ mutate: vi.fn(), isPending: false }),
+}));
 
 const mk = (id: string, first_name: string, n: string, is_available = true): Player => ({
   id,

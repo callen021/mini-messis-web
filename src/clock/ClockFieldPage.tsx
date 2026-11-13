@@ -12,6 +12,8 @@ import { NewGameSheet } from '@/games/NewGameSheet';
 import { ScorePanel } from '@/games/ScorePanel';
 import { describeEvent, scoreNoun as scoreNounFor } from '@/games/scoring';
 import { errorMessage } from '@/lib/supabase';
+import { usePlannedGame } from '@/rsvp/api';
+import { heldOutNote, outCaption } from '@/rsvp/rsvp';
 import { useUIStore } from '@/lib/ui-store';
 import { JerseyDefs } from '@/lineups/Jersey';
 import { toEnginePlayers, useCurrentPlan, useFormations, useMyChildren } from '@/lineups/api';
@@ -65,6 +67,7 @@ export function ClockFieldPage() {
   const plan = useCurrentPlan(teamId);
   const rename = useRenameTeam(teamId);
   const children = useMyChildren();
+  const planned = usePlannedGame(teamId);
   const live = plan.liveGame;
   const gameId = plan.gameId;
   const saveStarters = useSaveStarters(teamId);
@@ -89,8 +92,14 @@ export function ClockFieldPage() {
   useWakeLock(!!live && isStaff);
 
   const allPlayers = useMemo(() => players.data ?? [], [players.data]);
-  const enginePlayers = useMemo(() => toEnginePlayers(allPlayers), [allPlayers]);
-  const activePlayers = useMemo(() => allPlayers.filter((p) => p.is_available), [allPlayers]);
+  // a parent's "can't make it" for the planned game (D107): out of the bench and Auto-fill, but a
+  // player already placed keeps the spot and shows the red OUT tag until the coach replaces them
+  const parentOut = planned.parentOut;
+  const enginePlayers = useMemo(() => toEnginePlayers(allPlayers, parentOut), [allPlayers, parentOut]);
+  const activePlayers = useMemo(
+    () => allPlayers.filter((p) => p.is_available && !parentOut.has(p.id)),
+    [allPlayers, parentOut],
+  );
   const colors = (team.colors ?? {}) as Record<string, string>;
   const highlight = children.data ?? new Set<string>();
   const nameOf = (id: string) => allPlayers.find((p) => p.id === id)?.first_name ?? 'player';
@@ -390,6 +399,13 @@ export function ClockFieldPage() {
     );
   };
 
+  const heldNote = heldOutNote(
+    allPlayers
+      .filter((p) => parentOut.has(p.id) && slots.includes(p.id))
+      .map((p) => ({ name: p.first_name, byParent: planned.byParent.has(p.id) })),
+    planned.game?.opponent ?? null,
+  );
+  const outText = outCaption(allPlayers, parentOut, planned.byParent);
   const title = live ? (fullTime ? 'Full time' : shortPeriod(S, N, periodIndex)) : 'Starters';
   const sub = live
     ? `Live vs ${live.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ' · tap a jersey, then another, to swap' : ''}`
@@ -402,6 +418,11 @@ export function ClockFieldPage() {
       <JerseyDefs />
       <EditableTitle value={team.name} onSave={onRename} editable={isCoach} />
       <p className="sub">{sub}</p>
+      {isStaff && heldNote && (
+        <p className="sub capnote outnote" role="status">
+          {heldNote} The red OUT tag marks the jersey: tap it, then a bench player, to replace them.
+        </p>
+      )}
       {live && clock.autoPaused && (
         <p className="sub capnote" role="status">
           {capNote(clock, team.period_minutes)}
@@ -456,6 +477,8 @@ export function ClockFieldPage() {
             </>
           }
           benchEmptyText={`Everyone is ${S.unit}`}
+          parentOut={parentOut}
+          outText={outText}
         />
       </div>
       {isStaff && live && (

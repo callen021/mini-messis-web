@@ -141,4 +141,6 @@ export interface EnginePlayer {
   id: string;
   name: string;
   active: boolean;
+  /** Out by a parent's reply for the planned game (D107): not a candidate, but not removed from a spot either. */
+  held?: boolean;
 }

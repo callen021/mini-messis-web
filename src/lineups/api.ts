@@ -82,9 +82,16 @@ export function useFormations() {
   }, [sport, team.side_size, team.has_gk]);
 }
 
-/** Players as the engine sees them (archived rows are already excluded by the query). */
-export const toEnginePlayers = (players: readonly Player[]): EnginePlayer[] =>
-  players.map((p) => ({ id: p.id, name: p.first_name, active: p.is_available }));
+/**
+ * Players as the engine sees them (archived rows are already excluded by the query). `held` are
+ * the players a parent's reply marks out for the planned game (D107): no longer candidates for
+ * the bench or Auto-fill, but kept in any spot they already hold so the coach sees the flag.
+ */
+export const toEnginePlayers = (
+  players: readonly Player[],
+  held: ReadonlySet<string> = new Set(),
+): EnginePlayer[] =>
+  players.map((p) => ({ id: p.id, name: p.first_name, active: p.is_available, held: held.has(p.id) }));
 
 export const playerName = (p: Player | undefined): string =>
   p ? `${p.first_name}${p.last_name ? ` ${p.last_name}` : ''}` : '';
@@ -209,6 +216,11 @@ export function useTeamRealtime(teamId: string) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'practices', filter: `team_id=eq.${teamId}` },
         invalidate([qk.practices(teamId), ['practice']]),
+      )
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'event_rsvps', filter: `team_id=eq.${teamId}` },
+        invalidate([qk.rsvps(teamId)]),
       )
       .on(
         'postgres_changes',

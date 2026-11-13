@@ -22,7 +22,11 @@ import { countdown, timingLabel } from '@/games/timing';
 import { ChildClockRow } from '@/clock/ChildClockRow';
 import { useCurrentPlan, useFormations, useMyChildLinks, useMyChildren } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
+import { errorMessage } from '@/lib/supabase';
 import { DetailsSection } from '@/players/DetailsSection';
+import { useRsvps, useSetRsvp } from '@/rsvp/api';
+import { RsvpButtons } from '@/rsvp/RsvpButtons';
+import { RSVP_LABEL, parentLocked, repliesFor, statusOf } from '@/rsvp/rsvp';
 import { SkillsBests } from '@/skills/SkillsBests';
 import { textColor } from '@/sports/colors';
 import { SPORTS, chipLabel } from '@/sports/definitions';
@@ -111,6 +115,8 @@ function ChildHome({ child }: { child: Player }) {
   const { formationFor } = useFormations();
   const stats = usePlayerStats(teamId, null);
   const links = useMyChildLinks();
+  const rsvps = useRsvps(teamId);
+  const setRsvp = useSetRsvp(teamId);
   const confirmed = links.data?.get(child.id) === 'approved';
 
   const today = todayISO();
@@ -169,6 +175,14 @@ function ChildHome({ child }: { child: Player }) {
     const homeAway = isGame && next.game.home_away ? HOME_AWAY_LABEL[next.game.home_away] : '';
     const href = isGame ? `/games/${next.game.id}` : `/practices/${next.practice.id}`;
     const directions = directionsUrl(address, location);
+    // RSVP (D107): Going / Can't make it above Directions, the current choice highlighted
+    const ev = isGame
+      ? ({ kind: 'game', id: next.game.id } as const)
+      : ({ kind: 'practice', id: next.practice.id } as const);
+    const status = statusOf(repliesFor(rsvps.data ?? [], ev), child.id);
+    const locked = isGame
+      ? parentLocked({ kind: 'game', status: next.game.status }, now)
+      : parentLocked({ kind: 'practice', status: next.practice.status, date, time }, now);
     nextCard = (
       <Group className="homecard">
         <Row
@@ -200,6 +214,27 @@ function ChildHome({ child }: { child: Player }) {
             {timingLabel(date, today)}
           </Badge>
         </Row>
+        <RsvpButtons
+          status={status}
+          playerName={child.first_name}
+          locked={locked}
+          busy={setRsvp.isPending}
+          onSet={(s) =>
+            setRsvp.mutate(
+              { event: ev, playerId: child.id, status: s },
+              {
+                onError: (e) => toast(errorMessage(e)),
+                onSuccess: () =>
+                  toast(s === 'none' ? 'Reply cleared' : `${child.first_name} · ${RSVP_LABEL[s]}`),
+              },
+            )
+          }
+        />
+        {locked && (
+          <p className="rsvpnote">
+            Replies are closed: the {isGame ? 'game' : 'practice'} has started. Ask the coach to change it.
+          </p>
+        )}
         <Toolbar className="livebar">
           {directions && (
             <a className="btn tinted" href={directions} target="_blank" rel="noopener noreferrer">
