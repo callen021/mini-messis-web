@@ -13,6 +13,13 @@ export interface ClockState {
   runningSince: string | null;
   /** Final length in seconds of each period ended so far. */
   periodLengths: readonly number[];
+  /**
+   * Period second the running stretch pauses itself at (D105): 30 minutes past the period length,
+   * 90 minutes without one, or 30 minutes after a restart at that cap. Null or absent: no limit.
+   */
+  limitSeconds?: number | null;
+  /** The last pause was the safety stop and nothing has moved since (D105). */
+  autoPaused?: boolean;
 }
 
 export const PAUSED_CLOCK: ClockState = {
@@ -22,12 +29,19 @@ export const PAUSED_CLOCK: ClockState = {
   periodLengths: [],
 };
 
-/** Seconds into the current period at `nowMs` (server time). */
+/** Seconds into the current period at `nowMs` (server time), never past the stretch's limit (D105). */
 export function elapsedAt(state: ClockState, nowMs: number): number {
   if (!state.runningSince) return state.clockSeconds;
   const since = Date.parse(state.runningSince);
   if (Number.isNaN(since)) return state.clockSeconds;
-  return state.clockSeconds + Math.max(0, Math.floor((nowMs - since) / 1000));
+  const run = Math.max(0, Math.floor((nowMs - since) / 1000));
+  const room = state.limitSeconds == null ? Infinity : Math.max(0, state.limitSeconds - state.clockSeconds);
+  return state.clockSeconds + Math.min(run, room);
+}
+
+/** The running stretch has reached its limit (D105): the server pauses it on the next read. */
+export function atLimit(state: ClockState, nowMs: number): boolean {
+  return !!state.runningSince && state.limitSeconds != null && elapsedAt(state, nowMs) >= state.limitSeconds;
 }
 
 export const isRunning = (state: ClockState): boolean => !!state.runningSince;
@@ -40,6 +54,13 @@ export const isFullTime = (state: ClockState, periodCount: number): boolean =>
 export function remainingAt(state: ClockState, periodMinutes: number | null, nowMs: number): number | null {
   if (!periodMinutes) return null;
   return periodMinutes * 60 - elapsedAt(state, nowMs);
+}
+
+/** The short note shown on a game whose clock the safety stop paused (D105). */
+export function capNote(state: ClockState, periodMinutes: number | null): string {
+  return `Clock paused automatically at ${formatClock(state.clockSeconds)} · it ran ${
+    periodMinutes ? `30 minutes past the ${periodMinutes}-minute period length` : '90 minutes'
+  }. Resume runs it for up to another 30 minutes.`;
 }
 
 /** "12:05" — minutes and seconds; hours never happen in youth games. Negative values show "-0:30". */

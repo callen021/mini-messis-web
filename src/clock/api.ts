@@ -38,6 +38,8 @@ export function useGameClock(gameId: string | undefined, enabled = true) {
         clockSeconds: r.clock_seconds,
         runningSince: r.running_since,
         periodLengths: r.period_lengths ?? [],
+        limitSeconds: r.limit_seconds ?? null,
+        autoPaused: !!r.auto_paused,
       };
     },
     enabled: !!gameId && enabled,

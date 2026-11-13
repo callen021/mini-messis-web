@@ -27,6 +27,7 @@ import { fillByTime, rankFromStints, suggestStarters } from './autofill';
 import { benchAfterEdit, benchQueue, benchSwap } from './bench';
 import {
   PAUSED_CLOCK,
+  capNote,
   elapsedAt,
   formatClock,
   isFullTime,
@@ -401,12 +402,18 @@ export function ClockFieldPage() {
       <JerseyDefs />
       <EditableTitle value={team.name} onSave={onRename} editable={isCoach} />
       <p className="sub">{sub}</p>
+      {live && clock.autoPaused && (
+        <p className="sub capnote" role="status">
+          {capNote(clock, team.period_minutes)}
+        </p>
+      )}
       {/* no "Saving…" pill in the flow of the page: it shifted the field up and down on every tap (D77) */}
       <span className="sr-only" aria-live="polite">
         {saveStarters.isPending || act.isPending ? 'Saving' : ''}
       </span>
       {live && (
         <PeriodOverAlert
+          gameId={live.id}
           clock={clock}
           periodMinutes={team.period_minutes}
           active={!!live && !fullTime}

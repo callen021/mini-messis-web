@@ -558,6 +558,11 @@
 .clockbar .btn.sm {
   min-width: 0;
 }
+/* the safety-stop note under the title (D105) */
+.sub.capnote {
+  color: var(--orange);
+  font-weight: 600;
+}
 
 /* the hint line sits under the bench row and holds a small action (D77); a fixed height so a
    change of text never moves the field */

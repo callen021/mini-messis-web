@@ -42,6 +42,7 @@ import {
 } from './api';
 import { DirectionsIcon } from '@/components/icons';
 import { useGameClock } from '@/clock/api';
+import { capNote } from '@/clock/clock';
 import { PlayingTimeSection } from '@/clock/PlayingTimeSection';
 import { directionsUrl } from './directions';
 import { EditScoreSheet } from './EditScoreSheet';
@@ -297,6 +298,11 @@ function GameDetail({ game }: { game: GameWithScore }) {
       back={{ to: '/games', label: 'Schedule' }}
     >
       {!isUpcoming && <Scoreline big us={game.us} them={game.them} />}
+      {isLive && clockMode && gameClock.data?.autoPaused && (
+        <p className="sub capnote" role="status">
+          {capNote(gameClock.data, team.period_minutes)}
+        </p>
+      )}
       {isStaff && pastSeason && (
         <Footer className="noprint">
           Past season · read-only. A platform admin can switch the current season back.

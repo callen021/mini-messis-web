@@ -151,14 +151,14 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "address": string | null,"clock_period": number,"clock_period_lengths": (number)[],"clock_running_since": string | null,"clock_seconds": number,"created_at": string,"finished_at": string | null,"game_date": string,"home_away": Database["public"]['Enums']["home_away"] | null,"id": string,"location": string | null,"opponent": string,"parent_notes": string | null,"season_id": string,"start_time": string | null,"started_at": string | null,"status": Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot": string | null,"updated_at": string,"updated_by": string | null
+                    "address": string | null,"clock_auto_paused": boolean,"clock_limit": number | null,"clock_period": number,"clock_period_lengths": (number)[],"clock_running_since": string | null,"clock_seconds": number,"created_at": string,"finished_at": string | null,"game_date": string,"home_away": Database["public"]['Enums']["home_away"] | null,"id": string,"location": string | null,"opponent": string,"parent_notes": string | null,"season_id": string,"start_time": string | null,"started_at": string | null,"status": Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot": string | null,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id": string,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"clock_auto_paused"?: boolean,"clock_limit"?: number | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id": string,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "address"?: string | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id"?: string,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id"?: string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"clock_auto_paused"?: boolean,"clock_limit"?: number | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id"?: string,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id"?: string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -706,6 +706,8 @@ isOneToOne: false
                            },
 "clock_elapsed":
 { Args: { "p_running_since": string,"p_seconds": number }; Returns: number
+                           } |
+{ Args: { "p_limit": number,"p_running_since": string,"p_seconds": number }; Returns: number
                            },
 "clock_empty":
 { Args: { "p_game_id": string,"p_off": string }; Returns: undefined
@@ -719,6 +721,8 @@ isOneToOne: false
 "clock_game":
 { Args: { "p_game_id": string }; Returns: {
               "address": string | null,
+"clock_auto_paused": boolean,
+"clock_limit": number | null,
 "clock_period": number,
 "clock_period_lengths": (number)[],
 "clock_running_since": string | null,
@@ -746,6 +750,9 @@ isOneToOne: false
         isOneToOne: true
         isSetofReturn: false
       } },
+"clock_limit_for":
+{ Args: { "p_seconds": number,"p_team_id": string }; Returns: number
+                           },
 "clock_new_op":
 { Args: { "p_game_id": string,"p_kind": string,"p_period": number }; Returns: string
                            },
@@ -781,6 +788,9 @@ isOneToOne: false
                            },
 "clock_set_lineup":
 { Args: { "p_formation_name": string,"p_game_id": string,"p_slots": Json }; Returns: undefined
+                           },
+"clock_settle":
+{ Args: { "p_game_id": string }; Returns: undefined
                            },
 "clock_spot":
 { Args: { "p_game_id": string,"p_period": number,"p_slot": number }; Returns: Record<string, unknown>
@@ -823,7 +833,7 @@ isOneToOne: false
                            },
 "game_clock":
 { Args: { "p_game_id": string }; Returns: {
-              "clock_seconds": number,"elapsed": number,"period_index": number,"period_lengths": (number)[],"running_since": string,"server_now": string
+              "auto_paused": boolean,"clock_seconds": number,"elapsed": number,"limit_seconds": number,"period_index": number,"period_lengths": (number)[],"running_since": string,"server_now": string
             }[]
                            },
 "game_events":
