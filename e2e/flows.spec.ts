@@ -586,11 +586,25 @@ test.describe('coach and parent flows', () => {
 
   test("RSVP: the parent says Ava can't make it from Home; the coach sees the count, the tagged jersey and the attendance list; the switch overrides it (D107)", async () => {
     await parent.goto('/home');
+    // unanswered: the prompt, the amber tag, the two buttons; the schedule shows an amber dot (the game is today)
+    await expect(parent.getByText('Is Ava going?')).toBeVisible();
+    await expect(parent.getByText('Reply needed')).toBeVisible();
+    await parent.goto('/games');
+    await expect(parent.locator('.rsvpmark')).toHaveAttribute('aria-label', 'Ava: reply needed');
+    await parent.goto('/home');
     const out = parent.getByRole('button', { name: 'Can’t make it' });
     await expect(out).toBeVisible();
     await out.click();
-    await expect(out).toHaveAttribute('aria-pressed', 'true');
-    await expect(parent.getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'false');
+    // answered: one status line with a Change link instead of the buttons
+    await expect(parent.getByText('Ava can’t make it')).toBeVisible();
+    await expect(parent.getByRole('button', { name: 'Change' })).toBeVisible();
+    await expect(out).toHaveCount(0);
+    await parent.getByRole('button', { name: 'Change' }).click();
+    await expect(parent.getByRole('button', { name: 'Can’t make it' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await parent.goto('/home');
     // the schedule row shows a cross by the date, named for screen readers
     await parent.goto('/games');
     await expect(parent.locator('.rsvpmark')).toHaveAttribute('aria-label', 'Ava: can’t make it');
@@ -622,7 +636,7 @@ test.describe('coach and parent flows', () => {
     await expect(coach.locator('.attgroup').nth(0)).toContainText('by coach');
     // the parent sees the coach's answer
     await parent.goto('/home');
-    await expect(parent.getByRole('button', { name: 'Going' })).toHaveAttribute('aria-pressed', 'true');
+    await expect(parent.getByText('Ava is going')).toBeVisible();
     await parent.goto('/games');
   });
 
@@ -641,8 +655,10 @@ test.describe('coach and parent flows', () => {
     await parent.goto('/home');
     await parent.getByText('In progress · vs Tigers').click();
     await expect(parent.getByRole('heading', { level: 1, name: 'vs Tigers' })).toBeVisible();
-    await expect(parent.getByRole('button', { name: 'Going' })).toBeDisabled();
-    await expect(parent.getByRole('button', { name: 'Can’t make it' })).toBeDisabled();
+    // locked: the status line without Change, no buttons
+    await expect(parent.getByText('Ava is going')).toBeVisible();
+    await expect(parent.getByRole('button', { name: 'Change' })).toHaveCount(0);
+    await expect(parent.getByRole('button', { name: 'Going' })).toHaveCount(0);
     await expect(parent.getByText('Replies closed: the game has started.')).toBeVisible();
     await coach
       .getByRole('radiogroup', { name: 'Ava: attendance' })

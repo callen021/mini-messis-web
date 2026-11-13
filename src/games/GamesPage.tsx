@@ -31,7 +31,7 @@ import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
 import { useMyChildren } from '@/lineups/api';
 import { useRsvps } from '@/rsvp/api';
 import { type RsvpMark, RsvpCountMark, RsvpMarks } from '@/rsvp/RsvpMarks';
-import { type EventRef, repliesFor, rsvpCount, statusOf } from '@/rsvp/rsvp';
+import { type EventRef, repliesFor, replyDue, rsvpCount, statusOf } from '@/rsvp/rsvp';
 import { GameBadge } from './GameBadge';
 import { downloadScheduleIcs } from './ics';
 import { makeNameLookup, periodSuffix } from './names';
@@ -187,14 +187,15 @@ export function GamesPage() {
   const practiceCount = upcoming.length - gameCount;
   const events = scheduleEvents(upcoming, team.name);
   // RSVP (D107): the coach sees "9 in · 2 out" on every row, a parent their own children's marks
-  const markFor = (ev: EventRef): React.ReactNode => {
+  const markFor = (ev: EventRef, date: string): React.ReactNode => {
     const replies = repliesFor(rsvps.data ?? [], ev);
     const roster = players.data ?? [];
     if (isStaff) return <RsvpCountMark count={rsvpCount(roster, replies)} />;
     const ids = children.data ?? new Set<string>();
+    const due = replyDue(date, today);
     const marks: RsvpMark[] = roster
       .filter((p) => ids.has(p.id))
-      .map((p) => ({ playerId: p.id, name: p.first_name, status: statusOf(replies, p.id) }));
+      .map((p) => ({ playerId: p.id, name: p.first_name, status: statusOf(replies, p.id), due }));
     return <RsvpMarks marks={marks} />;
   };
 
@@ -304,14 +305,14 @@ export function GamesPage() {
               key={item.game.id}
               game={item.game}
               today={today}
-              mark={markFor({ kind: 'game', id: item.game.id })}
+              mark={markFor({ kind: 'game', id: item.game.id }, item.date)}
             />
           ) : (
             <PracticeRow
               key={item.practice.id}
               practice={item.practice}
               today={today}
-              mark={markFor({ kind: 'practice', id: item.practice.id })}
+              mark={markFor({ kind: 'practice', id: item.practice.id }, item.date)}
             />
           ),
         )}

@@ -6,7 +6,7 @@ import { useMyChildren } from '@/lineups/api';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useRsvps, useSetRsvp } from './api';
-import { RsvpButtons } from './RsvpButtons';
+import { RsvpControl } from './RsvpControl';
 import { type EventRef, type RsvpStatus, RSVP_LABEL, repliesFor, statusOf } from './rsvp';
 
 /**
@@ -54,13 +54,7 @@ export function ParentRsvpSection({
             key={p.id}
             className="rsvprow"
             label={
-              <>
-                {p.first_name}
-                <small className="rsvpstate"> · {RSVP_LABEL[statusOf(replies, p.id)]}</small>
-              </>
-            }
-            detail={
-              <RsvpButtons
+              <RsvpControl
                 status={statusOf(replies, p.id)}
                 playerName={p.first_name}
                 locked={locked}

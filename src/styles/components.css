@@ -2703,3 +2703,67 @@ a.prow.dir .pname {
 .sub.outnote {
   color: var(--red);
 }
+/* the reply block: prompt or status line, then the buttons (D107 follow-up) */
+.rsvpctl {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.rsvpline {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  min-width: 0;
+}
+.rsvpline span {
+  min-width: 0;
+}
+.rsvpline.going {
+  color: var(--green);
+}
+.rsvpline.out {
+  color: var(--red);
+}
+.rsvpline.none {
+  color: var(--text2);
+  font-weight: 500;
+}
+.rsvpline .linkbtn {
+  margin-left: auto;
+  border: 0;
+  background: none;
+  padding: 4px 0 4px 8px;
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--tint);
+  flex: none;
+}
+.tag.warn {
+  background: rgba(255, 149, 0, 0.16);
+  color: var(--orange);
+  flex: none;
+}
+.rsvpdot {
+  display: inline-block;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--orange);
+  vertical-align: -1px;
+}
+/* the home card: its own block between the event row and the Directions bar */
+.homecard .rsvpblock {
+  padding: 12px 12px 14px;
+  border-top: 0.5px solid var(--sep);
+  border-bottom: 0.5px solid var(--sep);
+  margin-bottom: 12px;
+}
+.homecard .rsvpblock .rsvpbtns {
+  margin: 0;
+}
+.rsvprow .rsvpctl {
+  margin-top: 2px;
+}

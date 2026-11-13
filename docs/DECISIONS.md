@@ -1224,10 +1224,14 @@ clears the player from the plan at once, and a reply for a game three weeks out 
   out records "going" by coach for that game (which also lifts the coach flag if it was off);
   turning an available player off is the team-wide switch as before. "Everyone's back" leaves
   replies alone.
-- **Screens.** Parent: Home "Next up" card gets Going / Can't make it above Directions, both always
-  visible, the current one filled (red for out), a second tap on the filled one clears the reply;
-  one control per selected child. Schedule rows show a small check or cross next to the date per
-  linked child who replied (named when there is more than one child), nothing for no reply. Both
+- **Screens.** Parent: Home "Next up" card gets its own reply block between the event row and the
+  Directions bar. Unanswered: "Is Nolan going?" with an amber "Reply needed" tag and the Going /
+  Can't make it buttons; answered: one status line ("✓ Nolan is going" / "✗ Nolan can't make it")
+  with a Change link that brings the buttons back (the filled button then clears on a second
+  tap); locked: the status line alone. One block per selected child; the event pages use the same
+  control, one row per linked child. Schedule rows show a small check or cross next to the date per
+  linked child who replied (named when there is more than one child), an amber dot for a child
+  with no reply when the event is within the next seven days, nothing otherwise. Both
   event pages carry the full control, one row per linked child. Coach: schedule rows show
   "9 in · 2 out", where "in" is every roster player effectively available for that event (not out
   by reply, not flagged out by the coach) — so no reply counts as in — and "out" is everyone

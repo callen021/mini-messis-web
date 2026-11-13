@@ -8,6 +8,7 @@ import {
   outSplit,
   parentLocked,
   plannedGame,
+  replyDue,
   repliesFor,
   rsvpCount,
   statusOf,
@@ -133,6 +134,14 @@ describe('RSVP rules (D107)', () => {
     ];
     expect(outCaption(players, split.out, split.byParent)).toBe('Out: Nolan (parent), Teddy, Jack');
     expect(outCaption(players.slice(3), split.out, split.byParent)).toBeUndefined();
+  });
+
+  it('a reply is due for an unanswered event within the next seven days', () => {
+    expect(replyDue('2026-11-13', '2026-11-13')).toBe(true);
+    expect(replyDue('2026-11-20', '2026-11-13')).toBe(true);
+    expect(replyDue('2026-11-21', '2026-11-13')).toBe(false);
+    expect(replyDue('2026-11-12', '2026-11-13')).toBe(false);
+    expect(replyDue('nope', '2026-11-13')).toBe(false);
   });
 
   it('parents are locked once the game starts or the practice time has passed', () => {

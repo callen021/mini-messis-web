@@ -19,14 +19,19 @@ export interface RsvpMark {
   playerId: string;
   name: string;
   status: RsvpStatus;
+  /** No reply yet and the event is within the next seven days: an amber dot asks for one. */
+  due?: boolean;
 }
 
+const markText = (m: RsvpMark): string =>
+  m.status === 'going' ? 'going' : m.status === 'out' ? 'can’t make it' : 'reply needed';
+
 /**
- * A parent's marks on a schedule row (D107): one icon per linked child who replied, each named
- * for screen readers; nothing when no child has replied.
+ * A parent's marks on a schedule row (D107): one icon per linked child who replied, an amber
+ * dot for a child whose reply is due, each named for screen readers; nothing otherwise.
  */
 export function RsvpMarks({ marks }: { marks: readonly RsvpMark[] }) {
-  const shown = marks.filter((m) => m.status !== 'none');
+  const shown = marks.filter((m) => m.status !== 'none' || m.due);
   if (!shown.length) return null;
   return (
     <span className="rsvpmarks">
@@ -35,10 +40,10 @@ export function RsvpMarks({ marks }: { marks: readonly RsvpMark[] }) {
           key={m.playerId}
           className="rsvpmark"
           role="img"
-          aria-label={`${m.name}: ${m.status === 'going' ? 'going' : 'can’t make it'}`}
-          title={`${m.name}: ${m.status === 'going' ? 'going' : 'can’t make it'}`}
+          aria-label={`${m.name}: ${markText(m)}`}
+          title={`${m.name}: ${markText(m)}`}
         >
-          <RsvpIcon status={m.status} />
+          {m.status === 'none' ? <i className="rsvpdot" /> : <RsvpIcon status={m.status} />}
           {marks.length > 1 && <small>{m.name}</small>}
         </span>
       ))}

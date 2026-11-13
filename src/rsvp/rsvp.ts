@@ -149,6 +149,15 @@ export function outCaption(
   return names.length ? `Out: ${names.join(', ')}` : undefined;
 }
 
+/** An unanswered event within the next seven days (today included) gets the amber dot on the schedule. */
+export function replyDue(date: string, today: string): boolean {
+  const d = new Date(`${date}T00:00:00`);
+  const t = new Date(`${today}T00:00:00`);
+  if (Number.isNaN(d.getTime()) || Number.isNaN(t.getTime())) return false;
+  const days = Math.round((d.getTime() - t.getTime()) / 86_400_000);
+  return days >= 0 && days <= 7;
+}
+
 /** "Going" / "Can't make it" wording shared by the buttons, the marks and the attendance lists. */
 export const RSVP_LABEL: Record<RsvpStatus, string> = {
   going: 'Going',

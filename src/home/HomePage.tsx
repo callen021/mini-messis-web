@@ -25,7 +25,7 @@ import { toEnginePeriods } from '@/lineups/convert';
 import { errorMessage } from '@/lib/supabase';
 import { DetailsSection } from '@/players/DetailsSection';
 import { useRsvps, useSetRsvp } from '@/rsvp/api';
-import { RsvpButtons } from '@/rsvp/RsvpButtons';
+import { RsvpControl } from '@/rsvp/RsvpControl';
 import { RSVP_LABEL, parentLocked, repliesFor, statusOf } from '@/rsvp/rsvp';
 import { SkillsBests } from '@/skills/SkillsBests';
 import { textColor } from '@/sports/colors';
@@ -214,27 +214,29 @@ function ChildHome({ child }: { child: Player }) {
             {timingLabel(date, today)}
           </Badge>
         </Row>
-        <RsvpButtons
-          status={status}
-          playerName={child.first_name}
-          locked={locked}
-          busy={setRsvp.isPending}
-          onSet={(s) =>
-            setRsvp.mutate(
-              { event: ev, playerId: child.id, status: s },
-              {
-                onError: (e) => toast(errorMessage(e)),
-                onSuccess: () =>
-                  toast(s === 'none' ? 'Reply cleared' : `${child.first_name} · ${RSVP_LABEL[s]}`),
-              },
-            )
-          }
-        />
-        {locked && (
-          <p className="rsvpnote">
-            Replies are closed: the {isGame ? 'game' : 'practice'} has started. Ask the coach to change it.
-          </p>
-        )}
+        <div className="rsvpblock">
+          <RsvpControl
+            status={status}
+            playerName={child.first_name}
+            locked={locked}
+            busy={setRsvp.isPending}
+            onSet={(s) =>
+              setRsvp.mutate(
+                { event: ev, playerId: child.id, status: s },
+                {
+                  onError: (e) => toast(errorMessage(e)),
+                  onSuccess: () =>
+                    toast(s === 'none' ? 'Reply cleared' : `${child.first_name} · ${RSVP_LABEL[s]}`),
+                },
+              )
+            }
+          />
+          {locked && (
+            <p className="rsvpnote">
+              Replies are closed: the {isGame ? 'game' : 'practice'} has started. Ask the coach to change it.
+            </p>
+          )}
+        </div>
         <Toolbar className="livebar">
           {directions && (
             <a className="btn tinted" href={directions} target="_blank" rel="noopener noreferrer">
