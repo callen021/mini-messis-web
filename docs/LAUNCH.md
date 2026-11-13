@@ -16,14 +16,15 @@ scripts in `scripts/`, and the repository variables `VITE_SUPABASE_URL` and
 
 ## 0. Push the pending migrations
 
-Eighteen migrations are waiting since the launch build: `20261110000100_realtime_teams` (fixes live
+Nineteen migrations are waiting since the launch build: `20261110000100_realtime_teams` (fixes live
 updates for parents), the parent-feedback rounds (`admin_only_team_creation`, `invite_links`,
 `addresses_timezone`, `player_details`, `stats_visibility`, `contacts_directory`, `team_board`),
 clock-based playing time (`20261112000100_time_mode`, `20261112000200_game_clock_stints`), the
 bench queue (`20261112000300_bench_queue`), team duplication (`20261112000400_duplicate_team`),
 and the combined round (`20261112000500_new_team_defaults`, `20261112000600_example_team`,
 `20261112000700_join_without_approval`, `20261112000710_members_links`,
-`20261112000720_remove_player_parents`, `20261112000800_seasons`). Nothing in the app's clock
+`20261112000720_remove_player_parents`, `20261112000800_seasons`) and the clock safety stop
+(`20261112000900_clock_cap`, D105). Nothing in the app's clock
 mode works live until they are applied, the bench on the period cards falls back to roster order
 until the queue migration is in, and the Members screen, joining, Load example team and Start new
 season need the last six. From the repo folder:

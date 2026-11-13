@@ -1056,3 +1056,111 @@ whole game, score events show the minute only with no period label, and Suggest 
 offered. Existing teams keep their count. pgTAP 20 plays a full one-period clock game with a
 pause, a goal and a sub, and a one-period game in period mode; a flow switches a team to one
 period and back.
+
+## 2026-11-12 — Field polish, the action bar, the Schedule button and a clock safety stop
+
+### D98. Basketball name pill
+
+On basketball jerseys only, the name sits in a white pill with dark text across the chest, the
+number below it and the position small at the hem; bench jerseys get the pill and number with no
+position. The pill hugs the text, never wraps and never outgrows the shirt: `Jersey` sets `--n`
+(the name length) and the pill's font size is `80cqw / --n`, clamped, so HAYDEN and PRESLEY shrink
+to fit. A parent's own child keeps the gold mark as a gold pill. Open spots keep the plain look;
+every other sport's jersey is untouched.
+
+### D99. Nothing under a bench jersey
+
+The minutes · rest caption (clock mode) and the periods-played caption (period mode) under bench
+jerseys are gone, in both modes; the shift time under an on-field jersey stays. The bench is the
+queue and nothing more; minutes per player live on the Rotation view. `BenchEntry` is just the
+player, `periodsPlayed` and its caption helper are deleted, the footer copy no longer promises
+minutes under the bench.
+
+### D100. No Print button on the Field
+
+The Print button is gone from the Field in both modes and for both roles; Auto-fill and Clear keep
+their place and behaviour. The team sheet (`/team/sheet`) keeps its Print button, since printing
+is that page's purpose. `print.css` stays for it.
+
+### D101. The action bar is a fixed overlay with matching page padding
+
+The Field's action bar was `position: sticky` inside the page; on a phone it could sit over the
+bench and the help text at the end of the scroll. It is now a fixed strip just above the tab bar
+(same offset, safe area included, centred to the page width) and the page that carries it gets
+`padding-bottom: var(--act-h) + 8px`, so the bench, the hint line and the footer always scroll
+clear of the bar, the tab bar and the safe area, in every state (setting starters, a live period
+game, a live clock game), both views, every sport. Toasts still measure the bar and sit above it
+(D80). Measured at 375×812 in Chromium: zero pixels of the last bench row, the hint or the footer
+under the bar at the end of the scroll in every state.
+
+### D102. One on-field jersey size
+
+On-field jerseys had the 3D width (a percent of the stage) in the 3D view and the formation width
+times the field fraction (about 6% less) in the flat view. `FieldStage` now uses the 3D width in
+both views; the bench size is unchanged. The dev tuner's width applies the same way.
+
+### D103. Rows spread so jerseys clear each other and their shift times
+
+With one size in both views, the generated formations were re-spaced instead of shrinking jerseys:
+
+- Soccer rows sit at field depths chosen per row count (`SOCCER_ROWS`): the far row starts where a
+  shirt just fits inside the stage (y 18), the rows between are even in screen pixels of the 3D
+  view, the deepest outfield row is at y 75 (88 open-goal shapes) and the keeper stands on the
+  goal line (y 98). Across a row, `rowX` spreads neighbours up to 29% apart (never past the
+  touchlines), so 2-, 3- and 4-wide rows clear each other in both views.
+- Basketball shapes are written in court coordinates: the front line at the far basket (y 20), the
+  wings mid-court (y ~52) and the guards back (y 86); in a row neighbours are at least a jersey
+  apart.
+- Lacrosse rows: attack 22, midfield 44.5, defence 64, keeper 81 (in the crease in front of the
+  goal at 85); the behind-the-goal attacker stays at 9.
+- Goals and hoops draw behind every jersey (`z-index` 5 under the slots), so the keeper's position
+  label and shift time are never behind the near net.
+
+Measured at a 343px stage: the flat view is clear of every shirt-on-shirt and shirt-on-label
+overlap for every soccer shape up to 9-a-side, every basketball and lacrosse shape, and 11-a-side
+shapes with rows of four or fewer. What remains, by geometry rather than choice: in the 3D view the
+far rows are compressed, so where columns line up the shift-time pill of a far-row jersey is still
+partly behind the collar of the row in front (≈6 px of 16 for three-row soccer shapes, 13 px for
+the one-column basketball stacks 1-1-1 and 1-3-1, 4 px for lacrosse); rows of five (3-5-2, 5-3-2)
+touch at the sides in both views; and the four-row 11-a-side shapes (4-2-3-1, 4-1-4-1) overlap in
+the 3D view because four rows plus the keeper do not fit the stage at this size. The 3-wide far
+row in the 3D view overlaps by about 10 px at the sides, as it did before (the user tuned that width
+by eye, D42).
+
+### D104. "+ Add" on the Schedule
+
+The round plus at the top right of the Schedule was invisible in dark mode. It is a small filled
+capsule reading "+ Add" in the accent colour (the `btn sm` primary, readable in light and dark), in
+the same spot, for coaches and assistants only. On the All tab it asks New game / New practice as
+before; on the Games or Practices tab it opens that form straight away. The round `.hbtn` style is
+gone with its only user.
+
+### D105. Runaway clock safety stop
+
+A test game left running kept adding minutes for over an hour and wrecked the playing-time
+stats. A running period now pauses itself once it has run 30 minutes past the period length, or
+at 90 minutes when the team sets no length; player time is credited only up to that cap. It is
+decided from stored timestamps alone, so it holds when the app was closed the whole time and for
+games already running away when the migration lands:
+
+- `games.clock_limit` is the period second the running stretch pauses itself at, written by
+  `clock_start` (`clock_limit_for`: the cap, or 30 minutes after a restart at or past the cap);
+  `games.clock_auto_paused` marks the safety stop.
+- `clock_settle(game)` turns a stretch at or past its limit into a pause at the limit. `clock_game`
+  (every clock action), `game_clock` (every read, now volatile), `finish_game` and the score stamp
+  settle first; `player_season_stats` and `season_minutes` use the three-argument
+  `clock_elapsed(seconds, running_since, limit)` so the stats are right before anyone opens the
+  game. The two-argument reading stays raw. The migration backfills `clock_limit` for live games
+  running at that moment.
+- `game_clock` returns `limit_seconds` and `auto_paused` (true only while paused at the limit by
+  the stop; Resume, End and a new period clear it). The client's `elapsedAt` never passes the
+  limit, `PeriodOverAlert` refetches the clock the second the limit is reached and toasts
+  "Clock paused automatically at 40:00", and the Field and the game page show a short orange note
+  with the cap and why ("it ran 30 minutes past the 10-minute period length"; "it ran 90 minutes")
+  and that Resume runs it for up to another 30 minutes.
+- The clock does not stop at the exact period length; that is a separate decision still open.
+
+pgTAP 21 (32 assertions) plays it out: the limit on start, the read that settles the stop, stats at
+the cap, Resume for another 30 minutes and a second stop, ending the period clearing the note, a
+substitution and a goal during a runaway stamped at the cap, finishing during a runaway ending at
+the cap, and a team without a period length stopping at 90:00.
