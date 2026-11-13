@@ -1192,3 +1192,50 @@ both views and in every state. The 3D tilt is gentle (the far end is 75% of the 
 - The court is a third shorter than before (flat 309px against 401px at 375px wide; 3D 303px
   against 337px), which is what lets the bench and the help text sit above the bottom bars without
   scrolling on an iPhone-sized screen.
+
+### D107. Parent RSVP for games and practices
+
+Parents answer "Going" or "Can't make it" per player and per event; no reply is the default and
+counts as available. The reply is its own record (`event_rsvps`, one row per player per game or
+practice: status going | out | none, who set it — parent or coach — and when; last write wins). It
+is deliberately not the coach's out switch: that switch (`players.is_available`) is team-wide and
+clears the player from the plan at once, and a reply for a game three weeks out must do neither.
+
+- **Writes go through `set_rsvp` only.** Staff may set any player's reply at any time. A parent may
+  reply for a player linked to them — any link while the team does not require approval, an
+  approved link once it does — and only while the game is upcoming (a practice: until its date and
+  start time have passed in the team's timezone). After Start game a parent's buttons are disabled
+  with a note; the coach changes replies from the attendance list. A coach setting "going" also
+  lifts their own team-wide flag for that player. Rows are readable by every active member (the
+  schedule marks and counts); nobody inserts or updates them directly.
+- **Only "out" affects a lineup, and only that game's.** The Field, the clock Field and both
+  rotation views plan for one game: the live game, else the first upcoming game dated today or
+  later (an upcoming game dated before today was never started, and its replies must not stick to
+  the plan). A player whose reply for that game says out is treated as out there: off the bench,
+  never picked by Auto-fill or Suggest, listed under "Out this game" with "Parent: can't make it"
+  (or "Out for this game" when a coach set it). A player already placed is **not removed**: the
+  jersey keeps its spot with a red OUT tag and the page shows a note naming them; the coach taps
+  the jersey, then a bench player. The engine got a `held` flag for this (`EnginePlayer.held`):
+  not a candidate, but `fixPeriods` leaves them in their slot. Start game opens that spot exactly
+  as it does for the coach's flag, and the `game_players` snapshot records them unavailable;
+  copying the final lineup back to the template at the finish ignores replies, so one never
+  follows a player past its game. Practices store the reply and show counts, nothing more.
+- **Coach override from the rotation switch:** turning the switch on for a player whose reply says
+  out records "going" by coach for that game (which also lifts the coach flag if it was off);
+  turning an available player off is the team-wide switch as before. "Everyone's back" leaves
+  replies alone.
+- **Screens.** Parent: Home "Next up" card gets Going / Can't make it above Directions, both always
+  visible, the current one filled (red for out), a second tap on the filled one clears the reply;
+  one control per selected child. Schedule rows show a small check or cross next to the date per
+  linked child who replied (named when there is more than one child), nothing for no reply. Both
+  event pages carry the full control, one row per linked child. Coach: schedule rows show
+  "9 in · 2 out", where "in" is every roster player effectively available for that event (not out
+  by reply, not flagged out by the coach) — so no reply counts as in — and "out" is everyone
+  else; the Going / No reply split appears only in the event page's Attendance section, which
+  lists In, Out and No reply with "by parent" / "by coach" and a three-way control per row. A
+  coach-flagged player with no reply is listed under Out with "marked out on the Team tab".
+- **Verified** with pgTAP (`22_rsvp.test.sql`: permissions, the approval rule, the parent lock,
+  last write wins, the override, the start-of-game copy and the snapshot), unit tests for the pure
+  rules (`src/rsvp/rsvp.ts`), a Playwright flow (parent replies from Home, the coach sees the
+  count, the tagged jersey and the attendance list, overrides it) and 375px checks in light and
+  dark. Replies are realtime like everything else on the team channel.
