@@ -295,11 +295,16 @@ button.row:disabled {
 }
 /* Page-level action strip (Field: Auto-fill / Clear / Print). Lives in the content and sticks
    just above the bottom tab bar while the page scrolls. */
+.page:has(.actionbar) {
+  padding-bottom: calc(var(--act-h) + 8px);
+}
 .actionbar {
   position: sticky;
   bottom: calc(var(--tab-h) + env(safe-area-inset-bottom));
   z-index: 20;
-  margin: 0;
+  margin: 0 auto;
+  max-width: 760px;
+  min-height: var(--act-h);
   padding: 8px 16px;
   flex-wrap: nowrap;
   background: var(--bar);
@@ -2464,9 +2469,6 @@ a.prow.dir .pname {
   background: var(--bg);
   z-index: 40;
   pointer-events: none;
-}
-.actionbar {
-  margin-top: 12px;
 }
 
 /* ---------- clock mode rotation (D72): minutes bars ---------- */
