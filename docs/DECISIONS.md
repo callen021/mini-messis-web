@@ -1343,6 +1343,14 @@ the shell for free.
   page starts at the top, going back returns to where that page was, keyed by the history entry
   and kept in `sessionStorage` (the last 50 entries).
 - A sheet's scroll lock (`useScrollLock`) now locks the scroller as well as the body.
+- The scroller is `100dvh` tall (`100vh` as the fallback), not a percentage of `html`: in Safari's
+  browser mode the dynamic unit follows the toolbar as it shows and hides, so the bar at
+  `bottom: 0` and the end of the content are always on screen; in the installed app the two units
+  agree. The bar keeps `padding-bottom: env(safe-area-inset-bottom)` inside its height, so its
+  background reaches the screen's bottom edge above the home indicator with nothing below it.
+  Checked at 812 and 660 px tall viewports, light and dark, Chromium and WebKit: the bar's bottom
+  edge is the viewport's, `main` ends exactly at the viewport, the document never scrolls, and the
+  last element of every page clears the bar (or the action bar) once scrolled to the end.
 - Checked in Chromium and in WebKit (the Safari engine, iPhone emulation): on every coach and
   parent page the bar's bottom edge equals the viewport height before and after scrolling to the
   end, and no page is wider than the viewport. The flows that scroll (D61 back-with-scroll, D63
