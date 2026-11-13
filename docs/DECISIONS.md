@@ -1164,3 +1164,31 @@ pgTAP 21 (32 assertions) plays it out: the limit on start, the read that settles
 the cap, Resume for another 30 minutes and a second stop, ending the period clearing the note, a
 substitution and a goal during a runaway stamped at the cap, finishing during a runaway ending at
 the cap, and a team without a period length stopping at 90:00.
+
+### D106. Basketball is a half court
+
+D103 spread the five across the full court — the point guard stood in the opponent's paint — which
+is not what a basketball formation looks like. Basketball now draws only our attacking half: the
+basket at the top, the half-court line (with the near half of the centre circle) at the bottom, in
+both views and in every state. The 3D tilt is gentle (the far end is 75% of the near end, against
+60% before) so the back row is not squeezed.
+
+- The court is vector artwork, `public/fields/basketball-{flat,persp}.svg`, drawn by
+  `scripts/gen-court.mjs` from the same homographies that place the jerseys (`FIELDS.basketball`:
+  flat 1000×900, 3D 1200×1060), so lines and spots cannot drift apart; the two WebP full courts
+  are gone. The script works in feet (a 50 ft wide, 47 ft deep half; 12×19 ft key, 19.75 ft arc)
+  and prints the H to paste into `field.ts`. The flat view draws its own hoop; the 3D view keeps
+  the standing `hoop-far` overlay, its stanchion just behind the baseline (`y −6`); there is no
+  near hoop any more. `public/fields/` is now explicitly excluded from the precache
+  (`globIgnores`), since the SVGs would otherwise have matched the `*.svg` pattern (D14).
+- Field coordinates: y 0 is the baseline, 100 the half-court line; the key ends at y 40 and the
+  arc bottoms out near y 53. Every formation was re-placed by hand for the half court: post players
+  on the blocks (x 20–28 / 72–80, y 16–20), a lone centre at the free-throw line (under the basket
+  the hoop overlay would be covered), wings out wide (x 10–14, y 44–69), the point guard at the top
+  (y 92, with floor left under the jersey). At the fixed jersey size (D102) and a 343px stage, no
+  jersey, shift-time pill or the hoop overlaps another in either view — checked in the DOM for all
+  eleven formations in setup and in a live clock game. "1-4 high" cannot be literal at that size
+  (four across need more than the court's width): its posts stand at the elbows and its wings low.
+- The court is a third shorter than before (flat 309px against 401px at 375px wide; 3D 303px
+  against 337px), which is what lets the bench and the help text sit above the bottom bars without
+  scrolling on an iPhone-sized screen.
