@@ -35,6 +35,8 @@ export interface JerseyProps {
   time?: string;
   /** A parent's reply says this player can't make it, yet they still hold the spot (D107): red OUT tag. */
   heldOut?: boolean;
+  /** Scoring mode (D108): this on-court jersey answers "who scored?" — amber ring. */
+  pickable?: boolean;
 }
 
 /**
@@ -57,6 +59,7 @@ export const Jersey = memo(function Jersey({
   flash,
   time,
   heldOut,
+  pickable,
 }: JerseyProps) {
   const open = !name;
   const tc = textColor(color);
@@ -75,6 +78,7 @@ export const Jersey = memo(function Jersey({
         selected && 'selected',
         flash && 'flash',
         heldOut && !open && 'heldout',
+        pickable && !open && 'pickable',
       )}
       style={style}
       aria-label={label}

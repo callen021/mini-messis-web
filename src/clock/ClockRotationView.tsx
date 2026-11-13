@@ -53,8 +53,8 @@ export function ClockRotationView({
   const parentOut = planned.parentOut;
   const game = live.data ?? completedGames(games.data ?? [])[0] ?? null;
   const isLive = !!live.data;
-  const clockQ = useGameClock(game?.id, !!game);
-  const stintsQ = useStints(game?.id, !!game);
+  const clockQ = useGameClock(game?.id, !!game, isLive);
+  const stintsQ = useStints(game?.id, !!game, isLive);
   const clock = clockQ.data ?? PAUSED_CLOCK;
   const now = useServerNow(isLive && isRunning(clock));
 

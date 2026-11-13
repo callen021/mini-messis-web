@@ -260,12 +260,7 @@ function ChildHome({ child }: { child: Player }) {
       <Section>{live ? `${child.first_name} in this game` : `${child.first_name} in the next game`}</Section>
       <Group>
         {team.time_mode === 'clock' ? (
-          <ChildClockRow
-            child={child}
-            live={live}
-            starters={periods[0] ?? null}
-            formationFor={formationFor}
-          />
+          <ChildClockRow child={child} live={live} periods={periods} formationFor={formationFor} />
         ) : N === 0 || !inPlan ? (
           <Row
             label={

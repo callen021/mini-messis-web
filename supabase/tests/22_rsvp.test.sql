@@ -172,7 +172,7 @@ select pg_temp.logout();
 select pg_temp.login('f7000000-0000-0000-0000-000000000001');
 select lives_ok($$select public.set_rsvp('e7000000-0000-0000-0000-00000000000a', 'going', 'a7000000-0000-0000-0000-000000000001', null)$$,
   'the coach still can');
-select lives_ok(260select public.finish_game('a7000000-0000-0000-0000-000000000001')260, 'the game finishes as before');
+select lives_ok($$select public.finish_game('a7000000-0000-0000-0000-000000000001')$$, 'the game finishes as before');
 select is((select status::text from public.event_rsvps where game_id = 'a7000000-0000-0000-0000-000000000001' and player_id = 'e7000000-0000-0000-0000-00000000000a'),
   'going', 'the replies of a finished game stay as they were');
 select pg_temp.logout();

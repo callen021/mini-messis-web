@@ -55,7 +55,7 @@ const starters = { formation: '3-3', slots: ['c1', '', '', '', '', '', ''], auto
 function renderRow(liveGame: Game | null) {
   render(
     <TeamProviderForTests value={ctx}>
-      <ChildClockRow child={child} live={liveGame} starters={starters} formationFor={formationFor} />
+      <ChildClockRow child={child} live={liveGame} periods={[starters]} formationFor={formationFor} />
     </TeamProviderForTests>,
   );
 }

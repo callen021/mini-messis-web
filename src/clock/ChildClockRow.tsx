@@ -17,25 +17,28 @@ import { useServerNow } from './useNow';
 export function ChildClockRow({
   child,
   live,
-  starters,
+  periods,
   formationFor,
 }: {
   child: Player;
   live: Game | null;
-  starters: Period | null;
+  /** The plan's periods: the template's starters, or the live game's rows (the current one is used, D108). */
+  periods: readonly Period[];
   formationFor: (name: string) => Formation;
 }) {
   const { sport } = useCurrentTeam();
   const S = SPORTS[sport];
-  const clockQ = useGameClock(live?.id, !!live);
-  const stintsQ = useStints(live?.id, !!live);
+  const clockQ = useGameClock(live?.id, !!live, !!live);
+  const stintsQ = useStints(live?.id, !!live, !!live);
   const clock = clockQ.data ?? PAUSED_CLOCK;
   const now = useServerNow(!!live && isRunning(clock));
+  const starters = periods[0] ?? null;
 
   if (live) {
     const t = playerTimes(stintsQ.data ?? [], clock, now, [child.id]).get(child.id);
     if (!t) return <Row label="Loading…" />;
-    const f = starters ? formationFor(starters.formation) : null;
+    const current = periods[Math.min(clock.periodIndex, periods.length - 1)] ?? starters;
+    const f = current ? formationFor(current.formation) : null;
     const pos = t.onField && f ? f.positions[t.slot ?? -1] : undefined;
     return (
       <Row

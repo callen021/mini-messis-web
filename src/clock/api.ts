@@ -21,11 +21,18 @@ const fail = (error: DbErrorLike | null) => {
 export const clockKeys = {
   clock: (gameId: string) => ['game', gameId, 'clock'] as const,
   stints: (gameId: string) => ['game', gameId, 'stints'] as const,
+  formationChanges: (gameId: string) => ['game', gameId, 'formation-changes'] as const,
   seasonMinutes: (teamId: string) => ['team', teamId, 'season-minutes'] as const,
 };
 
-/** The game's clock as the server sees it; every read also corrects the device's clock skew. */
-export function useGameClock(gameId: string | undefined, enabled = true) {
+/** While a game is live the clock and the stints also poll, so a dropped realtime event costs seconds, not the half (D108). */
+const LIVE_POLL_MS = 10_000;
+
+/**
+ * The game's clock as the server sees it; every read also corrects the device's clock skew.
+ * `live` turns on the safety-net poll.
+ */
+export function useGameClock(gameId: string | undefined, enabled = true, live = false) {
   return useQuery({
     queryKey: clockKeys.clock(gameId ?? ''),
     queryFn: async (): Promise<ClockState> => {
@@ -43,6 +50,7 @@ export function useGameClock(gameId: string | undefined, enabled = true) {
       };
     },
     enabled: !!gameId && enabled,
+    refetchInterval: live ? LIVE_POLL_MS : false,
     staleTime: 0,
   });
 }
@@ -62,7 +70,7 @@ export function useServerTimeSync(active: boolean) {
   }, [active]);
 }
 
-export function useStints(gameId: string | undefined, enabled = true) {
+export function useStints(gameId: string | undefined, enabled = true, live = false) {
   return useQuery({
     queryKey: clockKeys.stints(gameId ?? ''),
     queryFn: async (): Promise<Stint[]> =>
@@ -76,6 +84,7 @@ export function useStints(gameId: string | undefined, enabled = true) {
           .order('created_at'),
       ),
     enabled: !!gameId && enabled,
+    refetchInterval: live ? LIVE_POLL_MS : false,
   });
 }
 
@@ -111,6 +120,12 @@ type ClockCall =
       }[];
     }
   | { kind: 'bench'; a: string; b: string }
+  /** Mid-game formation change (D108): the same players, new spots; stints continue at the clock second. */
+  | {
+      kind: 'formation';
+      formation: string;
+      slots: { position_role: string; position_code: string; player_id: string | null }[];
+    }
   | { kind: 'undo' };
 
 /** One mutation for every clock action: each is a single atomic server function (D66, D67). */
@@ -157,6 +172,17 @@ export function useClockAction(teamId: string, gameId: string) {
         case 'bench':
           fail((await supabase.rpc('clock_bench_swap', { ...g, p_a: call.a, p_b: call.b })).error);
           return null;
+        case 'formation':
+          fail(
+            (
+              await supabase.rpc('clock_change_formation', {
+                ...g,
+                p_formation_name: call.formation,
+                p_slots: call.slots as unknown as Json,
+              })
+            ).error,
+          );
+          return null;
         case 'undo': {
           const res = await supabase.rpc('clock_undo', g);
           fail(res.error);
@@ -165,6 +191,22 @@ export function useClockAction(teamId: string, gameId: string) {
       }
     },
     onSettled: invalidate,
+  });
+}
+
+/** The formation changes of a game, in order, with the clock second they happened at (D108). */
+export interface FormationChange {
+  period_index: number;
+  clock_seconds: number;
+  from_formation: string;
+  to_formation: string;
+}
+export function useFormationChanges(gameId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: clockKeys.formationChanges(gameId ?? ''),
+    queryFn: async (): Promise<FormationChange[]> =>
+      unwrap(await supabase.rpc('formation_changes', { p_game_id: gameId as string })) as FormationChange[],
+    enabled: !!gameId && enabled,
   });
 }
 

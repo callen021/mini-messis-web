@@ -10,13 +10,15 @@ import { type StoredPeriod } from '@/lineups/convert';
 import { SPORTS, shortPeriod } from '@/sports/definitions';
 import { type Player } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
-import { useGameClock, useStintCorrections, useStints } from './api';
+import { useFormations } from '@/lineups/api';
+import { useFormationChanges, useGameClock, useStintCorrections, useStints } from './api';
 import {
   PAUSED_CLOCK,
   type Stint,
   formatClock,
   formatMinutes,
   isRunning,
+  minuteLabel,
   playerTimes,
   starters,
 } from './clock';
@@ -44,10 +46,12 @@ export function PlayingTimeSection({
   periods: readonly StoredPeriod[];
   canEdit: boolean;
 }) {
-  const { teamId, team } = useCurrentTeam();
+  const { teamId, team, sport } = useCurrentTeam();
   const N = team.clock_periods;
-  const clockQ = useGameClock(gameId);
-  const stintsQ = useStints(gameId);
+  const clockQ = useGameClock(gameId, true, status === 'live');
+  const stintsQ = useStints(gameId, true, status === 'live');
+  const changesQ = useFormationChanges(gameId);
+  const { formationFor } = useFormations();
   const clock = clockQ.data ?? PAUSED_CLOCK;
   const now = useServerNow(status === 'live' && isRunning(clock));
   const stints = useMemo(() => stintsQ.data ?? [], [stintsQ.data]);
@@ -61,6 +65,13 @@ export function PlayingTimeSection({
   const times = useMemo(() => playerTimes(stints, clock, now, ids), [stints, clock, now, ids]);
   const first = periods[0];
   const startMap = starters(stints);
+  // a mid-game formation change (D108) rewrites the period's row: the starters keep the kickoff shape
+  const changes = changesQ.data ?? [];
+  const kickoff = changes.find((c) => c.period_index === 0);
+  const kickoffName = kickoff ? kickoff.from_formation : (first?.formation ?? '');
+  const kickoffCodes = kickoff
+    ? formationFor(kickoff.from_formation).positions.map((p) => p.code)
+    : (first?.codes ?? []);
   const rows = ids
     .map((id) => ({ id, t: times.get(id) }))
     .filter((r) => r.t && (r.t.seconds > 0 || r.t.onField || players.some((p) => p.id === r.id)))
@@ -78,9 +89,9 @@ export function PlayingTimeSection({
             className="lineuprow"
             label={
               <>
-                <b>Starters{first.formation ? ` · ${first.formation}` : ''}</b>
+                <b>Starters{kickoffName ? ` · ${kickoffName}` : ''}</b>
                 <div className="lulist">
-                  {first.codes.map((code, i) => {
+                  {kickoffCodes.map((code, i) => {
                     const id = startMap.get(i);
                     return (
                       <span key={i} className="lu">
@@ -93,6 +104,13 @@ export function PlayingTimeSection({
             }
           />
         )}
+        {changes.map((c, i) => (
+          <Row
+            key={`f${i}`}
+            label={`Formation ${c.from_formation} → ${c.to_formation}`}
+            value={`${N > 1 ? `${shortPeriod(SPORTS[sport], N, c.period_index)} ` : ''}${minuteLabel(c.clock_seconds)}`}
+          />
+        ))}
         {rows.map(({ id, t }) => (
           <Row
             key={id}

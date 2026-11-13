@@ -38,6 +38,8 @@ test.describe('coach and parent flows', () => {
   let joinCode = '';
   /** The player left on the bench once the clock-mode starters are set (D70 tests). */
   let benchPlayer = '';
+  /** The formation at kickoff of the clock game, before the mid-game change (D108). */
+  let kickoffFormation = '';
 
   test.beforeAll(async ({ browser }) => {
     [coachCtx, coach] = await fresh(browser);
@@ -847,7 +849,9 @@ test.describe('coach and parent flows', () => {
     await expect(sheet).toBeHidden();
     await coach.goto('/field');
     await expect(coach.getByRole('heading', { level: 2, name: 'H1' })).toBeVisible();
-    await expect(coach.getByLabel('20:00 left, paused')).toBeVisible();
+    // the clock never ran: the chip is amber and, for staff, a button (D108)
+    await expect(coach.locator('.gclock.warn')).toBeVisible();
+    await expect(coach.getByRole('button', { name: /Clock not started, 20:00/ })).toBeVisible();
     await coach.getByRole('button', { name: 'Start clock' }).click();
     await expect(coach.locator('.gclock.run')).toBeVisible();
     await expect(coach.getByRole('button', { name: 'Pause' })).toBeVisible();
@@ -858,6 +862,20 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByRole('button', { name: /Start clock|Pause|End H1|Undo/ })).toHaveCount(0);
     await expect(parent.locator('.slot .shirt').first()).toBeDisabled();
     await expect(parent.getByRole('group', { name: 'Bench' })).toContainText('Bench · 1');
+    await expect(parent.getByRole('button', { name: /Start the clock/ })).toHaveCount(0);
+  });
+
+  test('the game bar at 375px: formation chip, clock and score never overlap, light and dark (D108)', async () => {
+    await coach.setViewportSize({ width: 375, height: 812 });
+    for (const scheme of ['light', 'dark'] as const) {
+      await coach.emulateMedia({ colorScheme: scheme });
+      await coach.goto('/field');
+      await expect(coach.locator('.gclock')).toBeVisible();
+      await expect(noHeaderOverlap(coach), `header overlap (${scheme})`).resolves.toEqual([]);
+    }
+    await coach.emulateMedia({ colorScheme: null });
+    await coach.setViewportSize({ width: 412, height: 915 });
+    await coach.goto('/field');
   });
 
   test('a substitution on the running clock shows on both devices; undo reverses it', async () => {
@@ -893,6 +911,46 @@ test.describe('coach and parent flows', () => {
       ignoreCase: true,
       timeout: 15_000,
     });
+  });
+
+  test('a formation change while the clock is paused keeps the same players, the keeper in goal and the minutes (D108)', async () => {
+    await expect(coach.getByLabel(/19:[45]\d left, running/)).toBeVisible({ timeout: 20_000 });
+    await coach.getByRole('button', { name: 'Pause' }).click();
+    await expect(coach.getByLabel(/left, paused/)).toBeVisible();
+    const select = coach.getByRole('combobox', { name: 'Formation' });
+    await expect(select).toBeVisible();
+    const current = await select.inputValue();
+    kickoffFormation = current;
+    const options = await select.locator('option').allTextContents();
+    const target = options.find((o) => o !== current) ?? '';
+    const namesBefore = (await coach.locator('.slot .shirt .name').allTextContents()).map((n) => n.trim());
+    const gkBefore = (
+      await coach
+        .locator('.slot .shirt')
+        .filter({ has: coach.locator('.code', { hasText: /^GK$/ }) })
+        .locator('.name')
+        .textContent()
+    )?.trim();
+    await select.selectOption(target);
+    await expect(coach.getByRole('status').filter({ hasText: `Formation ${target}` })).toBeVisible();
+    await expect(select).toHaveValue(target);
+    const namesAfter = (await coach.locator('.slot .shirt .name').allTextContents()).map((n) => n.trim());
+    expect([...namesAfter].sort()).toEqual([...namesBefore].sort());
+    await expect(
+      coach
+        .locator('.slot .shirt')
+        .filter({ has: coach.locator('.code', { hasText: /^GK$/ }) })
+        .locator('.name'),
+    ).toHaveText(gkBefore ?? '', { ignoreCase: true });
+    // the parent's field follows; the game page logs the change; the Rotation view counts no extra shift
+    await expect(parent.locator('.pill', { hasText: target })).toBeVisible({ timeout: 15_000 });
+    await coach.goto('/games');
+    await coach.getByRole('button', { name: /In progress · vs Lions/ }).click();
+    await expect(coach.getByText(`Formation ${current} → ${target}`)).toBeVisible();
+    await expect(coach.getByText(/1 shift · on the field at/).first()).toBeVisible();
+    await coach.goto('/field');
+    await coach.getByRole('button', { name: 'Resume' }).click();
+    await expect(coach.locator('.gclock.run')).toBeVisible();
   });
 
   test('pause, end the half: the second half starts at zero with the same players', async () => {
@@ -964,7 +1022,11 @@ test.describe('coach and parent flows', () => {
     await coach.goto('/field');
     await expect(coach.getByRole('heading', { level: 2, name: 'Starters' })).toBeVisible();
     await expect(coach.locator('.slot .shirt .name')).toHaveCount(7);
-    expect(await coach.locator('.slot .shirt .name').allTextContents()).toEqual(starters);
+    // the same players as the kickoff, in the kickoff shape, not the formation changed mid-game (D108)
+    expect((await coach.locator('.slot .shirt .name').allTextContents()).sort()).toEqual(
+      [...starters].sort(),
+    );
+    await expect(coach.getByRole('combobox', { name: 'Formation' })).toHaveValue(kickoffFormation);
     await coach.goto('/stats');
     await coach.getByRole('radio', { name: 'Season' }).click();
     await expect(coach.locator('.stathead .stat', { hasText: 'MIN' })).toBeVisible();
@@ -1070,7 +1132,125 @@ test.describe('coach and parent flows', () => {
     await expect(coach.locator('.qcard')).toHaveCount(4);
     await expect(coach.locator('.benchrow')).toHaveCount(4);
   });
+
+  test('basketball quick scoring: Them at once, Us asks who scored, Team, Undo, the clock nudge, no scrolling at 375px (D108)', async () => {
+    await coach.goto('/create-team');
+    await coach.getByLabel('Team name').fill(`Hoops ${run}`);
+    await coach.getByRole('button', { name: /^Basketball/ }).click();
+    await coach.getByRole('button', { name: 'Create team' }).click();
+    await expect(coach).toHaveURL(/\/field$/);
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await coach.getByRole('button', { name: 'Edit roster' }).click();
+    for (const [i, name] of ['Ada', 'Bea', 'Cam', 'Dev', 'Eve', 'Fin'].entries()) {
+      await coach.getByRole('button', { name: 'Add player' }).first().click();
+      const sheet = coach.getByRole('dialog', { name: 'Add player' });
+      await sheet.getByLabel('First name').fill(name);
+      await sheet.getByLabel('Jersey number (optional)').fill(String(i + 1));
+      await sheet.getByRole('button', { name: 'Add player' }).click();
+      await expect(sheet).toBeHidden();
+    }
+    await coach.getByRole('button', { name: 'Done' }).click();
+    // the score tap with nothing scheduled: a sheet with New game only (D108)
+    await coach.setViewportSize({ width: 375, height: 812 });
+    await coach.goto('/field');
+    await coach.getByRole('button', { name: /Start a game and record points/ }).click();
+    const start = coach.getByRole('dialog', { name: 'Start a game' });
+    await expect(start.getByRole('button', { name: /^Start vs/ })).toHaveCount(0);
+    await start.getByRole('button', { name: 'New game' }).click();
+    const form = coach.getByRole('dialog', { name: 'Start a game to record the score' });
+    await form.getByLabel('Opponent').fill('Hawks');
+    await form.getByRole('button', { name: 'Start game' }).click();
+    await expect(form).toBeHidden();
+    await expect(coach.locator('.gclock.warn')).toBeVisible();
+    await coach.getByRole('button', { name: 'Auto-fill' }).click();
+    await expect(coach.locator('.slot .shirt.open')).toHaveCount(0);
+    await expect(coach.getByRole('group', { name: 'Quick scoring' })).toBeVisible();
+    // the whole page fits: no vertical scrolling at 375 × 812
+    const fits = await coach.evaluate(() => ({
+      scroll: document.documentElement.scrollHeight,
+      inner: window.innerHeight,
+    }));
+    expect(fits.scroll, `page scrolls: ${fits.scroll} > ${fits.inner}`).toBeLessThanOrEqual(fits.inner + 1);
+    await expect(noHeaderOverlap(coach), 'basketball header overlap').resolves.toEqual([]);
+    await test.info().attach('basketball-live-375', {
+      body: await coach.screenshot(),
+      contentType: 'image/png',
+    });
+    // Them: one tap. The first score with the clock never run asks once.
+    await coach.getByRole('button', { name: 'Them +3, three-pointer' }).click();
+    const nudge = coach.getByRole('dialog', { name: 'Start the clock?' });
+    await expect(nudge).toBeVisible();
+    await nudge.getByRole('button', { name: 'Not now' }).click();
+    await expect(coach.getByLabel('Score 0 to 3. Add a score')).toBeVisible();
+    await expect(coach.locator('.qslast')).toContainText('Hawks +3');
+    // Us: who scored? → a jersey
+    await coach.getByRole('button', { name: 'Us +2, field goal' }).click();
+    await expect(coach.getByText('Who scored the +2?')).toBeVisible();
+    await expect(coach.locator('.slot .shirt.pickable')).toHaveCount(5);
+    const first = coach.locator('.slot .shirt').first();
+    const scorer = (await first.locator('.name').textContent())?.trim() ?? '';
+    await first.click();
+    await expect(coach.getByLabel('Score 2 to 3. Add a score')).toBeVisible();
+    await expect(coach.locator('.qslast')).toContainText(new RegExp(`${scorer} \\+2`, 'i'));
+    await expect(coach.getByRole('dialog', { name: 'Start the clock?' })).toHaveCount(0);
+    await expect(coach.locator('.slot .shirt.pickable')).toHaveCount(0);
+    // Undo removes the last entry
+    await coach.locator('.qslast').getByRole('button', { name: 'Undo' }).click();
+    await expect(coach.getByLabel('Score 0 to 3. Add a score')).toBeVisible();
+    // Team: points with no scorer (the 400 ms double-tap guard applies to every score tap)
+    await coach.waitForTimeout(500);
+    await coach.getByRole('button', { name: 'Us +1, free throw' }).click();
+    await coach.getByRole('button', { name: 'Team', exact: true }).click();
+    await expect(coach.getByLabel('Score 1 to 3. Add a score')).toBeVisible();
+    await expect(coach.locator('.qslast')).toContainText('Team +1');
+    // Cancel leaves scoring mode; an ordinary jersey tap still selects for a swap
+    await coach.getByRole('button', { name: 'Us +3, three-pointer' }).click();
+    await coach.getByRole('button', { name: 'Cancel' }).click();
+    await expect(coach.locator('.slot .shirt.pickable')).toHaveCount(0);
+    await first.click();
+    await expect(coach.getByText(new RegExp(`Tap a player to swap with ${scorer}`, 'i'))).toBeVisible();
+    await first.click();
+    // the amber chip starts the clock
+    await coach.locator('.gclock.warn').click();
+    await expect(coach.locator('.gclock.run')).toBeVisible();
+    await coach.emulateMedia({ colorScheme: 'dark' });
+    await expect(noHeaderOverlap(coach), 'basketball header overlap (dark)').resolves.toEqual([]);
+    await test.info().attach('basketball-live-375-dark', {
+      body: await coach.screenshot(),
+      contentType: 'image/png',
+    });
+    await coach.emulateMedia({ colorScheme: null });
+    await coach.setViewportSize({ width: 412, height: 915 });
+  });
 });
+
+/** Pairs of header chips whose boxes overlap, or chips outside the card: empty when the bar is clean (D108). */
+async function noHeaderOverlap(page: Page): Promise<string[]> {
+  const sels = ['.qhead h2', '.qhead .openpill', '.qhead .sel', '.qhead .pill', '.gclock', '.qhead .score'];
+  const boxes: { sel: string; x: number; y: number; w: number; h: number }[] = [];
+  for (const sel of sels) {
+    const loc = page.locator(sel).first();
+    if ((await loc.count()) === 0) continue;
+    const b = await loc.boundingBox();
+    if (b && b.width > 0 && b.height > 0) boxes.push({ sel, x: b.x, y: b.y, w: b.width, h: b.height });
+  }
+  const card = await page.locator('.qcard').first().boundingBox();
+  const bad: string[] = [];
+  for (let i = 0; i < boxes.length; i++) {
+    const a = boxes[i];
+    if (!a) continue;
+    if (card && a.x + a.w > card.x + card.width + 1) bad.push(`${a.sel} past the card edge`);
+    for (let j = i + 1; j < boxes.length; j++) {
+      const b = boxes[j];
+      if (!b) continue;
+      const apart =
+        a.x + a.w <= b.x + 1 || b.x + b.w <= a.x + 1 || a.y + a.h <= b.y + 1 || b.y + b.h <= a.y + 1;
+      if (!apart) bad.push(`${a.sel} × ${b.sel}`);
+    }
+  }
+  return bad;
+}
 
 /** Pick a player button in the goal sheet (D96); bench players sit behind a toggle. */
 async function pickPlayer(sheet: Locator, group: string, name: string) {

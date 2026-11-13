@@ -726,7 +726,8 @@ template's starters (saved into every template period so `start_game` and a swit
 mode both find a complete plan); during a game each outcome is one server call on the running
 clock; on-field jerseys show the current shift and bench jerseys minutes played and time resting,
 fewest minutes then longest rest first (`benchOrder()`). The formation can change while the clock
-stands at zero (`clock_set_lineup`), never mid-period. Staff get Start / Pause / Resume, End H1,
+stands at zero (`clock_set_lineup`); since D108 a soccer team may also change it mid-game while the
+clock is paused (`clock_change_formation`, the same players kept). Staff get Start / Pause / Resume, End H1,
 Undo and, at zero, Auto-fill or Suggest starters; parents see the clock and the bench read-only
 with their child starred. The bench row and small jerseys exist in clock mode only: period mode
 keeps its "Sitting out" strip exactly as before (asked for explicitly).
@@ -1048,7 +1049,8 @@ taps one-handed at 375px and nothing opens that the clock could close.
 
 Team setup allows one period in both modes for every sport where it makes sense (soccer,
 basketball, lacrosse and football; baseball keeps its innings). `periodName(1)` is "Game": the
-Field shows a single card called Game, the Rotation column is headed Game, and no copy says
+Field shows a single card called Game (its title is for screen readers only since D108, so the chips
+in the bar never overlap it), the Rotation column is headed Game, and no copy says
 "1 half" or "1 quarter" (`periodCountText` says "one period", `periodsNoun` "period", the totals
 column is "Played"). In clock mode with one period: one continuous clock with Start and Pause, no
 End control, a Finish game button that goes to the game page, the optional period length is the
@@ -1243,3 +1245,52 @@ clears the player from the plan at once, and a reply for a game three weeks out 
   rules (`src/rsvp/rsvp.ts`), a Playwright flow (parent replies from Home, the coach sees the
   count, the tagged jersey and the attendance list, overrides it) and 375px checks in light and
   dark. Replies are realtime like everything else on the team channel.
+
+### D108. The live game: quick scoring, the clock nudge, the start sheet, a formation change, the bar
+
+Five changes to the clock-mode Field during a game, after the first games with real coaches.
+
+- **Basketball quick scoring.** During a live basketball game a row sits between the bench and the
+  action bar: Us +1 +2 +3 on the left, Them +1 +2 +3 on the right. A Them tap records the points
+  at once. An Us tap arms scoring mode: the on-court jerseys get an amber ring, the hint line reads
+  "Who scored the +2?" with Team (no scorer) and Cancel, and the next jersey tap records the
+  scorer — nothing else happens on that tap. Outside scoring mode jersey taps are exactly the swap
+  and substitution taps of D70. A fixed-height line under the row confirms "Nolan +2" with Undo,
+  which deletes that event once the insert has settled (the bar's Undo stays the clock-op undo).
+  No assists for basketball; entries are edited on the game page as before. To fit at 375 × 812
+  without scrolling the court is drawn at 84% width and the long help paragraph is not shown
+  during a live basketball game. Soccer and the other sports keep the score sheet.
+- **The clock never starts on its own.** While a live game's clock has never run (first period,
+  nothing banked, nothing ended, paused) staff see the clock chip in amber and it is a button that
+  starts the clock; parents see the plain chip. The first score with the clock never run asks
+  "Start the clock?" once per game on that device (`localStorage`); a substitution does not ask,
+  because coaches rearrange the lineup before kickoff and the amber chip covers that case.
+- **The score tap with no live game** opens a sheet: "Start vs Lions · Fri, Nov 20 · 10:00 AM"
+  for the next scheduled game (the same `plannedGame()` rule as D107: first upcoming dated today
+  or later), then "New game", which opens the existing start form. A game not dated today asks
+  "This game is scheduled for …. Start it now?" first. Starting the scheduled game applies its
+  RSVPs. With nothing scheduled the sheet offers only "New game". Same on the period-mode Field.
+- **A soccer formation change mid-game**, only while the clock is paused and has run in this
+  period (at 0:00 the lineup rewrite of D70 still applies). `clock_change_formation` keeps the same
+  players: the keeper stays in a keeper spot, everyone else goes to the nearest position of the
+  new shape (`remapByDistance`, closest pairs first), and the coach adjusts by tapping as usual.
+  Minutes are untouched: every open stint is closed at the clock second and reopened at once with
+  the new role and code and `stints.continues = true`, so the position-group split of a player's
+  time is exact, while the rotation view, the Playing time rows and the parent's row count no
+  extra shift and keep the shift time running (`playerTimes` follows a continuation chain). The
+  change is a clock op (`kind = 'formation'`, stamped with `clock_seconds`, holding the previous
+  formation and slots so Undo restores the shape as well as the stints); every new op is stamped
+  from now on. The next period carries the formation in force when the period ended. The game
+  page's Playing time section lists "Formation 2-3-1 → 3-3 · H1 23'" from `formation_changes()`
+  and keeps the Starters row in the kickoff shape. `finish_game` writes the kickoff formation and
+  the kickoff starters to the template, as before, even after a change — a mid-game change is
+  not the next game's plan. The sport gate lives in the database: another sport gets P0015. "Up
+  next" is unaffected (the bench queue holds players, not spots). pgTAP 23 (58 assertions).
+  A change fires a burst of realtime events (slots deleted and re-created, every stint closed and
+  reopened), and in the flow a parent's page sometimes missed the games update that followed, so a
+  live game's clock and stints now also poll every 10 seconds (`useGameClock` / `useStints` with
+  `live`): a dropped event costs seconds, not the half. Finished games do not poll.
+- **The game bar at phone width.** The one-period card's "Game" title is kept for screen readers
+  only; the title side of the header may shrink and clip, the formation pill clips with an
+  ellipsis, the select is capped at 104px, and the clock and score chips keep their size, so
+  nothing overlaps at 375px in light or dark (D97 amended; D70 amended for the formation change).

@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/Toast';
 import { makeNameLookup } from '@/games/names';
+import type * as LineupsApi from '@/lineups/api';
 import { type StoredPeriod } from '@/lineups/convert';
 import { type Player, type Team } from '@/teams/api';
 import { TeamProviderForTests, type TeamContextValue } from '@/teams/TeamContext';
@@ -16,7 +17,15 @@ vi.mock('../api', () => ({
   useGameClock: () => ({ data: clock, isPending: false }),
   useStints: () => ({ data: stints, isPending: false }),
   useStintCorrections: () => ({ mutate: correct, isPending: false }),
+  useFormationChanges: () => ({ data: [], isPending: false }),
 }));
+vi.mock('@/lineups/api', async () => {
+  const actual = await vi.importActual<typeof LineupsApi>('@/lineups/api');
+  return {
+    ...actual,
+    useFormations: () => ({ forms: [], formationFor: () => ({ name: '', w: 0, positions: [] }) }),
+  };
+});
 vi.mock('../useNow', () => ({ useServerNow: () => Date.parse('2026-11-12T15:00:00Z') }));
 
 const mk = (id: string, first_name: string, n: string): Player => ({

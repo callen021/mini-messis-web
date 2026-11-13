@@ -124,7 +124,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const log = events.data ?? [];
   const periods = lineups.data ?? [];
   const clockMode = team.time_mode === 'clock';
-  const gameClock = useGameClock(game.id, clockMode && game.status === 'live');
+  const gameClock = useGameClock(game.id, clockMode && game.status === 'live', game.status === 'live');
   const periodCount = Math.max(
     periods.length,
     clockMode ? team.clock_periods : team.periods_count,

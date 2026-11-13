@@ -50,6 +50,14 @@ export interface ClockCardProps {
   parentOut?: ReadonlySet<string>;
   /** Trailing bench note: the players marked out, coach flag or parent reply (D107). */
   outText?: string;
+  /** The one-period "Game" title stays for screen readers only, so the chips never overlap it (D108). */
+  hideTitle?: boolean;
+  /** Scoring mode (D108): the on-court jerseys answer "who scored?". */
+  pickable?: boolean;
+  /** Replaces the "Open the spot" button in the hint line (scoring mode: Team / Cancel). */
+  hintExtra?: ReactNode;
+  /** A shorter court, so the quick-scoring row fits above the bar without scrolling (D108). */
+  compact?: boolean;
 }
 
 const NOBODY: ReadonlySet<string> = new Set();
@@ -83,6 +91,10 @@ export function ClockCard({
   benchEmptyText,
   parentOut = NOBODY,
   outText,
+  hideTitle,
+  pickable,
+  hintExtra,
+  compact,
 }: ClockCardProps) {
   const byId = new Map(players.map((p) => [p.id, p]));
   // the only thing on the page that re-renders every second (D95)
@@ -100,10 +112,10 @@ export function ClockCard({
   const openCount = slots.filter((s) => !s).length;
   const benchColor = colors[S.groups[0]?.[0] ?? ''] ?? '#888';
   return (
-    <article className="qcard clockcard">
+    <article className={`qcard clockcard${compact ? ' compact' : ''}`}>
       <div className="qhead">
         <div className="qleft">
-          <h2>{title}</h2>
+          <h2 className={hideTitle ? 'sr-only' : undefined}>{title}</h2>
           <OpenPill open={openCount} />
         </div>
         <div className="qright">
@@ -152,7 +164,8 @@ export function ClockCard({
               flash={!!pid && flashing.has(pid)}
               time={pid ? slotTimes?.[i] : undefined}
               heldOut={!!pid && parentOut.has(pid)}
-              label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}`}
+              pickable={pickable && !!pid}
+              label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}${pickable && pid ? ', tap to credit the points' : ''}`}
               onClick={canEdit ? () => onTapSlot(i) : undefined}
               readOnly={!canEdit}
             />
@@ -177,11 +190,12 @@ export function ClockCard({
             {hint ||
               'Tap a jersey, then another, to swap them. Tap an open spot, then a bench player, to fill it.'}
           </span>
-          {selected?.kind === 'field' && onOpenSpot && (
-            <Button size="sm" variant="gray" onClick={onOpenSpot}>
-              Open the spot
-            </Button>
-          )}
+          {hintExtra ??
+            (selected?.kind === 'field' && onOpenSpot && (
+              <Button size="sm" variant="gray" onClick={onOpenSpot}>
+                Open the spot
+              </Button>
+            ))}
         </div>
       )}
     </article>

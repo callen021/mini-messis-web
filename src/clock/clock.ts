@@ -99,6 +99,8 @@ export interface Stint {
   position_code: string;
   clock_start: number;
   clock_end: number | null;
+  /** Continues the player's previous stint after a formation change (D108): no new shift. */
+  continues?: boolean;
 }
 
 /** Seconds a stint has lasted at `nowMs`: closed ones are fixed, open ones run with the clock. */
@@ -111,7 +113,7 @@ export function stintSeconds(stint: Stint, state: ClockState, nowMs: number): nu
 export interface PlayerTime {
   /** Seconds on the field this game. */
   seconds: number;
-  /** Stints with any length, plus the open one. */
+  /** Stints with any length, plus the open one; a continuation after a formation change does not count. */
   shifts: number;
   onField: boolean;
   /** Spot and code while on the field. */
@@ -143,17 +145,29 @@ export function playerTimes(
       restSeconds: nowTotal,
     });
   const lastOff = new Map<string, number>();
-  for (const st of stints) {
+  // where the current run of stints began: a continuation (formation change) keeps the shift going
+  const chainStart = new Map<string, { period: number; start: number }>();
+  const ordered = [...stints].sort(
+    (a, b) =>
+      a.period_index - b.period_index ||
+      a.clock_start - b.clock_start ||
+      Number(!!a.continues) - Number(!!b.continues),
+  );
+  for (const st of ordered) {
     const t = out.get(st.player_id);
     if (!t) continue;
     const secs = stintSeconds(st, state, nowMs);
     t.seconds += secs;
-    if (secs > 0 || st.clock_end === null) t.shifts += 1;
+    const prev = chainStart.get(st.player_id);
+    const continues = !!st.continues && !!prev && prev.period === st.period_index;
+    if (!continues) chainStart.set(st.player_id, { period: st.period_index, start: st.clock_start });
+    if ((secs > 0 || st.clock_end === null) && !continues) t.shifts += 1;
     if (st.clock_end === null && st.period_index === state.periodIndex) {
       t.onField = true;
       t.slot = st.slot_index;
       t.code = st.position_code;
-      t.shiftSeconds = secs;
+      const start = chainStart.get(st.player_id)?.start ?? st.clock_start;
+      t.shiftSeconds = Math.max(0, elapsedAt(state, nowMs) - start);
       t.restSeconds = 0;
     } else if (st.clock_end !== null) {
       const off = cumulativeSeconds(state, st.period_index, st.clock_end);
@@ -192,7 +206,7 @@ export function minutesBalance(seconds: readonly number[]): MinutesBalance | nul
 export function starters(stints: readonly Stint[]): Map<number, string> {
   const out = new Map<number, string>();
   for (const st of stints) {
-    if (st.period_index === 0 && st.clock_start === 0 && !out.has(st.slot_index))
+    if (st.period_index === 0 && st.clock_start === 0 && !st.continues && !out.has(st.slot_index))
       out.set(st.slot_index, st.player_id);
   }
   return out;

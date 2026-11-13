@@ -58,6 +58,7 @@ vi.mock('@/games/api', () => ({
   useAddScoreEvent: () => ({ mutate: vi.fn() }),
   useDeleteScoreEvent: () => ({ mutate: vi.fn() }),
   useCreateGame: () => ({ mutate: vi.fn(), isPending: false }),
+  useStartGame: () => ({ mutate: startGame, isPending: false }),
 }));
 vi.mock('../api', () => ({
   useClockAction: () => ({ mutate: act, isPending: false }),
@@ -73,9 +74,17 @@ vi.mock('../useNow', () => ({
   useServerNow: (active: boolean, stepMs?: number) => useNowImpl(active, stepMs),
 }));
 vi.mock('../useWakeLock', () => ({ useWakeLock: () => undefined }));
+let plannedGame: {
+  id: string;
+  opponent: string;
+  game_date: string;
+  start_time: string | null;
+  status: 'upcoming';
+} | null = null;
+const startGame = vi.fn();
 vi.mock('@/rsvp/api', () => ({
   usePlannedGame: () => ({
-    game: null,
+    game: plannedGame,
     replies: new Map(),
     parentOut: new Set<string>(),
     byParent: new Set<string>(),
@@ -465,5 +474,106 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(screen.getByLabelText('Full time')).toHaveTextContent('FT');
     expect(screen.getByRole('button', { name: 'Finish on the game page' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /End H/ })).not.toBeInTheDocument();
+  });
+});
+
+describe('ClockFieldPage · the live game round (D108)', () => {
+  beforeEach(() => {
+    act.mockReset();
+    startGame.mockReset();
+    staff = true;
+    plannedGame = null;
+    liveGame = { id: 'g1', opponent: 'Lions' };
+    periods = [stored(STARTERS, 0), stored(STARTERS, 1)];
+    stints = STARTERS.map((id, i) =>
+      stint({ player_id: id, slot_index: i, position_code: f33.positions[i]?.code ?? '' }),
+    );
+    clock = { periodIndex: 0, clockSeconds: 0, runningSince: null, periodLengths: [] };
+    localStorage.clear();
+  });
+
+  it('the clock that never ran is an amber button for staff that starts it; a plain chip for parents', async () => {
+    renderPage();
+    const chip = screen.getByRole('button', { name: /Clock not started, 25:00. Start the clock/ });
+    expect(chip).toHaveClass('warn');
+    await userEvent.click(chip);
+    expect(act).toHaveBeenCalledWith({ kind: 'start' }, expect.anything());
+  });
+
+  it('once the clock has run the chip is the plain clock again', () => {
+    clock = { periodIndex: 0, clockSeconds: 120, runningSince: null, periodLengths: [] };
+    renderPage();
+    expect(screen.queryByRole('button', { name: /Start the clock/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('23:00 left, paused')).toBeInTheDocument();
+  });
+
+  it('parents never get the start button', () => {
+    staff = false;
+    renderPage();
+    expect(screen.queryByRole('button', { name: /Start the clock/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('25:00 left, paused')).toBeInTheDocument();
+  });
+
+  it('soccer, paused mid-period: the formation select changes shape with the same players (nearest spots)', async () => {
+    clock = { periodIndex: 0, clockSeconds: 600, runningSince: null, periodLengths: [] };
+    renderPage();
+    const select = screen.getByRole('combobox', { name: 'Formation' });
+    await userEvent.selectOptions(select, '2-3-1');
+    expect(act).toHaveBeenCalledTimes(1);
+    const call = act.mock.calls[0]?.[0] as {
+      kind: string;
+      formation: string;
+      slots: { player_id: string | null; position_role: string }[];
+    };
+    expect(call.kind).toBe('formation');
+    expect(call.formation).toBe('2-3-1');
+    expect(
+      call.slots
+        .map((x) => x.player_id)
+        .filter(Boolean)
+        .sort(),
+    ).toEqual([...STARTERS].sort());
+    // the keeper stays in goal
+    const gk = call.slots.findIndex((x) => x.position_role === 'GK');
+    expect(call.slots[gk]?.player_id).toBe('p7');
+  });
+
+  it('while the clock runs the formation is a pill, not a select', () => {
+    clock = { periodIndex: 0, clockSeconds: 600, runningSince: '2026-11-12T14:59:00Z', periodLengths: [] };
+    renderPage();
+    expect(screen.queryByRole('combobox', { name: 'Formation' })).not.toBeInTheDocument();
+    expect(screen.getByText('3-3', { selector: '.pill' })).toBeInTheDocument();
+  });
+
+  it('the score tap with no live game offers the next scheduled game, then confirms when it is not today', async () => {
+    liveGame = null;
+    plannedGame = {
+      id: 'g9',
+      opponent: 'Bears',
+      game_date: '2099-01-02',
+      start_time: '10:00',
+      status: 'upcoming',
+    };
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /Start a game and record/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Start a game' });
+    expect(within(sheet).getByRole('button', { name: /^New game$/ })).toBeInTheDocument();
+    await userEvent.click(within(sheet).getByRole('button', { name: /Start vs Bears · .*10:00 AM/ }));
+    const confirm = await screen.findByRole('dialog', { name: 'Start it now?' });
+    expect(confirm).toHaveTextContent('This game is scheduled for');
+    await userEvent.click(within(confirm).getByRole('button', { name: 'Start game' }));
+    expect(startGame).toHaveBeenCalledWith('g9', expect.anything());
+  });
+
+  it('with nothing scheduled the sheet offers only New game, which opens the form', async () => {
+    liveGame = null;
+    renderPage();
+    await userEvent.click(screen.getByRole('button', { name: /Start a game and record/ }));
+    const sheet = await screen.findByRole('dialog', { name: 'Start a game' });
+    expect(within(sheet).queryByRole('button', { name: /Start vs/ })).not.toBeInTheDocument();
+    await userEvent.click(within(sheet).getByRole('button', { name: /^New game$/ }));
+    expect(
+      await screen.findByRole('dialog', { name: 'Start a game to record the score' }),
+    ).toBeInTheDocument();
   });
 });

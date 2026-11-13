@@ -9,7 +9,14 @@ import { Footer } from '@/components/List';
 import { useActionSheet } from '@/components/Sheet';
 import { useToast } from '@/components/Toast';
 import { Segmented } from '@/components/Segmented';
-import { useAddScoreEvent, useCreateGame, useDeleteScoreEvent, useScoreEvents } from '@/games/api';
+import {
+  useAddScoreEvent,
+  useCreateGame,
+  useDeleteScoreEvent,
+  useScoreEvents,
+  useStartGame,
+} from '@/games/api';
+import { fmtDate, fmtTime, todayISO } from '@/games/format';
 import { LineupPage } from '@/games/LineupPage';
 import { makeNameLookup, periodSuffix } from '@/games/names';
 import { NewGameSheet } from '@/games/NewGameSheet';
@@ -64,6 +71,7 @@ function PeriodFieldPage() {
   const addEvent = useAddScoreEvent(teamId, plan.gameId ?? '');
   const deleteEvent = useDeleteScoreEvent(teamId, plan.gameId ?? '');
   const createGame = useCreateGame(teamId);
+  const startGame = useStartGame(teamId);
   const [scoring, setScoring] = useState<number | null>(null);
   const [starting, setStarting] = useState<number | null>(null);
   // Parents of a baseball team have no Lineup tab (their child's tab takes the slot, D53):
@@ -129,7 +137,7 @@ function PeriodFieldPage() {
         type="button"
         className={`score${live ? ' live' : ''}`}
         aria-label={label}
-        onClick={() => (live ? setScoring(i) : setStarting(i))}
+        onClick={() => (live ? setScoring(i) : void startFlow(i))}
       >
         {inner}
       </button>
@@ -233,6 +241,38 @@ function PeriodFieldPage() {
     rename.mutate(next, {
       onSuccess: () => toast('Team name saved'),
       onError: (e) => toast(errorMessage(e)),
+    });
+  };
+
+  /** The score tap with no live game (D108): start the next scheduled game, or a new one. */
+  const startFlow = async (card: number) => {
+    const next = planned.game && planned.game.status === 'upcoming' ? planned.game : null;
+    const when = next
+      ? `${fmtDate(next.game_date, true)}${next.start_time ? ` · ${fmtTime(next.start_time)}` : ''}`
+      : '';
+    const choice = await sheet<'next' | 'new'>({
+      title: 'Start a game',
+      actions: [
+        ...(next ? [{ label: `Start vs ${next.opponent} · ${when}`, value: 'next' as const }] : []),
+        { label: 'New game', value: 'new' as const },
+      ],
+    });
+    if (choice === 'new') setStarting(card);
+    if (choice !== 'next' || !next) return;
+    if (next.game_date !== todayISO()) {
+      const ok = await sheet({
+        title: 'Start it now?',
+        message: `This game is scheduled for ${fmtDate(next.game_date, true)}. Start it now?`,
+        actions: [{ label: 'Start game', value: true }],
+      });
+      if (!ok) return;
+    }
+    startGame.mutate(next.id, {
+      onError: (e) => toast(errorMessage(e)),
+      onSuccess: () => {
+        toast(`Game on · vs ${next.opponent}`);
+        void navigate('/field');
+      },
     });
   };
 

@@ -6,11 +6,18 @@ import { EditableTitle } from '@/components/EditableTitle';
 import { Footer } from '@/components/List';
 import { useActionSheet } from '@/components/Sheet';
 import { useToast } from '@/components/Toast';
-import { useAddScoreEvent, useCreateGame, useDeleteScoreEvent, useScoreEvents } from '@/games/api';
+import {
+  useAddScoreEvent,
+  useCreateGame,
+  useDeleteScoreEvent,
+  useScoreEvents,
+  useStartGame,
+} from '@/games/api';
+import { fmtDate, fmtTime, todayISO } from '@/games/format';
 import { makeNameLookup } from '@/games/names';
 import { NewGameSheet } from '@/games/NewGameSheet';
 import { ScorePanel } from '@/games/ScorePanel';
-import { describeEvent, scoreNoun as scoreNounFor } from '@/games/scoring';
+import { describeEvent, scoreNoun as scoreNounFor, scoreTapAllowed } from '@/games/scoring';
 import { errorMessage } from '@/lib/supabase';
 import { usePlannedGame } from '@/rsvp/api';
 import { heldOutNote, outCaption } from '@/rsvp/rsvp';
@@ -40,6 +47,8 @@ import {
 import { ClockCard } from './ClockCard';
 import { ClockDisplay } from './ClockDisplay';
 import { ClockStamp } from './ClockStamp';
+import { markNudged, neverRun, nudgeAsked, remapByDistance } from './formation';
+import { QuickScoreRow } from './QuickScoreRow';
 import { PeriodOverAlert } from './PeriodOverAlert';
 import { type Selection, type TapOutcome, resolveTap, selectionHint } from './tap';
 import { useFlash } from './useFlash';
@@ -72,20 +81,29 @@ export function ClockFieldPage() {
   const gameId = plan.gameId;
   const saveStarters = useSaveStarters(teamId);
   const act = useClockAction(teamId, gameId ?? '');
-  const clockQ = useGameClock(gameId ?? undefined, !!live);
-  const stintsQ = useStints(gameId ?? undefined, !!live);
+  const clockQ = useGameClock(gameId ?? undefined, !!live, !!live);
+  const stintsQ = useStints(gameId ?? undefined, !!live, !!live);
   const events = useScoreEvents(gameId ?? undefined);
   const addEvent = useAddScoreEvent(teamId, gameId ?? '');
   const deleteEvent = useDeleteScoreEvent(teamId, gameId ?? '');
   const createGame = useCreateGame(teamId);
+  const startGame = useStartGame(teamId);
   const seasonMinutes = useSeasonMinutes(teamId, isStaff);
   const [selected, setSelected] = useState<Selection>(null);
   const [flashing, flash] = useFlash();
   const [scoring, setScoring] = useState(false);
   const [starting, setStarting] = useState(false);
+  // basketball quick scoring (D108): the points waiting for a scorer, and the last entry's line
+  const [pendingPts, setPendingPts] = useState<number | null>(null);
+  const [lastScore, setLastScore] = useState<{ text: string } | null>(null);
 
   const clock = clockQ.data ?? PAUSED_CLOCK;
   const running = !!live && isRunning(clock);
+  const atZero = !!live && clock.clockSeconds === 0 && !isRunning(clock);
+  const clockNeverRun = !!live && neverRun(clock);
+  const quickScoring = sport === 'basketball' && !!live && isStaff;
+  // soccer may change shape mid-game while the clock is paused (D108); every sport may at 0:00
+  const canChangeFormationLive = !!live && sport === 'soccer' && !running;
   useServerTimeSync(!!live);
   // the page never ticks (D95): the clock, the shift times and the period alert tick on their own
   // inside leaf components, so an open sheet is never re-rendered or remounted by the clock
@@ -146,6 +164,51 @@ export function ClockFieldPage() {
   const scoreNoun = scoreNounFor(S);
   const onError = (e: unknown) => toast(errorMessage(e));
 
+  /* ---------- scoring on the clock (D108) ---------- */
+  /** Once per game: a score with a clock that never ran offers to start it. */
+  const askClock = () => {
+    if (!live || !neverRun(clock) || nudgeAsked(live.id)) return;
+    markNudged(live.id);
+    void sheet({
+      title: 'Start the clock?',
+      message: 'The score is in, but the game clock has not started. Minutes count only while it runs.',
+      actions: [{ label: 'Start clock', value: true }],
+      cancel: 'Not now',
+    }).then((ok) => {
+      if (ok) act.mutate({ kind: 'start' }, { onError });
+    });
+  };
+  const recordScore = (side: 'us' | 'them', points: number, scorerId: string | null) => {
+    const kind = S.scoring.events.find((k) => k.points === points);
+    if (!kind || !live || !scoreTapAllowed()) return;
+    addEvent.mutate(
+      {
+        side,
+        period_index: periodIndex,
+        event_type: kind.type,
+        points: kind.points,
+        scorer_player_id: side === 'us' ? scorerId : null,
+        assist_player_id: null,
+      },
+      { onError },
+    );
+    setPendingPts(null);
+    setLastScore({
+      text:
+        side === 'them'
+          ? `${live.opponent} +${kind.points}`
+          : `${scorerId ? nameOf(scorerId) : 'Team'} +${kind.points}`,
+    });
+    askClock();
+  };
+  const lastEvent = log[log.length - 1];
+  const undoLast = () => {
+    if (!lastEvent || lastEvent.id.startsWith('temp-')) return;
+    deleteEvent.mutate(lastEvent.id, { onError });
+    setLastScore(null);
+    toast(`Removed · ${describeEvent(S, N, live?.opponent ?? '', lastEvent, names)}`);
+  };
+
   /* ---------- template edits (no live game) ---------- */
   const commitTemplate = (period: Period, message?: string) => {
     const bench = benchAfterEdit(period.bench ?? queue, rosterIds, slots, period.slots);
@@ -204,6 +267,12 @@ export function ClockFieldPage() {
       toast('Full time · finish the game on the Schedule tab');
       return;
     }
+    // scoring mode (D108): a court jersey names the scorer; nothing else happens
+    if (pendingPts !== null) {
+      if (target.kind === 'field' && target.playerId) recordScore('us', pendingPts, target.playerId);
+      else toast('Tap a player on the court, or Team');
+      return;
+    }
     const o = resolveTap(selected, target);
     if (o.action === 'select') {
       setSelected(o.selection);
@@ -257,6 +326,23 @@ export function ClockFieldPage() {
   const onFormationChange = (name: string) => {
     if (!shown) return;
     const to = formationFor(name);
+    if (live && !atZero) {
+      // mid-game (soccer, paused, D108): the same players, each to the nearest spot, the keeper in goal
+      const placed = remapByDistance(formation, to, slots);
+      act.mutate(
+        {
+          kind: 'formation',
+          formation: to.name,
+          slots: to.positions.map((pos, i) => ({
+            position_role: pos.role,
+            position_code: pos.code,
+            player_id: placed[i] || null,
+          })),
+        },
+        { onError, onSuccess: () => toast(`Formation ${to.name} · same players, tap to adjust`) },
+      );
+      return;
+    }
     const next: Period = { formation: to.name, slots: to.positions.map((_, i) => slots[i] ?? ''), auto: [] };
     if (live) {
       act.mutate(
@@ -363,6 +449,38 @@ export function ClockFieldPage() {
     rename.mutate(next, { onSuccess: () => toast('Team name saved'), onError });
   };
 
+  /** The score tap with no live game (D108): start the next scheduled game, or a new one. */
+  const startFlow = async () => {
+    const next = planned.game && planned.game.status === 'upcoming' ? planned.game : null;
+    const when = next
+      ? `${fmtDate(next.game_date, true)}${next.start_time ? ` · ${fmtTime(next.start_time)}` : ''}`
+      : '';
+    const choice = await sheet<'next' | 'new'>({
+      title: 'Start a game',
+      actions: [
+        ...(next ? [{ label: `Start vs ${next.opponent} · ${when}`, value: 'next' as const }] : []),
+        { label: 'New game', value: 'new' as const },
+      ],
+    });
+    if (choice === 'new') setStarting(true);
+    if (choice !== 'next' || !next) return;
+    if (next.game_date !== todayISO()) {
+      const ok = await sheet({
+        title: 'Start it now?',
+        message: `This game is scheduled for ${fmtDate(next.game_date, true)}. Start it now?`,
+        actions: [{ label: 'Start game', value: true }],
+      });
+      if (!ok) return;
+    }
+    startGame.mutate(next.id, {
+      onError,
+      onSuccess: () => {
+        toast(`Game on · vs ${next.opponent}`);
+        void navigate('/field');
+      },
+    });
+  };
+
   if (plan.isPending || players.isPending || (live && (clockQ.isPending || stintsQ.isPending)))
     return <LoadingScreen />;
 
@@ -392,7 +510,7 @@ export function ClockFieldPage() {
             ? `Score ${score.us} to ${score.them}. Add a ${scoreNoun}`
             : `Start a game and record ${S.scoring.unitPlural.toLowerCase()}`
         }
-        onClick={() => (live ? setScoring(true) : setStarting(true))}
+        onClick={() => (live ? setScoring(true) : void startFlow())}
       >
         {inner}
       </button>
@@ -411,7 +529,6 @@ export function ClockFieldPage() {
     ? `Live vs ${live.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ' · tap a jersey, then another, to swap' : ''}`
     : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${periodCountText(S, N)} on the clock${isStaff ? ' · tap jerseys to set the starters · tap the score to start a game' : ''}`;
   const periodNoun = S.periodName(N).toLowerCase();
-  const atZero = !!live && clock.clockSeconds === 0 && !isRunning(clock);
 
   return (
     <section className="page">
@@ -457,22 +574,52 @@ export function ClockFieldPage() {
           stints={stints}
           colors={colors}
           canEdit={isStaff && !fullTime}
-          canChangeFormation={!live || atZero}
+          canChangeFormation={!live || atZero || (canChangeFormationLive && !fullTime)}
           highlight={highlight}
           selected={selected}
           flashing={flashing}
-          hint={selectionHint(
-            selected,
-            nameOf,
-            formation.positions.map((p) => p.code),
-          )}
+          hint={
+            pendingPts !== null
+              ? `Who scored the +${pendingPts}?`
+              : selectionHint(
+                  selected,
+                  nameOf,
+                  formation.positions.map((p) => p.code),
+                )
+          }
+          hideTitle={title === 'Game'}
+          pickable={pendingPts !== null}
+          compact={quickScoring}
+          hintExtra={
+            pendingPts !== null ? (
+              <>
+                <Button size="sm" variant="tinted" onClick={() => recordScore('us', pendingPts, null)}>
+                  Team
+                </Button>
+                <Button size="sm" variant="gray" onClick={() => setPendingPts(null)}>
+                  Cancel
+                </Button>
+              </>
+            ) : undefined
+          }
           onOpenSpot={selected?.kind === 'field' && selected.playerId ? openSpot : undefined}
           onFormationChange={onFormationChange}
           onTapSlot={(slot) => tap({ kind: 'field', slot, playerId: slots[slot] ?? '' })}
           onTapBench={(playerId) => tap({ kind: 'bench', playerId })}
           headerExtra={
             <>
-              {live && <ClockDisplay state={clock} periodMinutes={team.period_minutes} fullTime={fullTime} />}
+              {live && (
+                <ClockDisplay
+                  state={clock}
+                  periodMinutes={team.period_minutes}
+                  fullTime={fullTime}
+                  onStart={
+                    isStaff && clockNeverRun && !fullTime
+                      ? () => act.mutate({ kind: 'start' }, { onError })
+                      : undefined
+                  }
+                />
+              )}
               {scoreButton()}
             </>
           }
@@ -481,6 +628,23 @@ export function ClockFieldPage() {
           outText={outText}
         />
       </div>
+      {quickScoring && !fullTime && (
+        <QuickScoreRow
+          S={S}
+          pending={pendingPts}
+          disabled={addEvent.isPending}
+          last={
+            lastScore
+              ? {
+                  text: lastScore.text,
+                  onUndo: lastEvent && !lastEvent.id.startsWith('temp-') ? undoLast : undefined,
+                }
+              : null
+          }
+          onUs={(p) => setPendingPts(pendingPts === p ? null : p)}
+          onThem={(p) => recordScore('them', p, null)}
+        />
+      )}
       {isStaff && live && (
         <ScorePanel
           open={scoring}
@@ -498,6 +662,7 @@ export function ClockFieldPage() {
           events={log}
           onAdd={(ev) => {
             addEvent.mutate({ ...ev, period_index: periodIndex }, { onError });
+            askClock();
             toast(
               ev.side === 'them'
                 ? `${live.opponent} scored · ${N === 1 ? '' : `${shortPeriod(S, N, periodIndex)} `}${formatClock(elapsedAt(clock, serverNow()))}`
@@ -534,11 +699,13 @@ export function ClockFieldPage() {
       )}
       {isStaff ? (
         <>
-          <Footer className="noprint" style={{ marginTop: 14 }}>
-            {live
-              ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench is a line, next in on the right; tap two bench jerseys to swap their places. Minutes per player are on the Rotation view. ${N === 1 ? 'Pause the clock at the breaks; finish the game from the game page when it is over.' : `End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`}`
-              : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available, in the order they will come on, next in on the right (tap two to swap places). Auto-fill gives open spots to the players with the fewest minutes this season, rotating position groups; your own picks are never moved.`}
-          </Footer>
+          {!quickScoring && (
+            <Footer className="noprint" style={{ marginTop: 14 }}>
+              {live
+                ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench is a line, next in on the right; tap two bench jerseys to swap their places. Minutes per player are on the Rotation view. ${N === 1 ? 'Pause the clock at the breaks; finish the game from the game page when it is over.' : `End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`}`
+                : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available, in the order they will come on, next in on the right (tap two to swap places). Auto-fill gives open spots to the players with the fewest minutes this season, rotating position groups; your own picks are never moved.`}
+            </Footer>
+          )}
           {live ? (
             <Toolbar sticky className="mt-3 clockbar">
               {!fullTime && (

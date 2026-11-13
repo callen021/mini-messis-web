@@ -627,3 +627,127 @@
     animation: none;
   }
 }
+
+/* ---------- live game round (D108) ---------- */
+/* the clock before it has ever run: amber, and a button for staff */
+.gclock.warn {
+  background: rgba(255, 149, 0, 0.18);
+  color: var(--orange);
+  border: 0;
+  cursor: pointer;
+  font-family: inherit;
+}
+.gclock.warn small {
+  color: var(--orange);
+}
+/* the header never overlaps at phone width: the title side may clip, the chips keep their size */
+.qleft {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+.qleft h2 {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.qright {
+  flex: 0 0 auto;
+  max-width: 100%;
+}
+.qhead .pill {
+  flex: 0 1 auto;
+  min-width: 0;
+  max-width: 88px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.qhead select {
+  max-width: 104px;
+}
+/* a shorter court while the quick-scoring row is on the page */
+.clockcard.compact .pitchwrap {
+  width: 80%;
+  margin: 0 auto;
+}
+/* scoring mode: the on-court jerseys are the answer to "who scored?" */
+.shirt.pickable {
+  outline: 3px solid var(--orange);
+  outline-offset: 3px;
+  border-radius: 12px;
+}
+.quickscore {
+  margin: 0 16px 4px;
+}
+.qsrow {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.qsside {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--text2);
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
+  flex: none;
+}
+.qsside:nth-of-type(2) {
+  text-align: right;
+}
+.qsgap {
+  flex: 0 0 4px;
+}
+.qsrow .qsbtn {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 36px;
+  padding: 0 2px;
+  font-size: 15px;
+  font-weight: 800;
+}
+.qsrow .qsbtn.armed {
+  box-shadow: 0 0 0 3px rgba(255, 149, 0, 0.45);
+}
+.qslast {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 22px;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text);
+}
+.qslast .qshint {
+  color: var(--text3);
+  font-weight: 500;
+}
+.qslast .linkbtn {
+  border: 0;
+  background: none;
+  padding: 4px 0 4px 10px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--tint);
+}
+/* at phone width the clock card's score chip drops its US / THEM captions (the label keeps them)
+   and the open pill may shrink, so the select, the clock and the score never overlap */
+.qhead .openpill {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 400px) {
+  .clockcard .qhead .score small {
+    display: none;
+  }
+  .clockcard .qhead .score {
+    padding: 0 7px;
+  }
+  .clockcard .qhead select {
+    max-width: 84px;
+  }
+}
