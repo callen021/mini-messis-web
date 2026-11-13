@@ -62,27 +62,6 @@
   margin: 0;
   min-width: 0;
 }
-.hbtn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 34px;
-  height: 34px;
-  flex: none;
-  border: 0;
-  border-radius: 50%;
-  background: var(--tint-soft);
-  color: var(--tint);
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
-}
-.hbtn svg {
-  width: 20px;
-  height: 20px;
-}
-.hbtn:active {
-  transform: scale(0.94);
-}
 .large.editable {
   cursor: text;
   border-radius: 8px;
@@ -293,13 +272,13 @@ button.row:disabled {
 .toolbar .btn {
   flex: 1 1 auto;
 }
-/* Page-level action strip (Field: Auto-fill / Clear / Print). Lives in the content and sticks
-   just above the bottom tab bar while the page scrolls. */
-.page:has(.actionbar) {
-  padding-bottom: calc(var(--act-h) + 8px);
-}
+/* Page-level action strip (Field: Auto-fill / Clear; the clock controls). A fixed overlay just
+   above the tab bar (D101): the page that carries it gets matching bottom padding, so the bench,
+   the hint and the footer always scroll clear of it, the tab bar and the safe area. */
 .actionbar {
-  position: sticky;
+  position: fixed;
+  left: 0;
+  right: 0;
   bottom: calc(var(--tab-h) + env(safe-area-inset-bottom));
   z-index: 20;
   margin: 0 auto;
@@ -315,6 +294,9 @@ button.row:disabled {
 .actionbar .btn {
   flex: 1 1 0;
   min-width: 0;
+}
+.page:has(.actionbar) {
+  padding-bottom: calc(var(--act-h) + 8px);
 }
 
 /* ---------- segmented control ---------- */

@@ -4,7 +4,7 @@ import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { AnnouncementBanner } from '@/board/AnnouncementBanner';
 import { Scoreline } from '@/components/Badge';
 import { Button, Toolbar } from '@/components/Button';
-import { DirectionsIcon, PlusIcon } from '@/components/icons';
+import { DirectionsIcon } from '@/components/icons';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
@@ -211,7 +211,7 @@ export function GamesPage() {
       : view === 'practices'
         ? 'No upcoming practices.'
         : isStaff
-          ? 'Nothing scheduled. Tap + to add a game or a practice.'
+          ? 'Nothing scheduled. Tap + Add for a game or a practice.'
           : 'Nothing scheduled yet. The coach adds games and practices here.';
 
   return (
@@ -220,9 +220,20 @@ export function GamesPage() {
       sub={counts ? `${team.name} · ${counts} coming up` : `${team.name} · nothing coming up`}
       action={
         isStaff ? (
-          <button type="button" className="hbtn noprint" aria-label="Add" onClick={() => void addFlow()}>
-            <PlusIcon />
-          </button>
+          // a labelled capsule in the accent colour, readable in light and dark (D104); on the Games
+          // or Practices tab it opens that form directly
+          <Button
+            size="sm"
+            className="noprint"
+            aria-label="Add"
+            onClick={() => {
+              if (view === 'games') setCreating(true);
+              else if (view === 'practices') setAddingPractice(true);
+              else void addFlow();
+            }}
+          >
+            + Add
+          </Button>
         ) : undefined
       }
     >

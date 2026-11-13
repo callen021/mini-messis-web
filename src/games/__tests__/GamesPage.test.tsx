@@ -189,7 +189,24 @@ describe('Schedule page', () => {
     expect(useUIStore.getState().gamesView).toBe('practices');
   });
 
-  it('the + button is for staff only and opens New game / New practice', async () => {
+  it('"+ Add" on the Games or Practices tab opens that form straight away (D104)', async () => {
+    useUIStore.setState({ gamesView: 'games' });
+    const r = renderPage('assistant');
+    const add = screen.getByRole('button', { name: 'Add' });
+    expect(add).toHaveTextContent('+ Add');
+    expect(add).toHaveClass('btn');
+    await userEvent.click(add);
+    expect(screen.queryByRole('dialog', { name: 'Add to the schedule' })).not.toBeInTheDocument();
+    expect(await screen.findByRole('dialog', { name: 'New game' })).toBeInTheDocument();
+    r.unmount();
+    useUIStore.setState({ gamesView: 'practices' });
+    renderPage('coach');
+    await userEvent.click(screen.getByRole('button', { name: 'Add' }));
+    expect(await screen.findByRole('dialog', { name: 'New practice' })).toBeInTheDocument();
+    useUIStore.setState({ gamesView: 'all' });
+  });
+
+  it('the "+ Add" capsule is for staff only and on the All tab asks New game / New practice', async () => {
     const parent = renderPage('parent');
     expect(screen.queryByRole('button', { name: 'Add' })).not.toBeInTheDocument();
     parent.unmount();
@@ -257,7 +274,7 @@ describe('Schedule page', () => {
     games = [];
     practices = [];
     renderPage();
-    expect(screen.getByText('Nothing scheduled. Tap + to add a game or a practice.')).toBeInTheDocument();
+    expect(screen.getByText('Nothing scheduled. Tap + Add for a game or a practice.')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('radio', { name: 'Practices' }));
     expect(screen.getByText('No upcoming practices.')).toBeInTheDocument();
   });
