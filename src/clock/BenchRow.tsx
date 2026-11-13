@@ -4,8 +4,6 @@ import { type Player } from '@/teams/api';
 
 export interface BenchEntry {
   player: Player;
-  /** Second line under the jersey ("12 min · rest 3:20", "2 quarters"); empty when there is nothing to say. */
-  time?: string;
 }
 
 /**
@@ -14,7 +12,8 @@ export interface BenchEntry {
  * is the rightmost jersey of the top row, the line continues leftward and then along the next
  * row, rows are right-aligned, and a player coming off joins the end (leftmost of the last row).
  * The DOM order stays queue order, so screen readers and tests read it next-in first. Players
- * marked out are not shown. Staff tap to select a player; parents see it read-only.
+ * marked out are not shown. Staff tap to select a player; parents see it read-only. Nothing is
+ * written under a bench jersey (D99): minutes and periods live on the Rotation view.
  */
 export function BenchRow({
   S,
@@ -56,7 +55,7 @@ export function BenchRow({
       </div>
       {entries.length === 0 && <span className="benchempty">{emptyText}</span>}
       <div className="benchq">
-        {entries.map(({ player, time }, i) => (
+        {entries.map(({ player }, i) => (
           <div key={player.id} className="bslot">
             <Jersey
               id={`bench-${player.id}`}
@@ -65,13 +64,12 @@ export function BenchRow({
               name={player.first_name}
               number={player.jersey_number ?? undefined}
               code=""
-              label={`Bench: ${player.first_name}${player.jersey_number ? ` #${player.jersey_number}` : ''}${time ? `, ${time}` : ''}${i === 0 ? ', up next' : ''}`}
+              label={`Bench: ${player.first_name}${player.jersey_number ? ` #${player.jersey_number}` : ''}${i === 0 ? ', up next' : ''}`}
               onClick={canEdit ? () => onTap(player.id) : undefined}
               readOnly={!canEdit}
               highlighted={highlight.has(player.id)}
               selected={canEdit ? selectedId === player.id : undefined}
               flash={flashing?.has(player.id)}
-              time={time}
             />
           </div>
         ))}

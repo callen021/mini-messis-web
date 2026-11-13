@@ -18,16 +18,7 @@ import { describeEvent, scoreNoun as scoreNounFor } from '@/games/scoring';
 import { errorMessage } from '@/lib/supabase';
 import { useUIStore } from '@/lib/ui-store';
 import { SPORTS, shortPeriod, periodCountText } from '@/sports/definitions';
-import {
-  assignSlot,
-  autoFill,
-  autoFillAll,
-  clearAll,
-  counts,
-  fixPeriods,
-  openCount,
-  remap,
-} from '@/sports/lineup';
+import { assignSlot, autoFill, autoFillAll, clearAll, fixPeriods, openCount, remap } from '@/sports/lineup';
 import { type Period } from '@/sports/types';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
@@ -85,7 +76,6 @@ function PeriodFieldPage() {
     () => fixPeriods(toEnginePeriods(plan.periods), forms, S, enginePlayers),
     [plan.periods, forms, S, enginePlayers],
   );
-  const c = useMemo(() => counts(periods, enginePlayers), [periods, enginePlayers]);
   const N = periods.length;
   const noun = S.periodName(N).toLowerCase();
   const colors = (team.colors ?? {}) as Record<string, string>;
@@ -284,8 +274,6 @@ function PeriodFieldPage() {
                 players={allPlayers}
                 activePlayers={activePlayers}
                 colors={colors}
-                counts={c}
-                periodCount={N}
                 canEdit={isStaff}
                 highlight={highlight}
                 onFormationChange={(name) => onFormationChange(i, name)}
@@ -364,24 +352,14 @@ function PeriodFieldPage() {
                 <Button variant="gray" onClick={onClear}>
                   Clear
                 </Button>
-                <Button variant="gray" onClick={() => window.print()}>
-                  Print
-                </Button>
               </Toolbar>
             </>
           ) : (
-            <>
-              <Footer className="noprint" style={{ marginTop: 14 }}>
-                {highlight.size
-                  ? 'Your child’s jersey has a gold star and name. Lineups update live while the coach edits them.'
-                  : 'Lineups update live while the coach edits them.'}
-              </Footer>
-              <Toolbar className="noprint mt-3">
-                <Button variant="gray" onClick={() => window.print()}>
-                  Print
-                </Button>
-              </Toolbar>
-            </>
+            <Footer className="noprint" style={{ marginTop: 14 }}>
+              {highlight.size
+                ? 'Your child’s jersey has a gold star and name. Lineups update live while the coach edits them.'
+                : 'Lineups update live while the coach edits them.'}
+            </Footer>
           )}
         </>
       )}

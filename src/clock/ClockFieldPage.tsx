@@ -506,7 +506,7 @@ export function ClockFieldPage() {
         <>
           <Footer className="noprint" style={{ marginTop: 14 }}>
             {live
-              ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench is a line, next in on the right, with minutes played and time resting under each player; tap two bench jerseys to swap their places. ${N === 1 ? 'Pause the clock at the breaks; finish the game from the game page when it is over.' : `End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`}`
+              ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench is a line, next in on the right; tap two bench jerseys to swap their places. Minutes per player are on the Rotation view. ${N === 1 ? 'Pause the clock at the breaks; finish the game from the game page when it is over.' : `End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`}`
               : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available, in the order they will come on, next in on the right (tap two to swap places). Auto-fill gives open spots to the players with the fewest minutes this season, rotating position groups; your own picks are never moved.`}
           </Footer>
           {live ? (
@@ -556,27 +556,17 @@ export function ClockFieldPage() {
               <Button variant="gray" onClick={() => void onClear()}>
                 Clear
               </Button>
-              <Button variant="gray" onClick={() => window.print()}>
-                Print
-              </Button>
             </Toolbar>
           )}
         </>
       ) : (
-        <>
-          <Footer className="noprint" style={{ marginTop: 14 }}>
-            {live
-              ? 'The clock and substitutions update live as the coach makes them. Each jersey shows the current shift; the bench shows minutes played.'
-              : highlight.size
-                ? 'Your child’s jersey has a gold star and name. The starters update live while the coach edits them.'
-                : 'The starters update live while the coach edits them.'}
-          </Footer>
-          <Toolbar className="noprint mt-3">
-            <Button variant="gray" onClick={() => window.print()}>
-              Print
-            </Button>
-          </Toolbar>
-        </>
+        <Footer className="noprint" style={{ marginTop: 14 }}>
+          {live
+            ? 'The clock and substitutions update live as the coach makes them. Each jersey shows the current shift; minutes per player are on the Rotation view.'
+            : highlight.size
+              ? 'Your child’s jersey has a gold star and name. The starters update live while the coach edits them.'
+              : 'The starters update live while the coach edits them.'}
+        </Footer>
       )}
     </section>
   );

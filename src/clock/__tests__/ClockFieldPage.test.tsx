@@ -328,7 +328,7 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     }
   });
 
-  it('shows the period, the clock, each shift and the bench with minutes and rest', () => {
+  it('shows the period, the clock and each shift; nothing under the bench jerseys (D99)', () => {
     renderPage();
     expect(screen.getByRole('heading', { level: 2, name: 'H1' })).toBeInTheDocument();
     // 25-minute halves, 2:00 played and paused → 23:00 left
@@ -337,7 +337,8 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(screen.getByRole('button', { name: 'End H1' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
     expect(field('Nolan')).toHaveAccessibleName(/2:00 this shift/);
-    expect(bench('Hal')).toHaveAccessibleName(/0 min · rest 2:00/);
+    expect(bench('Hal')).toHaveAccessibleName('Bench: Hal #8, up next');
+    expect(screen.getByRole('group', { name: 'Bench' }).querySelectorAll('.jtime')).toHaveLength(0);
   });
 
   it('a substitution and a swap are single server calls', async () => {
@@ -358,7 +359,7 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(act).toHaveBeenCalledWith({ kind: 'empty', off: 'p1' }, expect.anything());
   });
 
-  it("the bench is the lineup row's queue, not a sort; minutes and rest stay as information (D79)", async () => {
+  it("the bench is the lineup row's queue, not a sort (D79)", async () => {
     stints = [
       ...stints,
       stint({ player_id: 'p8', slot_index: 0, clock_start: 0, clock_end: 60 }), // Hal played a minute
@@ -368,7 +369,7 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     const names = within(screen.getByRole('group', { name: 'Bench' }))
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label'));
-    expect(names[0]).toMatch(/^Bench: Hal #8, 1 min · rest 1:00, up next/); // first in line though he has played more
+    expect(names[0]).toBe('Bench: Hal #8, up next'); // first in line though he has played more
     expect(names[1]).toMatch(/^Bench: Nick/);
     await userEvent.click(bench('Hal'));
     await userEvent.click(bench('Nick'));

@@ -8,7 +8,7 @@ import { type FieldView } from '@/sports/field';
 import { type Formation, type SportDefinition, type SportKey } from '@/sports/types';
 import { type Player } from '@/teams/api';
 import { type BenchEntry, BenchRow } from './BenchRow';
-import { type ClockState, type Stint, formatClock, formatMinutes, isRunning, playerTimes } from './clock';
+import { type ClockState, type Stint, formatClock, isRunning, playerTimes } from './clock';
 import { type Selection } from './tap';
 import { useServerNow } from './useNow';
 
@@ -25,7 +25,7 @@ export interface ClockCardProps {
   players: readonly Player[];
   /** The bench queue, next in first (D79). */
   bench: readonly Player[];
-  /** A live game: shift times and minutes · rest come from the stints and tick here (D95). */
+  /** A live game: the shift time under each on-field jersey comes from the stints and ticks here (D95). */
   live: boolean;
   clock: ClockState;
   stints: readonly Stint[];
@@ -81,19 +81,10 @@ export function ClockCard({
   const now = useServerNow(live && isRunning(clock));
   const times = useMemo(() => {
     if (!live) return null;
-    return playerTimes(stints, clock, now, [...slots.filter(Boolean), ...bench.map((p) => p.id)]);
-  }, [live, stints, clock, now, slots, bench]);
-  const benchEntries: BenchEntry[] = useMemo(
-    () =>
-      bench.map((player) => {
-        const t = times?.get(player.id);
-        return {
-          player,
-          time: t ? `${formatMinutes(t.seconds)} · rest ${formatClock(t.restSeconds)}` : undefined,
-        };
-      }),
-    [bench, times],
-  );
+    return playerTimes(stints, clock, now, slots.filter(Boolean));
+  }, [live, stints, clock, now, slots]);
+  // nothing under a bench jersey (D99): the queue is the information
+  const benchEntries: BenchEntry[] = useMemo(() => bench.map((player) => ({ player })), [bench]);
   const slotTimes = useMemo(
     () => (times ? slots.map((id) => (id ? formatClock(times.get(id)?.shiftSeconds ?? 0) : '')) : undefined),
     [times, slots],

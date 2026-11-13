@@ -10,7 +10,6 @@ import { type Player } from '@/teams/api';
 import { playerName } from './api';
 import { FieldStage } from './FieldStage';
 import { Jersey } from './Jersey';
-import { periodsPlayed } from './captions';
 
 export interface PeriodCardProps {
   sport: SportKey;
@@ -24,9 +23,6 @@ export interface PeriodCardProps {
   players: Player[];
   activePlayers: Player[];
   colors: Record<string, string>;
-  counts: Record<string, number>;
-  /** Periods per game, for the "2 quarters" / "1 half" caption under a bench jersey. */
-  periodCount: number;
   canEdit: boolean;
   /** Player ids to highlight (a parent's own children). */
   highlight: ReadonlySet<string>;
@@ -62,8 +58,6 @@ export function PeriodCard({
   players,
   activePlayers,
   colors,
-  counts,
-  periodCount,
   canEdit,
   highlight,
   onFormationChange,
@@ -192,10 +186,7 @@ export function PeriodCard({
       <BenchRow
         S={S}
         color={benchColor}
-        entries={sittingOut.map((player) => ({
-          player,
-          time: periodsPlayed(S, periodCount, counts[player.id] ?? 0),
-        }))}
+        entries={sittingOut.map((player) => ({ player }))}
         canEdit={canEdit}
         selectedId={selected?.kind === 'bench' ? selected.playerId : null}
         flashing={flashing}

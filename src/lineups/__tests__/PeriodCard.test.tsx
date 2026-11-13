@@ -44,8 +44,6 @@ function renderCard(over: Partial<Parameters<typeof PeriodCard>[0]> = {}) {
     players,
     activePlayers: active,
     colors: S.defaultColors as Record<string, string>,
-    counts: { p1: 2, p2: 1, p3: 0 },
-    periodCount: 4,
     canEdit: true,
     highlight: new Set<string>(),
     onFormationChange: vi.fn(),
@@ -65,7 +63,6 @@ describe('PeriodCard', () => {
   it('shows the open count, a bench row of small jerseys in queue order and out players (D77, D79)', () => {
     renderCard({
       activePlayers: [...active, mk('p5', 'Milo', '5')],
-      counts: { p1: 2, p2: 1, p3: 1, p5: 0 },
       benchOrder: ['p5', 'p3'], // the queue, not a sort
     });
     expect(screen.getByText('5 open', { selector: '.openpill' })).toBeInTheDocument();
@@ -75,7 +72,7 @@ describe('PeriodCard', () => {
     const names = within(bench)
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label'));
-    expect(names).toEqual(['Bench: Milo #5, 0 quarters, up next', 'Bench: Jack #3, 1 quarter']);
+    expect(names).toEqual(['Bench: Milo #5, up next', 'Bench: Jack #3']);
     // the queue is drawn right to left with an "Up Next" label over the next-in jersey (D83, D84)
     expect(bench.querySelector('.benchq')).not.toBeNull();
     expect(bench.querySelector('.upnext')).toHaveTextContent('Up Next');
@@ -88,20 +85,19 @@ describe('PeriodCard', () => {
     expect(row.compareDocumentPosition(hint) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('bench captions say halves, never halfs, and one half (D82)', () => {
+  it('nothing is written under a bench jersey: no periods caption, no "halfs" (D99)', () => {
     renderCard({
       title: 'H1',
-      periodCount: 2,
       activePlayers: [...active, mk('p5', 'Milo', '5')],
-      counts: { p1: 2, p2: 1, p3: 1, p5: 0 },
       benchOrder: ['p5', 'p3'],
     });
     const bench = screen.getByRole('group', { name: 'Bench' });
+    expect(bench.querySelectorAll('.jtime')).toHaveLength(0);
+    expect(bench.textContent).not.toMatch(/half|quarter|period|min/i);
     const names = within(bench)
       .getAllByRole('button')
       .map((b) => b.getAttribute('aria-label'));
-    expect(names).toEqual(['Bench: Milo #5, 0 halves, up next', 'Bench: Jack #3, 1 half']);
-    expect(bench.textContent).not.toMatch(/halfs/);
+    expect(names).toEqual(['Bench: Milo #5, up next', 'Bench: Jack #3']);
   });
 
   it('tapping an open jersey selects it with a hint, then a bench tap fills it; an on-field tap moves there (D86)', async () => {
