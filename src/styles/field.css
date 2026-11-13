@@ -264,7 +264,7 @@
 }
 .shirt.basketball:not(.open) .num,
 .shirt.basketball.hasnum:not(.open) .num {
-  top: 50%;
+  top: 54%;
 }
 .shirt.basketball:not(.open) .code,
 .shirt.basketball.hasnum:not(.open) .code {
