@@ -52,4 +52,9 @@ describe('QuickScoreRow (D108): Us arms a scorer pick, Them records at once', ()
     await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
     expect(onUndo).toHaveBeenCalled();
   });
+  it('no standing hint under the buttons; the confirmation line is hidden until something is scored (D112)', () => {
+    render(<QuickScoreRow S={S} pending={null} last={null} onUs={vi.fn()} onThem={vi.fn()} />);
+    expect(screen.queryByText(/Tap the points/)).not.toBeInTheDocument();
+    expect(document.querySelector('.qslast')).toHaveClass('empty');
+  });
 });

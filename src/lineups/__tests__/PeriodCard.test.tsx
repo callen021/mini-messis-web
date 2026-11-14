@@ -70,7 +70,7 @@ describe('PeriodCard', () => {
     expect(bench).toHaveTextContent('Bench · 2');
     expect(bench).toHaveTextContent('Out: Hal');
     const names = within(bench)
-      .getAllByRole('button')
+      .getAllByRole('button', { name: /^Bench:/ })
       .map((b) => b.getAttribute('aria-label'));
     expect(names).toEqual(['Bench: Milo #5, up next', 'Bench: Jack #3']);
     // the queue is drawn right to left with an "Up Next" label over the next-in jersey (D83, D84)
@@ -95,7 +95,7 @@ describe('PeriodCard', () => {
     expect(bench.querySelectorAll('.jtime')).toHaveLength(0);
     expect(bench.textContent).not.toMatch(/half|quarter|period|min/i);
     const names = within(bench)
-      .getAllByRole('button')
+      .getAllByRole('button', { name: /^Bench:/ })
       .map((b) => b.getAttribute('aria-label'));
     expect(names).toEqual(['Bench: Milo #5, up next', 'Bench: Jack #3']);
   });
@@ -181,5 +181,22 @@ describe('PeriodCard', () => {
       activePlayers: active,
     });
     expect(screen.getByRole('button', { name: 'Redo' })).toBeInTheDocument();
+  });
+  it('the how-to is behind the bench info button; the hint row is empty with nothing to offer (D112)', async () => {
+    renderCard({
+      period: { formation: '3-3', slots: ['p1', 'p2', 'p3', 'p1', 'p2', 'p3', 'p1'], auto: [] },
+      activePlayers: active,
+    });
+    expect(screen.queryByText(/Tap a jersey, then another/)).not.toBeInTheDocument();
+    expect(document.querySelector('.taphint')).toHaveClass('empty');
+    await userEvent.click(screen.getByRole('button', { name: 'How to move players' }));
+    expect(screen.getByRole('note')).toHaveTextContent(/Tap a jersey, then another, to swap them/);
+    await userEvent.click(document.body);
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+  });
+
+  it('parents get no info button', () => {
+    renderCard({ canEdit: false });
+    expect(screen.queryByRole('button', { name: 'How to move players' })).not.toBeInTheDocument();
   });
 });

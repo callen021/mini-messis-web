@@ -1377,3 +1377,24 @@ shifted up by the amount it scrolled.
   blurring the field: create a team, add a player on the Team tab, post on the board, and a field
   on the Field page, then Schedule, Stats and Settings — the window is back at 0 and the bar's
   bottom edge is the viewport's every time. The real device test is the coach's.
+
+### D112. Court screen cleanup: the how-to behind an info button, the hint row only mid-change
+
+The standing paragraph under the bench ("Tap a jersey, then another, to swap them…") took a
+44px row on every card, in every state, and on the starters screen the staff help footer was the
+"line of text" showing through the translucent Auto-fill / Clear bar.
+
+- The paragraph is gone from both modes and all sports. A circled-i button right after
+  "Bench · n" (`How to move players`, a 44px target drawn as an 18px glyph so the row keeps its
+  height) opens a small popover with that text; it opens upward over the field, inside the card
+  (the card clips overflow), and a tap anywhere else or Escape closes it. Parents have no button.
+  On basketball during a live game the popover adds "Tap the points scored." and the standing
+  line of that text under the quick-score row is gone; the confirmation line only appears once
+  something is scored. The quick-score row now sits 8px under the card.
+- The hint row (`.taphint`) stays in the DOM as the live region but has no height until it has
+  content: the selection hint and Open the spot, scoring's "Who scored the +2?" with Team / Cancel.
+  In periods mode the per-card Auto-fill / Redo button also lives there, so a period card keeps
+  that row while it has an action to offer; the clock card ends right under the bench jerseys.
+- The staff help footers on both Field pages ("These are the starters for the next game…",
+  "Pick a few jerseys yourself…", the live clock paragraph) are removed: they scrolled behind the
+  fixed action bar at the top of a long page, which read as hidden text. The parent footers stay.

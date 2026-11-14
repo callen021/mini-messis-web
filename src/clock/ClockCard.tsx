@@ -7,7 +7,7 @@ import { playerName } from '@/lineups/api';
 import { type FieldView } from '@/sports/field';
 import { type Formation, type SportDefinition, type SportKey } from '@/sports/types';
 import { type Player } from '@/teams/api';
-import { type BenchEntry, BenchRow } from './BenchRow';
+import { type BenchEntry, BenchRow, MOVE_HELP } from './BenchRow';
 import { type ClockState, type Stint, formatClock, isRunning, playerTimes } from './clock';
 import { type Selection } from './tap';
 import { useServerNow } from './useNow';
@@ -58,6 +58,8 @@ export interface ClockCardProps {
   hintExtra?: ReactNode;
   /** A shorter court, so the quick-scoring row fits above the bar without scrolling (D108). */
   compact?: boolean;
+  /** The how-to behind the bench info button (D112); the standing text unless the page adds to it. */
+  help?: string;
 }
 
 const NOBODY: ReadonlySet<string> = new Set();
@@ -95,6 +97,7 @@ export function ClockCard({
   pickable,
   hintExtra,
   compact,
+  help = MOVE_HELP,
 }: ClockCardProps) {
   const byId = new Map(players.map((p) => [p.id, p]));
   // the only thing on the page that re-renders every second (D95)
@@ -183,13 +186,13 @@ export function ClockCard({
         onTap={onTapBench}
         emptyText={benchEmptyText}
         extra={outText}
+        help={canEdit ? help : undefined}
       />
+      {/* the hint row has content only mid-change (D112): the card ends under the bench otherwise;
+          the live region itself stays mounted so the hint is announced */}
       {canEdit && (
-        <div className={`taphint${hint ? ' on' : ''}`} aria-live="polite">
-          <span>
-            {hint ||
-              'Tap a jersey, then another, to swap them. Tap an open spot, then a bench player, to fill it.'}
-          </span>
+        <div className={`taphint${hint ? ' on' : ''}${hint || hintExtra ? '' : ' empty'}`} aria-live="polite">
+          {hint && <span>{hint}</span>}
           {hintExtra ??
             (selected?.kind === 'field' && onOpenSpot && (
               <Button size="sm" variant="gray" onClick={onOpenSpot}>

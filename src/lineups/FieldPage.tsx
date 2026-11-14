@@ -401,12 +401,6 @@ function PeriodFieldPage() {
           {periods.length === 0 && <Footer>No periods yet — check the team setup in Settings.</Footer>}
           {isStaff ? (
             <>
-              <Footer className="noprint" style={{ marginTop: 14 }}>
-                Pick a few jerseys yourself, then tap Auto-fill: the open ones go to the players who have
-                played the least so far, with a turn in each position group when it can. A dot on the jersey
-                marks an auto pick; your own picks are never moved. Picking a player who is already {S.unit}{' '}
-                moves them to the new jersey and opens up their old one.
-              </Footer>
               <Toolbar sticky className="mt-3">
                 <Button variant="tinted" onClick={onAutoAll}>
                   Auto-fill

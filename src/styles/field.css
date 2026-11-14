@@ -740,3 +740,70 @@
     max-width: 84px;
   }
 }
+
+/* ---------- bench info button and the hint row (D112) ---------- */
+/* the hint row holds content only mid-change (or a card action): empty, it takes no room, so the
+   card ends right under the bench jerseys; the live region itself stays mounted */
+.taphint.empty {
+  min-height: 0;
+  padding: 0;
+}
+.qslast.empty {
+  display: none;
+}
+.benchhead {
+  position: relative;
+}
+/* a circled i right after "Bench · n": a 44px tap target drawn as an 18px glyph, so the row
+   keeps its height */
+.infobtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  margin: -13px -8px -13px -6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  vertical-align: middle;
+  color: var(--tint);
+  cursor: pointer;
+}
+.infobtn > span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border: 1.5px solid currentColor;
+  border-radius: 50%;
+  font:
+    italic 700 11px/1 Georgia,
+    'Times New Roman',
+    serif;
+}
+.infobtn[aria-expanded='true'] > span {
+  background: var(--tint);
+  color: var(--on-tint);
+}
+/* the popover opens upward over the field, inside the card (the card clips overflow) */
+.helppop {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: calc(100% + 6px);
+  z-index: 30;
+  display: block;
+  padding: 10px 12px;
+  border: 0.5px solid var(--sep);
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1.4;
+  color: var(--text);
+  text-align: left;
+  white-space: normal;
+}

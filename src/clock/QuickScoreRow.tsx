@@ -11,7 +11,8 @@ export interface QuickScoreLast {
 /**
  * Basketball quick scoring during a live game (D108): Us +1 +2 +3 on the left, Them on the
  * right. An Us tap arms "who scored?" (the on-court jerseys answer), a Them tap records at
- * once. The confirmation line keeps a fixed height so the row never moves.
+ * once. The confirmation line appears under the buttons once something is scored (D112); the
+ * standing "Tap the points scored." lives in the bench info popover instead.
  */
 export function QuickScoreRow({
   S,
@@ -64,8 +65,8 @@ export function QuickScoreRow({
           </Button>
         ))}
       </div>
-      <div className="qslast" aria-live="polite">
-        {last ? (
+      <div className={cn('qslast', !last && 'empty')} aria-live="polite">
+        {last && (
           <>
             <span>{last.text}</span>
             {last.onUndo && (
@@ -74,8 +75,6 @@ export function QuickScoreRow({
               </button>
             )}
           </>
-        ) : (
-          <span className="qshint">{pending === null ? 'Tap the points scored.' : ''}</span>
         )}
       </div>
     </div>

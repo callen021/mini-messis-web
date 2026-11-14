@@ -266,6 +266,26 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     expect(arg.starters.bench).toEqual(['p9', 'p8']);
   });
 
+  it('the how-to is behind the bench info button, not on the page; a tap elsewhere closes it (D112)', async () => {
+    renderPage();
+    expect(screen.queryByText(/Tap a jersey, then another/)).not.toBeInTheDocument();
+    // nothing selected: the hint row takes no room, so the card ends under the bench
+    expect(document.querySelector('.taphint')).toHaveClass('empty');
+    const info = screen.getByRole('button', { name: 'How to move players' });
+    expect(info).toHaveAttribute('aria-expanded', 'false');
+    await userEvent.click(info);
+    expect(info).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('note')).toHaveTextContent(
+      'Tap a jersey, then another, to swap them. Tap an open spot, then a bench player, to fill it.',
+    );
+    await userEvent.click(screen.getByRole('heading', { level: 2 }));
+    expect(screen.queryByRole('note')).not.toBeInTheDocument();
+    // a selection puts the hint in the row
+    await userEvent.click(field('Nolan'));
+    expect(document.querySelector('.taphint')).not.toHaveClass('empty');
+    expect(screen.getByText('Tap a player to swap with Nolan')).toBeInTheDocument();
+  });
+
   it('a selected starter can be taken off with nobody on (Open the spot)', async () => {
     renderPage();
     await userEvent.click(field('Nolan'));
@@ -389,7 +409,7 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     periods = [{ ...stored(STARTERS, 0), bench: ['p8', 'p9'] }, stored(STARTERS, 1)];
     renderPage();
     const names = within(screen.getByRole('group', { name: 'Bench' }))
-      .getAllByRole('button')
+      .getAllByRole('button', { name: /^Bench:/ })
       .map((b) => b.getAttribute('aria-label'));
     expect(names[0]).toBe('Bench: Hal #8, up next'); // first in line though he has played more
     expect(names[1]).toMatch(/^Bench: Nick/);

@@ -1,5 +1,5 @@
 import { type ReactNode, useMemo, useState } from 'react';
-import { BenchRow } from '@/clock/BenchRow';
+import { BenchRow, MOVE_HELP } from '@/clock/BenchRow';
 import { type Selection, resolveTap, selectionHint } from '@/clock/tap';
 import { useFlash } from '@/clock/useFlash';
 import { OpenPill } from '@/components/Badge';
@@ -90,6 +90,8 @@ export function PeriodCard({
     });
   }, [activePlayers, period.slots, benchOrder]);
   const autoN = period.auto.filter((i) => period.slots[i]).length;
+  const canAutoFill = openCount > 0 && sittingOut.length > 0;
+  const canRedo = !canAutoFill && autoN > 0;
   const nameOf = (id: string) => byId.get(id)?.first_name ?? 'player';
   const benchColor = colors[S.groups[0]?.[0] ?? ''] ?? '#888';
 
@@ -203,24 +205,30 @@ export function PeriodCard({
         onTap={(playerId) => tap({ kind: 'bench', playerId })}
         emptyText={`Everyone is ${S.unit}`}
         extra={outCaption(players, parentOut, byParent)}
+        help={canEdit ? MOVE_HELP : undefined}
       />
+      {/* the hint row has content mid-change or when a card action is on offer (D112): the card
+          ends under the bench otherwise; the live region itself stays mounted for the announcement */}
       {canEdit && (
-        <div className={`taphint${selected ? ' on' : ''}`} aria-live="polite">
-          <span>
-            {selected
-              ? selectionHint(
-                  selected,
-                  nameOf,
-                  formation.positions.map((p) => p.code),
-                )
-              : 'Tap a jersey, then another, to swap them. The bench is a line: next in on the right.'}
-          </span>
+        <div
+          className={`taphint${selected ? ' on' : ''}${selected || canAutoFill || canRedo ? '' : ' empty'}`}
+          aria-live="polite"
+        >
+          {selected && (
+            <span>
+              {selectionHint(
+                selected,
+                nameOf,
+                formation.positions.map((p) => p.code),
+              )}
+            </span>
+          )}
           {selected?.kind === 'field' && !!selected.playerId && (
             <Button size="sm" variant="gray" onClick={openSelectedSpot}>
               Open the spot
             </Button>
           )}
-          {!selected && openCount > 0 && sittingOut.length > 0 && (
+          {!selected && canAutoFill && (
             <Button
               size="sm"
               variant="tinted"
@@ -230,7 +238,7 @@ export function PeriodCard({
               Auto-fill
             </Button>
           )}
-          {!selected && !(openCount > 0 && sittingOut.length > 0) && autoN > 0 && (
+          {!selected && canRedo && (
             <Button
               size="sm"
               variant="gray"

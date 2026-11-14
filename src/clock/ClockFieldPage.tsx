@@ -49,6 +49,7 @@ import { ClockDisplay } from './ClockDisplay';
 import { ClockStamp } from './ClockStamp';
 import { remapByDistance } from './formation';
 import { useStartCheck } from './useStartCheck';
+import { MOVE_HELP } from './BenchRow';
 import { QuickScoreRow } from './QuickScoreRow';
 import { PeriodOverAlert } from './PeriodOverAlert';
 import { type Selection, type TapOutcome, resolveTap, selectionHint } from './tap';
@@ -527,7 +528,6 @@ export function ClockFieldPage() {
   const sub = live
     ? `Live vs ${live.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ' · tap a jersey, then another, to swap' : ''}`
     : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${periodCountText(S, N)} on the clock${isStaff ? ' · tap jerseys to set the starters · tap the score to start a game' : ''}`;
-  const periodNoun = S.periodName(N).toLowerCase();
 
   return (
     <section className="page">
@@ -589,6 +589,7 @@ export function ClockFieldPage() {
           hideTitle={title === 'Game'}
           pickable={pendingPts !== null}
           compact={quickScoring}
+          help={quickScoring && !fullTime ? `${MOVE_HELP} Tap the points scored.` : MOVE_HELP}
           hintExtra={
             pendingPts !== null ? (
               <>
@@ -692,13 +693,6 @@ export function ClockFieldPage() {
       )}
       {isStaff ? (
         <>
-          {!quickScoring && (
-            <Footer className="noprint" style={{ marginTop: 14 }}>
-              {live
-                ? `Tap a bench player and then a jersey to substitute on the running clock; tap two jerseys to swap positions. Each jersey shows the current shift; the bench is a line, next in on the right; tap two bench jerseys to swap their places. Minutes per player are on the Rotation view. ${N === 1 ? 'Pause the clock at the breaks; finish the game from the game page when it is over.' : `End ${periodNoun === 'inning' ? 'the inning' : `the ${periodNoun}`} to stop the clock and carry everyone over.`}`
-                : `These are the starters for the next game. Tap jerseys to swap or pick players; the bench row is everyone else who is available, in the order they will come on, next in on the right (tap two to swap places). Auto-fill gives open spots to the players with the fewest minutes this season, rotating position groups; your own picks are never moved.`}
-            </Footer>
-          )}
           {live ? (
             <Toolbar sticky className="mt-3 clockbar">
               {!fullTime && (
