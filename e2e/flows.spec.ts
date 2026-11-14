@@ -1195,6 +1195,12 @@ test.describe('coach and parent flows', () => {
     await expect(coach.getByRole('heading', { level: 2, name: 'Starters' })).toBeVisible();
     await coach.locator('.actionbar').getByRole('button', { name: 'Auto-fill' }).click();
     await expect(coach.locator('.slot .shirt.open')).toHaveCount(0);
+    const courtRect = async () =>
+      coach.locator('.pitchwrap').evaluate((el) => {
+        const r = el.getBoundingClientRect();
+        return { w: Math.round(r.width), h: Math.round(r.height) };
+      });
+    const startersCourt = await courtRect();
     await coach.getByRole('button', { name: /Start a game and record points/ }).click();
     await coach
       .getByRole('dialog', { name: 'Start a game' })
@@ -1212,6 +1218,8 @@ test.describe('coach and parent flows', () => {
       return { scroll: main.scrollHeight, inner: main.clientHeight };
     });
     expect(fits.scroll, `page scrolls: ${fits.scroll} > ${fits.inner}`).toBeLessThanOrEqual(fits.inner + 1);
+    // the court keeps its starters size during the game (D112): edge to edge, same jerseys
+    expect(await courtRect(), 'live court matches the starters court').toEqual(startersCourt);
     await expect(noHeaderOverlap(coach), 'basketball header overlap').resolves.toEqual([]);
     await test.info().attach('basketball-live-375', {
       body: await coach.screenshot(),

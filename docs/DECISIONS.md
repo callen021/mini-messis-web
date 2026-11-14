@@ -1398,3 +1398,10 @@ The standing paragraph under the bench ("Tap a jersey, then another, to swap the
 - The staff help footers on both Field pages ("These are the starters for the next game…",
   "Pick a few jerseys yourself…", the live clock paragraph) are removed: they scrolled behind the
   fixed action bar at the top of a long page, which read as hidden text. The parent footers stay.
+- The court keeps its starters size during a game. The D108 "compact" court (80% wide while the
+  quick-score row was on the page) is gone: with the paragraph, the standing points line and the
+  help footer out of the way, and the live subtitle cut to "Live vs <opponent>" (the score and the
+  swap hint are already on the card), the live basketball page fits at 375 × 812 with 68px to
+  spare above the bar, and the shift timers overlap nothing. The e2e flow checks both: no
+  scrolling, and the live court's size equals the starters court's. Soccer and the period cards
+  never shrank.

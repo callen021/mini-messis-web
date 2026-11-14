@@ -56,8 +56,6 @@ export interface ClockCardProps {
   pickable?: boolean;
   /** Replaces the "Open the spot" button in the hint line (scoring mode: Team / Cancel). */
   hintExtra?: ReactNode;
-  /** A shorter court, so the quick-scoring row fits above the bar without scrolling (D108). */
-  compact?: boolean;
   /** The how-to behind the bench info button (D112); the standing text unless the page adds to it. */
   help?: string;
 }
@@ -96,7 +94,6 @@ export function ClockCard({
   hideTitle,
   pickable,
   hintExtra,
-  compact,
   help = MOVE_HELP,
 }: ClockCardProps) {
   const byId = new Map(players.map((p) => [p.id, p]));
@@ -115,7 +112,7 @@ export function ClockCard({
   const openCount = slots.filter((s) => !s).length;
   const benchColor = colors[S.groups[0]?.[0] ?? ''] ?? '#888';
   return (
-    <article className={`qcard clockcard${compact ? ' compact' : ''}`}>
+    <article className="qcard clockcard">
       <div className="qhead">
         <div className="qleft">
           <h2 className={hideTitle ? 'sr-only' : undefined}>{title}</h2>

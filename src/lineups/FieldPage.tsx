@@ -285,7 +285,7 @@ function PeriodFieldPage() {
     planned.game?.opponent ?? null,
   );
   const sub = plan.liveGame
-    ? `Live vs ${plan.liveGame.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ` · tap a score to add ${scoreNoun === 'score' ? 'points' : `a ${scoreNoun}`}` : ''}`
+    ? `Live vs ${plan.liveGame.opponent}`
     : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${periodCountText(S, N)}${isStaff ? ' · tap a jersey to assign · tap a score to start a game' : ''}`;
 
   return (

@@ -526,7 +526,7 @@ export function ClockFieldPage() {
   const outText = outCaption(allPlayers, parentOut, planned.byParent);
   const title = live ? (fullTime ? 'Full time' : shortPeriod(S, N, periodIndex)) : 'Starters';
   const sub = live
-    ? `Live vs ${live.opponent} · US ${score.us} – ${score.them} THEM${isStaff ? ' · tap a jersey, then another, to swap' : ''}`
+    ? `Live vs ${live.opponent}`
     : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${periodCountText(S, N)} on the clock${isStaff ? ' · tap jerseys to set the starters · tap the score to start a game' : ''}`;
 
   return (
@@ -588,7 +588,6 @@ export function ClockFieldPage() {
           }
           hideTitle={title === 'Game'}
           pickable={pendingPts !== null}
-          compact={quickScoring}
           help={quickScoring && !fullTime ? `${MOVE_HELP} Tap the points scored.` : MOVE_HELP}
           hintExtra={
             pendingPts !== null ? (
