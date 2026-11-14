@@ -1355,3 +1355,25 @@ the shell for free.
   parent page the bar's bottom edge equals the viewport height before and after scrolling to the
   end, and no page is wider than the viewport. The flows that scroll (D61 back-with-scroll, D63
   status strip, the basketball no-scroll check) measure the scroller instead of the window.
+
+### D111. The keyboard leaves the installed app scrolled; a field losing focus puts it back
+
+In the home-screen app the tab bar sometimes sat a status bar's height too high with a black strip
+beneath it, right after a form (creating a team). Not a sizing bug: the shell is `100dvh`, the
+viewport is `viewport-fit=cover`, the status bar `black-translucent`, and the bottom inset is used
+once as the bar's own padding inside its height, with the content, the action bar and toasts
+clearing the bar's full height. The cause is iOS itself: to reveal a focused field it scrolls the
+_document_ even though the body is `overflow: hidden`, and when the keyboard closes it leaves that
+offset in place, so everything `position: fixed` is positioned against a layout viewport that is
+shifted up by the amount it scrolled.
+
+- `useViewportReset` (mounted once in `App`, so it covers every page and every form) listens for a
+  field (input, textarea, select) losing focus and puts the window back at the top, once at once and
+  once after the keyboard's closing animation, and does the same when the visual viewport is back
+  to full height (`visualViewport` resize and scroll). While the keyboard is up nothing fires, so
+  iOS can still scroll the field into view. No CSS changed: the D110 shell, the bar's pinning on
+  long pages and the content's bottom padding are untouched.
+- Checked in WebKit with iPhone emulation by leaving the document scrolled the way iOS does, then
+  blurring the field: create a team, add a player on the Team tab, post on the board, and a field
+  on the Field page, then Schedule, Stats and Settings — the window is back at 0 and the bar's
+  bottom edge is the viewport's every time. The real device test is the coach's.
