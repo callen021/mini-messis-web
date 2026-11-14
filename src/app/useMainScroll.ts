@@ -1,5 +1,6 @@
 import { type RefObject, useLayoutEffect } from 'react';
 import { useLocation, useNavigationType } from 'react-router';
+import { resetViewport } from './useViewportReset';
 
 const KEY = 'main-scroll';
 
@@ -32,6 +33,8 @@ export function useMainScroll(ref: RefObject<HTMLElement | null>) {
     const key = location.key;
     const saved = load()[key];
     el.scrollTop = navType === 'POP' && saved !== undefined ? saved : 0;
+    // a leftover keyboard offset never survives a route change (D112)
+    resetViewport();
     return () => {
       const map = load();
       map[key] = el.scrollTop;

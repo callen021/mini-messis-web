@@ -1405,3 +1405,11 @@ The standing paragraph under the bench ("Tap a jersey, then another, to swap the
   spare above the bar, and the shift timers overlap nothing. The e2e flow checks both: no
   scrolling, and the live court's size equals the starters court's. Soccer and the period cards
   never shrank.
+- The keyboard reset (D111) is hardened for the start-game flow, where the opponent field unmounts
+  on submit: `resetViewport` always calls `scrollTo(0, 0)` (iOS can leave the visual viewport
+  offset while the window reports no scroll), every route change resets from `useMainScroll`, and a
+  closing sheet blurs the field still focused inside it, so the focusout path runs before the
+  field is gone. Focus moving straight from one field to another is left alone, so the page never
+  jumps while the keyboard is still up. In WebKit the start flow, a tab change with a leftover
+  offset, and field-to-field focus in the Add player sheet all end with the window at 0 and the
+  bar's bottom edge on the viewport's.

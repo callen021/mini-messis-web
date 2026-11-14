@@ -39,6 +39,10 @@ export function Sheet({ open, onClose, label, children }: SheetProps) {
 
   useEffect(() => {
     if (open) return;
+    // a field still focused inside the closing sheet is blurred now, so the keyboard reset
+    // (D111, D112) runs before the sheet unmounts it
+    const active = document.activeElement;
+    if (active instanceof HTMLElement && ref.current?.contains(active)) active.blur();
     const t = window.setTimeout(() => setExited(true), EXIT_MS);
     return () => window.clearTimeout(t);
   }, [open]);
