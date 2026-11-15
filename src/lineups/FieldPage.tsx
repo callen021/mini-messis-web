@@ -147,7 +147,14 @@ function PeriodFieldPage() {
   // every edit keeps each period's bench queue (D79): off joins the right end, on leaves
   const rosterIds = useMemo(() => activePlayers.map((p) => p.id), [activePlayers]);
   const queueOf = (i: number) => benchQueue(periods[i]?.bench ?? [], rosterIds, periods[i]?.slots ?? []);
-  const commit = (next: Period[], message?: string) => {
+  const commit = (next: Period[], message?: string, undoable = false) => {
+    // the plan as it stands, for the toast's Undo (D113)
+    const before = periods.map((q) => ({
+      ...q,
+      slots: [...q.slots],
+      auto: [...q.auto],
+      bench: [...(q.bench ?? [])],
+    }));
     const withBench = next.map((q, i) => ({
       ...q,
       bench: benchAfterEdit(q.bench ?? periods[i]?.bench ?? [], rosterIds, periods[i]?.slots ?? [], q.slots),
@@ -155,14 +162,18 @@ function PeriodFieldPage() {
     save.mutate(withBench, {
       onError: (e) => toast(errorMessage(e)),
     });
-    if (message) toast(message);
+    if (message)
+      toast(
+        message,
+        undoable ? { action: { label: 'Undo', onClick: () => commit(before, 'Change undone') } } : undefined,
+      );
   };
   const onBenchSwap = (i: number, a: string, b: string) => {
     const q = periods[i];
     if (!q) return;
     const next = [...periods];
     next[i] = { ...q, bench: benchSwap(queueOf(i), a, b) };
-    commit(next, `${nameOf(a)} and ${nameOf(b)} swap places in line`);
+    commit(next, `${nameOf(a)} and ${nameOf(b)} swap places in line`, true);
   };
 
   const onFormationChange = (i: number, name: string) => {
@@ -187,7 +198,7 @@ function PeriodFieldPage() {
       msg = `${nameOf(playerId)} moved · ${S.label(from?.role ?? '')} is open`;
     } else if (playerId && pos) msg = `${nameOf(playerId)} in at ${pos.code}`;
     else if (!playerId) msg = `${S.label(pos?.role ?? '')} is open`;
-    commit(next, msg);
+    commit(next, msg, true);
   };
 
   const onSwap = (i: number, a: number, b: number) => {
@@ -199,7 +210,7 @@ function PeriodFieldPage() {
     slots[b] = pa;
     const next = [...periods];
     next[i] = { ...q, slots, auto: q.auto.filter((k) => k !== a && k !== b) };
-    commit(next, `${nameOf(slots[a] ?? '')} and ${nameOf(slots[b] ?? '')} swap positions`);
+    commit(next, `${nameOf(slots[a] ?? '')} and ${nameOf(slots[b] ?? '')} swap positions`, true);
   };
 
   const onAutoFill = (i: number, redo: boolean) => {

@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router';
 import { LoadingScreen, useIsCoach, useIsStaff } from '@/auth/guards';
 import { Button, Toolbar } from '@/components/Button';
@@ -99,6 +99,12 @@ export function ClockFieldPage() {
   // basketball quick scoring (D108): the points waiting for a scorer, and the last entry's line
   const [pendingPts, setPendingPts] = useState<number | null>(null);
   const [lastScore, setLastScore] = useState<{ text: string } | null>(null);
+  // a live change shows at once (D113): the page's own view of the spots and the bench while the
+  // server calls run, one after another in tap order; dropped once the last one has refetched
+  const [ahead, setAhead] = useState<{ slots: string[]; bench: string[] } | null>(null);
+  const aheadRef = useRef<{ slots: string[]; bench: string[] } | null>(null);
+  const inFlight = useRef(0);
+  const chain = useRef<Promise<unknown>>(Promise.resolve());
 
   const clock = clockQ.data ?? PAUSED_CLOCK;
   const running = !!live && isRunning(clock);
@@ -135,17 +141,19 @@ export function ClockFieldPage() {
   );
   const shown = fixed[periodIndex] ?? fixed[0];
   const formation = formationFor(shown?.formation ?? '');
-  const slots: string[] = useMemo(() => {
+  const serverSlots: string[] = useMemo(() => {
     if (!live) return formation.positions.map((_, i) => shown?.slots[i] ?? '');
     const on = onFieldBySlot(stints, periodIndex);
     return formation.positions.map((_, i) => on.get(i)?.player_id ?? '');
   }, [live, formation, shown, stints, periodIndex]);
+  const slots = ahead?.slots ?? serverSlots;
 
   // the bench is a queue (D79): the lineup row's order, cleaned up client-side so it draws right before the server answers
   const rosterIds = useMemo(() => activePlayers.map((p) => p.id), [activePlayers]);
+  const serverBench = shown?.bench;
   const queue = useMemo(
-    () => benchQueue(shown?.bench ?? [], rosterIds, slots),
-    [shown?.bench, rosterIds, slots],
+    () => benchQueue(ahead?.bench ?? serverBench ?? [], rosterIds, slots),
+    [ahead?.bench, serverBench, rosterIds, slots],
   );
   const bench: Player[] = useMemo(() => {
     const byId = new Map(activePlayers.map((p) => [p.id, p]));
@@ -165,6 +173,57 @@ export function ClockFieldPage() {
   );
   const scoreNoun = scoreNounFor(S);
   const onError = (e: unknown) => toast(errorMessage(e));
+
+  /**
+   * A live lineup change (D113): the page shows `next` at once, the server calls run one after
+   * another in tap order, and the toast offers Undo for a few seconds. Nothing waits for the
+   * round trip, and the own view is dropped only once the last call has refetched.
+   */
+  const runLive = (
+    call: Parameters<typeof act.mutateAsync>[0],
+    next: { slots: string[]; bench: string[] } | null,
+    message: string | ((result: string | null) => string) | null,
+    undoable = true,
+  ) => {
+    if (next) {
+      aheadRef.current = next;
+      setAhead(next);
+    }
+    inFlight.current += 1;
+    chain.current = chain.current
+      .then(() => act.mutateAsync(call))
+      .then((result) => {
+        if (!message) return;
+        const text = typeof message === 'string' ? message : message(result);
+        toast(text, undoable ? { action: { label: 'Undo', onClick: undo } } : undefined);
+      })
+      .catch((e: unknown) => {
+        aheadRef.current = null;
+        setAhead(null);
+        onError(e);
+      })
+      .finally(() => {
+        inFlight.current -= 1;
+        if (inFlight.current === 0) {
+          aheadRef.current = null;
+          setAhead(null);
+        }
+      });
+  };
+  /** The spots and the bench as the coach sees them now, including changes still on their way. */
+  const liveBase = () => aheadRef.current ?? { slots: [...slots], bench: [...queue] };
+  const liveAfter = (base: { slots: string[]; bench: string[] }, nextSlots: string[]) => ({
+    slots: nextSlots,
+    bench: benchAfterEdit(base.bench, rosterIds, base.slots, nextSlots),
+  });
+  const undo = () =>
+    runLive(
+      { kind: 'undo' },
+      null,
+      (kind) =>
+        kind === 'swap' ? 'Swap undone' : kind === 'sub' ? 'Substitution undone' : 'Last change undone',
+      false,
+    );
 
   /* ---------- scoring on the clock (D108) ---------- */
   const recordScore = (side: 'us' | 'them', points: number, scorerId: string | null) => {
@@ -209,43 +268,59 @@ export function ClockFieldPage() {
   };
 
   /* ---------- template edits (no live game) ---------- */
-  const commitTemplate = (period: Period, message?: string) => {
+  const commitTemplate = (period: Period, message?: string, undoable = false) => {
+    // the starters as they stand, for the toast's Undo (D113)
+    const before: Period = {
+      formation: formation.name,
+      slots: [...slots],
+      auto: [...(shown?.auto ?? [])],
+      bench: [...queue],
+    };
     const bench = benchAfterEdit(period.bench ?? queue, rosterIds, slots, period.slots);
     saveStarters.mutate({ starters: { ...period, bench }, count: Math.max(1, fixed.length) }, { onError });
-    if (message) toast(message);
+    if (message)
+      toast(
+        message,
+        undoable
+          ? { action: { label: 'Undo', onClick: () => commitTemplate(before, 'Change undone') } }
+          : undefined,
+      );
   };
   const templateTap = (o: TapAction) => {
     if (!shown) return;
     const p: Period = { formation: formation.name, slots: [...slots], auto: [...shown.auto] };
     if (o.action === 'move') {
-      commitTemplate(assignSlot(p, o.slot, o.playerId).period, `${nameOf(o.playerId)} moved`);
+      commitTemplate(assignSlot(p, o.slot, o.playerId).period, `${nameOf(o.playerId)} moved`, true);
     } else if (o.action === 'sub') {
       const i = p.slots.indexOf(o.off);
       if (i < 0) return;
-      commitTemplate(assignSlot(p, i, o.on).period, `${nameOf(o.on)} starts for ${nameOf(o.off)}`);
+      commitTemplate(assignSlot(p, i, o.on).period, `${nameOf(o.on)} starts for ${nameOf(o.off)}`, true);
     } else if (o.action === 'fill') {
-      commitTemplate(assignSlot(p, o.slot, o.playerId).period, `${nameOf(o.playerId)} starts`);
+      commitTemplate(assignSlot(p, o.slot, o.playerId).period, `${nameOf(o.playerId)} starts`, true);
     }
   };
 
-  /* ---------- live game: atomic server calls ---------- */
+  /* ---------- live game: atomic server calls, shown at once (D113) ---------- */
   const liveTap = (o: TapAction) => {
-    const done = (msg: string) => () => toast(msg);
-    if (o.action === 'move')
-      act.mutate(
+    const base = liveBase();
+    if (o.action === 'move' || o.action === 'fill') {
+      const next = base.slots.map((id) => (id === o.playerId ? '' : id));
+      next[o.slot] = o.playerId;
+      runLive(
         { kind: 'fill', playerId: o.playerId, slot: o.slot },
-        { onError, onSuccess: done(`${nameOf(o.playerId)} moved`) },
+        liveAfter(base, next),
+        o.action === 'move' ? `${nameOf(o.playerId)} moved` : `${nameOf(o.playerId)} on`,
       );
-    else if (o.action === 'sub')
-      act.mutate(
+    } else if (o.action === 'sub') {
+      runLive(
         { kind: 'sub', off: o.off, on: o.on },
-        { onError, onSuccess: done(`${nameOf(o.on)} on for ${nameOf(o.off)}`) },
+        liveAfter(
+          base,
+          base.slots.map((id) => (id === o.off ? o.on : id)),
+        ),
+        `${nameOf(o.on)} on for ${nameOf(o.off)}`,
       );
-    else if (o.action === 'fill')
-      act.mutate(
-        { kind: 'fill', playerId: o.playerId, slot: o.slot },
-        { onError, onSuccess: done(`${nameOf(o.playerId)} on`) },
-      );
+    }
   };
 
   // taps on one side queue up (D113); each tap on the other side moves the next in line
@@ -272,12 +347,15 @@ export function ClockFieldPage() {
     setSelected([]);
     flash([pair.a, pair.b]);
     if (pair.kind === 'bench') {
-      if (live)
-        act.mutate(
+      const msg = `${nameOf(pair.a)} and ${nameOf(pair.b)} swap places in line`;
+      if (live) {
+        const base = liveBase();
+        runLive(
           { kind: 'bench', a: pair.a, b: pair.b },
-          { onError, onSuccess: () => toast(`${nameOf(pair.a)} and ${nameOf(pair.b)} swap places in line`) },
+          { ...base, bench: benchSwap(base.bench, pair.a, pair.b) },
+          msg,
         );
-      else if (shown)
+      } else if (shown)
         commitTemplate(
           {
             formation: formation.name,
@@ -285,13 +363,16 @@ export function ClockFieldPage() {
             auto: [...shown.auto],
             bench: benchSwap(queue, pair.a, pair.b),
           },
-          `${nameOf(pair.a)} and ${nameOf(pair.b)} swap places in line`,
+          msg,
+          true,
         );
       return;
     }
     const msg = `${nameOf(pair.a)} and ${nameOf(pair.b)} swap positions`;
     if (live) {
-      act.mutate({ kind: 'swap', a: pair.a, b: pair.b }, { onError, onSuccess: () => toast(msg) });
+      const base = liveBase();
+      const next = base.slots.map((id) => (id === pair.a ? pair.b : id === pair.b ? pair.a : id));
+      runLive({ kind: 'swap', a: pair.a, b: pair.b }, { ...base, slots: next }, msg);
       return;
     }
     if (!shown) return;
@@ -302,7 +383,7 @@ export function ClockFieldPage() {
     p.slots[ia] = pair.b;
     p.slots[ib] = pair.a;
     p.auto = p.auto.filter((k) => k !== ia && k !== ib);
-    commitTemplate(p, msg);
+    commitTemplate(p, msg, true);
   };
   /** Take the first on-field player in line off with nobody on: an injury in a live game, an open starter spot otherwise. */
   const openSpot = () => {
@@ -310,16 +391,22 @@ export function ClockFieldPage() {
     if (!head || head.kind !== 'field' || !head.playerId) return;
     const { slot, playerId } = head;
     setSelected(selected.slice(1));
-    if (live)
-      act.mutate(
+    if (live) {
+      const base = liveBase();
+      runLive(
         { kind: 'empty', off: playerId },
-        { onError, onSuccess: () => toast(`${nameOf(playerId)} off · spot open`) },
+        liveAfter(
+          base,
+          base.slots.map((id) => (id === playerId ? '' : id)),
+        ),
+        `${nameOf(playerId)} off · spot open`,
       );
-    else if (shown) {
+    } else if (shown) {
       const p: Period = { formation: formation.name, slots: [...slots], auto: [...shown.auto] };
       commitTemplate(
         assignSlot(p, slot, '').period,
         `${S.label(formation.positions[slot]?.role ?? '')} is open`,
+        true,
       );
     }
   };
@@ -431,18 +518,6 @@ export function ClockFieldPage() {
         },
       );
   };
-
-  const undo = () =>
-    act.mutate(
-      { kind: 'undo' },
-      {
-        onError,
-        onSuccess: (kind) =>
-          toast(
-            kind === 'swap' ? 'Swap undone' : kind === 'sub' ? 'Substitution undone' : 'Last change undone',
-          ),
-      },
-    );
 
   const onRename = (name: string) => {
     const next = name || team.name;

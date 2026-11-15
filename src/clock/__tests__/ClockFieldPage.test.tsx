@@ -23,6 +23,16 @@ const f33 = formationByName(forms, '3-3');
 
 const saveStarters = vi.fn();
 const act = vi.fn();
+// the lineup calls go through mutateAsync, one after another (D113); a test may hold the answer back
+let settle: (() => void) | null = null;
+const actAsync = vi.fn((call: unknown) => {
+  act(call, {});
+  return new Promise<string | null>((resolve) => {
+    const done = () => resolve(null);
+    if (settle === null) done();
+    else settle = done;
+  });
+});
 let staff = true;
 let liveGame: { id: string; opponent: string } | null = null;
 let periods: StoredPeriod[] = [];
@@ -63,7 +73,7 @@ vi.mock('@/games/api', () => ({
   useStartGame: () => ({ mutate: startGame, isPending: false }),
 }));
 vi.mock('../api', () => ({
-  useClockAction: () => ({ mutate: act, isPending: false }),
+  useClockAction: () => ({ mutate: act, mutateAsync: actAsync, isPending: false }),
   useGameClock: () => ({ data: clock, isPending: false }),
   useStints: () => ({ data: stints, isPending: false }),
   useServerTimeSync: () => undefined,
@@ -416,6 +426,32 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(screen.getByRole('group', { name: 'Bench' }).querySelectorAll('.jtime')).toHaveLength(0);
   });
 
+  it('a live change shows at once and the toast offers Undo for a while (D113)', async () => {
+    settle = () => undefined; // hold the server answer back
+    renderPage();
+    expect(field('Nolan')).toBeInTheDocument();
+    await userEvent.click(bench('Hal'));
+    await userEvent.click(field('Nolan'));
+    // before the server answers: Hal stands in Nolan's spot and Nolan is last in the bench line
+    expect(screen.queryByRole('button', { name: /^[A-Z ]+: Nolan/ })).not.toBeInTheDocument();
+    expect(field('Hal')).toBeInTheDocument();
+    const names = within(screen.getByRole('group', { name: 'Bench' }))
+      .getAllByRole('button', { name: /^Bench:/ })
+      .map((b) => b.getAttribute('aria-label') ?? '');
+    expect(names[names.length - 1]).toMatch(/^Bench: Nolan/);
+    expect(screen.getByRole('status')).not.toHaveTextContent('Hal on for Nolan');
+    // the server answers: the toast carries its own Undo
+    const done = settle;
+    settle = null;
+    await reactAct(async () => {
+      done?.();
+    });
+    expect(screen.getByRole('status')).toHaveTextContent('Hal on for Nolan');
+    const undo = within(screen.getByRole('status')).getByRole('button', { name: 'Undo' });
+    await userEvent.click(undo);
+    expect(act).toHaveBeenLastCalledWith({ kind: 'undo' }, expect.anything());
+  });
+
   it('a substitution and a swap are single server calls', async () => {
     renderPage();
     await userEvent.click(bench('Hal'));
@@ -427,7 +463,9 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(act).toHaveBeenCalledWith({ kind: 'swap', a: 'p2', b: 'p3' }, expect.anything());
     await userEvent.click(screen.getByRole('button', { name: 'Resume' }));
     expect(act).toHaveBeenCalledWith({ kind: 'start' }, expect.anything());
-    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    await userEvent.click(
+      within(document.querySelector('.actionbar') as HTMLElement).getByRole('button', { name: 'Undo' }),
+    );
     expect(act).toHaveBeenCalledWith({ kind: 'undo' }, expect.anything());
     // in a live game, opening a selected spot empties it on the clock (an injury with no sub)
     await userEvent.click(field('Nolan'));

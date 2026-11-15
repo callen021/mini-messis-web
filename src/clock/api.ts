@@ -88,17 +88,21 @@ export function useStints(gameId: string | undefined, enabled = true, live = fal
   });
 }
 
-/** Everything a clock change can touch. */
+/**
+ * Everything a clock change can touch. The mutation settles only once the stints and the lineup
+ * are refetched, so a page showing the change ahead of the server can drop its own view then (D113).
+ */
 function useInvalidateClock(teamId: string, gameId: string) {
   const qc = useQueryClient();
-  return () => {
-    void qc.invalidateQueries({ queryKey: clockKeys.clock(gameId) });
-    void qc.invalidateQueries({ queryKey: clockKeys.stints(gameId) });
-    void qc.invalidateQueries({ queryKey: qk.game(gameId) });
-    void qc.invalidateQueries({ queryKey: qk.liveGame(teamId) });
-    void qc.invalidateQueries({ queryKey: ['team', teamId, 'lineups'] });
-    void qc.invalidateQueries({ queryKey: ['team', teamId, 'stats'] });
-  };
+  return () =>
+    Promise.all([
+      qc.invalidateQueries({ queryKey: clockKeys.clock(gameId) }),
+      qc.invalidateQueries({ queryKey: clockKeys.stints(gameId) }),
+      qc.invalidateQueries({ queryKey: qk.game(gameId) }),
+      qc.invalidateQueries({ queryKey: qk.liveGame(teamId) }),
+      qc.invalidateQueries({ queryKey: ['team', teamId, 'lineups'] }),
+      qc.invalidateQueries({ queryKey: ['team', teamId, 'stats'] }),
+    ]).then(() => undefined);
 }
 
 type ClockCall =
