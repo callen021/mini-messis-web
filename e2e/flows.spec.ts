@@ -366,6 +366,23 @@ test.describe('coach and parent flows', () => {
     await expect(parent).toHaveURL(/\/team$/);
   });
 
+  test('the coach types a contact for Ben ahead of the parent, with the email she will join with (D116)', async () => {
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await coach.locator('.group').getByRole('link', { name: /Ben/ }).click();
+    await expect(coach.getByRole('heading', { level: 1 })).toContainText('Ben');
+    await coach.getByRole('button', { name: 'Add contact' }).click();
+    const sheet = coach.getByRole('dialog', { name: 'Add contact' });
+    await sheet.getByLabel('Name').fill('Typed Dana');
+    await sheet.getByRole('combobox', { name: 'Relationship' }).selectOption('Mother');
+    await sheet.getByLabel('Email (optional)').fill(`Dana-${run}@Example.com`);
+    await sheet.getByRole('switch', { name: 'Share with team parents' }).click();
+    await sheet.getByRole('button', { name: 'Add contact' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Contact added' })).toBeVisible();
+    await expect(coach.locator('.person')).toHaveCount(1);
+    await expect(coach.getByText('Typed Dana')).toBeVisible();
+  });
+
   test('with approval off (the default) a parent joins straight in; the link waits for a coach to confirm it (D91)', async () => {
     await coach.goto('/settings/members');
     const approve = coach.getByRole('switch', { name: 'Approve new parents before they join' });
@@ -421,6 +438,57 @@ test.describe('coach and parent flows', () => {
     await expect(danaPage.getByLabel('Shirt size')).toBeVisible();
     await coach.goto('/settings');
     await expect(coach.getByRole('link', { name: /Members & join code/ })).not.toContainText('to confirm');
+  });
+
+  test('confirming attached the account to the typed contact: one row, the coach’s label and sharing kept, no duplicate (D116)', async () => {
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await coach.locator('.group').getByRole('link', { name: /Ben/ }).click();
+    await expect(coach.getByRole('heading', { level: 1 })).toContainText('Ben');
+    await expect(coach.locator('.person')).toHaveCount(1);
+    const person = coach.locator('.person').first();
+    await expect(person).toContainText('Typed Dana');
+    await expect(person).toContainText('Mother');
+    await expect(person).toContainText('In app');
+    await expect(coach.getByText('Direct Dana')).toHaveCount(0);
+    await expect(coach.getByRole('switch', { name: 'Share Typed Dana with team parents' })).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    await expect(coach.getByText(/Possible duplicate/)).toHaveCount(0);
+  });
+
+  test('a name-only match is a prompt, never automatic: the coach merges it, and Merge with… lives on the edit screen (D116)', async () => {
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await coach.locator('.group').getByRole('link', { name: /Ava/ }).click();
+    await expect(coach.getByRole('heading', { level: 1 })).toContainText('Ava');
+    await coach.getByRole('button', { name: 'Add contact' }).click();
+    const sheet = coach.getByRole('dialog', { name: 'Add contact' });
+    await sheet.getByLabel('Name').fill('Parent Pat');
+    await sheet.getByRole('combobox', { name: 'Relationship' }).selectOption('Father');
+    await sheet.getByRole('button', { name: 'Add contact' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Contact added' })).toBeVisible();
+    await expect(coach.locator('.person')).toHaveCount(2);
+    const prompt = coach.getByRole('button', { name: /Possible duplicate: Parent Pat and Parent Pat/ });
+    await expect(prompt).toContainText('the same name. Merge?');
+    // the edit screen offers the other contact under Merge with…
+    await coach.locator('.person').filter({ hasText: 'Father' }).getByRole('button').first().click();
+    const edit = coach.getByRole('dialog', { name: 'Edit contact' });
+    await expect(edit.getByRole('combobox', { name: 'Merge with' })).toBeVisible();
+    await edit.getByRole('button', { name: 'Cancel' }).click();
+    await expect(edit).toBeHidden();
+    await prompt.click();
+    const confirm = coach.getByRole('dialog', { name: 'Merge Parent Pat into Parent Pat?' });
+    await confirm.getByRole('button', { name: 'Merge' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Contacts merged' })).toBeVisible();
+    await expect(coach.locator('.person')).toHaveCount(1);
+    // the typed row survived with its label; the account, phone and email came over
+    const person = coach.locator('.person').first();
+    await expect(person).toContainText('Father');
+    await expect(person).toContainText('(555) 010-0001');
+    await expect(person).toContainText('In app');
+    await expect(coach.getByText(/Possible duplicate/)).toHaveCount(0);
   });
 
   test('a scrolled player page at 375px keeps a solid strip behind the status bar (D63)', async () => {
@@ -647,6 +715,115 @@ test.describe('coach and parent flows', () => {
     // the parent sees the coach's answer
     await parent.goto('/home');
     await expect(parent.getByText('Ava is going')).toBeVisible();
+    await parent.goto('/games');
+  });
+
+  test('allergies: the parent answers on Home, the team sees a summary with no names (D114)', async () => {
+    await parent.goto('/home');
+    const chips = parent.getByRole('group', { name: 'Ava’s allergies' });
+    await expect(chips).toBeVisible();
+    await expect(parent.getByText('Not answered yet.', { exact: false })).toBeVisible();
+    await chips.getByRole('button', { name: 'Peanuts' }).click();
+    await expect(chips.getByRole('button', { name: 'Peanuts' })).toHaveAttribute('aria-pressed', 'true');
+    await chips.getByRole('button', { name: 'Other' }).click();
+    await parent.getByLabel('Other allergen').fill('Kiwi');
+    await parent.getByLabel('Notes').fill('EpiPen in the bag');
+    // the notes save when the field is left; wait for that request before reloading
+    const saved = parent.waitForResponse(
+      (r) => r.url().includes('player_allergies') && (r.request().postData() ?? '').includes('EpiPen'),
+    );
+    await parent.getByLabel('Notes').blur();
+    await saved;
+    await parent.reload();
+    await expect(
+      parent.getByRole('group', { name: 'Ava’s allergies' }).getByRole('button', { name: 'Peanuts' }),
+    ).toHaveAttribute('aria-pressed', 'true');
+    await expect(parent.getByLabel('Other allergen')).toHaveValue('Kiwi');
+    await expect(parent.getByLabel('Notes')).toHaveValue('EpiPen in the bag');
+    // the coach's roster: the combined list, the Other name, the unanswered note, never the notes
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    const summary = coach.locator('.row').filter({ hasText: 'Allergies on the team' });
+    await expect(summary).toContainText('Peanuts, Kiwi · Not every family has answered.');
+    await expect(summary).not.toContainText('EpiPen');
+    await expect(summary).not.toContainText('Ava');
+    // another parent sees the same summary and nothing private
+    await danaPage.goto('/team');
+    await danaPage.getByRole('radio', { name: 'Roster' }).click();
+    await expect(danaPage.locator('.row').filter({ hasText: 'Allergies on the team' })).toContainText(
+      'Peanuts, Kiwi',
+    );
+  });
+
+  test('snack signup: the coach turns it on, the family claims the game, Home and the schedule show it, can’t make it asks to release (D115)', async () => {
+    await parent.goto('/home');
+    await expect(parent.getByRole('link', { name: /Snack signup/ })).toHaveCount(0);
+    await coach.goto('/settings');
+    await coach
+      .getByRole('radiogroup', { name: 'Snack signup' })
+      .getByRole('radio', { name: 'Games' })
+      .click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Snack signup · Games' })).toBeVisible();
+    await coach.reload();
+    await expect(
+      coach.getByRole('radiogroup', { name: 'Snack signup' }).getByRole('radio', { name: 'Games' }),
+    ).toHaveAttribute('aria-checked', 'true');
+    // the parent: the link, the list with the allergy summary on top, one tap to claim
+    await parent.goto('/home');
+    await parent.getByRole('link', { name: /Snack signup/ }).click();
+    await expect(parent).toHaveURL(/\/snacks$/);
+    await expect(parent.locator('.row').filter({ hasText: 'Allergies on the team' })).toContainText(
+      'Peanuts, Kiwi',
+    );
+    const row = parent.getByRole('button', { name: /vs Tigers.*snacks Open/ });
+    await row.click();
+    await expect(parent.getByRole('status').filter({ hasText: 'Ava’s family brings snacks' })).toBeVisible();
+    await expect(parent.getByRole('button', { name: /vs Tigers.*Ava’s family \(yours\)/ })).toContainText(
+      'Ava’s family · you',
+    );
+    await expect(parent.getByText(/Your family: 1 of 1 this season/)).toBeVisible();
+    // Home's Next up card and the game page say so, with the allergies to mind
+    await parent.goto('/home');
+    await expect(parent.getByText('You’re bringing snacks.')).toBeVisible();
+    await expect(parent.locator('.snacknote')).toContainText('Peanuts, Kiwi');
+    await parent.goto('/games');
+    await expect(parent.getByRole('img', { name: 'Snacks: Ava’s family' })).toHaveClass(/taken/);
+    await parent.getByRole('link', { name: /vs Tigers/ }).click();
+    await expect(parent.getByText('You’re bringing snacks')).toBeVisible();
+    await expect(parent.getByRole('button', { name: 'Release' })).toBeVisible();
+    // the coach's schedule: a filled icon, no extra text; the game page names the family
+    await coach.goto('/games');
+    await expect(coach.getByRole('img', { name: 'Snacks: Ava’s family' })).toHaveClass(/taken/);
+    await coach.getByRole('link', { name: /vs Tigers/ }).click();
+    await expect(coach.locator('.snackrow')).toContainText('Ava’s family');
+    // can't make it: the family is asked to release; keeping it flags the game for the coach
+    await parent.goto('/home');
+    await parent.getByRole('button', { name: 'Change' }).click();
+    await parent.getByRole('button', { name: 'Can’t make it' }).click();
+    const ask = parent.getByRole('dialog', { name: 'You’re bringing snacks for this one' });
+    await expect(ask).toBeVisible();
+    await ask.getByRole('button', { name: 'Keep it' }).click();
+    await coach.goto('/games');
+    await expect(coach.getByRole('img', { name: 'Snacks: Ava’s family, who can’t make it' })).toHaveClass(
+      /flagged/,
+    );
+    await coach.getByRole('link', { name: /vs Tigers/ }).click();
+    await expect(coach.locator('.snackrow')).toContainText('can’t make it: find another family');
+    // going again clears the flag; the coach can reassign from the game page
+    await parent.goto('/home');
+    await parent.getByRole('button', { name: 'Change' }).click();
+    await parent.getByRole('button', { name: 'Going' }).click();
+    await expect(parent.getByText('Ava is going')).toBeVisible();
+    await coach.goto('/games');
+    await expect(coach.getByRole('img', { name: 'Snacks: Ava’s family' })).toHaveClass(/taken/);
+    await coach.getByRole('link', { name: /vs Tigers/ }).click();
+    await coach.locator('.snackrow').click();
+    const who = coach.getByRole('dialog', { name: 'Who brings snacks?' });
+    await who.getByRole('button', { name: 'Ben’s family' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Ben’s family brings snacks' })).toBeVisible();
+    await expect(coach.locator('.snackrow')).toContainText('Ben’s family');
+    await parent.goto('/home');
+    await expect(parent.getByText('You’re bringing snacks.')).toHaveCount(0);
     await parent.goto('/games');
   });
 
@@ -930,12 +1107,74 @@ test.describe('coach and parent flows', () => {
     await expect(parent.locator('.bslot .shirt').last().locator('.name')).toHaveText(offName, {
       ignoreCase: true,
     }); // joined the right end of the queue (D79)
-    await coach.getByRole('button', { name: 'Undo' }).click();
+    // the toolbar's Undo (the toast carries its own, D113)
+    await coach.locator('.actionbar').getByRole('button', { name: 'Undo' }).click();
     await expect(coach.getByRole('status').filter({ hasText: 'Substitution undone' })).toBeVisible();
     await expect(coach.locator('.slot .shirt').first().locator('.name')).toHaveText(offName, {
       ignoreCase: true,
     });
     await expect(parent.locator('.slot .shirt').first().locator('.name')).toHaveText(offName, {
+      ignoreCase: true,
+      timeout: 15_000,
+    });
+  });
+
+  test('two on the field in line sub off one after another; the toast offers Undo; a sub while paused shows the nudge (D113)', async () => {
+    const first = coach.locator('.slot .shirt').nth(0);
+    const second = coach.locator('.slot .shirt').nth(1);
+    const firstName = (await first.locator('.name').textContent())?.trim() ?? '';
+    const secondName = (await second.locator('.name').textContent())?.trim() ?? '';
+    const benchShirt = coach.locator('.bslot .shirt').first();
+    const benchName = (await benchShirt.locator('.name').textContent())?.trim() ?? '';
+    await first.click();
+    await second.click();
+    await expect(first.locator('.qbadge')).toHaveText('1');
+    await expect(second.locator('.qbadge')).toHaveText('2');
+    await expect(coach.getByText(`Tap bench players for ${firstName}, then ${secondName}`)).toBeVisible();
+    await expect(coach.getByRole('button', { name: 'Swap positions' })).toBeVisible();
+    // the one bench player comes on for the first in line; the second moves up to 1
+    await benchShirt.click();
+    await expect(coach.locator('.slot .shirt').nth(0).locator('.name')).toHaveText(benchName, {
+      ignoreCase: true,
+    });
+    await expect(coach.locator('.slot .shirt').nth(1).locator('.qbadge')).toHaveText('1');
+    await expect(coach.getByText(`Tap a bench player for ${secondName}`)).toBeVisible();
+    const toastEl = coach.locator('.toast').filter({ hasText: `${benchName} on for ${firstName}` });
+    await expect(toastEl).toBeVisible();
+    await toastEl.getByRole('button', { name: 'Undo' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Substitution undone' })).toBeVisible();
+    await expect(coach.locator('.slot .shirt').nth(0).locator('.name')).toHaveText(firstName, {
+      ignoreCase: true,
+    });
+    await expect(parent.locator('.slot .shirt').nth(0).locator('.name')).toHaveText(firstName, {
+      ignoreCase: true,
+      timeout: 15_000,
+    });
+    // tapping the queued jersey again takes it out of the line
+    await coach.locator('.slot .shirt').nth(1).click();
+    await expect(coach.locator('.qbadge')).toHaveCount(0);
+    // paused: a sub shows the nudge, Resume is one tap, the banner goes once the clock runs
+    await coach.getByRole('button', { name: 'Pause' }).click();
+    await expect(coach.getByLabel(/left, paused/)).toBeVisible();
+    await expect(coach.getByText('Clock is paused')).toHaveCount(0);
+    await coach.locator('.bslot .shirt').first().click();
+    await coach.locator('.slot .shirt').nth(0).click();
+    const nudge = coach.locator('.nudge');
+    await expect(nudge).toContainText('Clock is paused');
+    await expect(coach.locator('.slot .shirt').nth(0).locator('.name')).toHaveText(benchName, {
+      ignoreCase: true,
+    });
+    await nudge.getByRole('button', { name: 'Resume' }).click();
+    await expect(coach.locator('.gclock.run')).toBeVisible();
+    await expect(nudge).toHaveCount(0);
+    await expect(parent.locator('.gclock.run')).toBeVisible({ timeout: 15_000 });
+    // put the kickoff lineup back for the flows that follow
+    await coach.locator('.actionbar').getByRole('button', { name: 'Undo' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Substitution undone' })).toBeVisible();
+    await expect(coach.locator('.slot .shirt').nth(0).locator('.name')).toHaveText(firstName, {
+      ignoreCase: true,
+    });
+    await expect(parent.locator('.slot .shirt').nth(0).locator('.name')).toHaveText(firstName, {
       ignoreCase: true,
       timeout: 15_000,
     });

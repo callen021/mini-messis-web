@@ -1413,3 +1413,88 @@ The standing paragraph under the bench ("Tap a jersey, then another, to swap the
   jumps while the keyboard is still up. In WebKit the start flow, a tab change with a leftover
   offset, and field-to-field focus in the Add player sheet all end with the window at 0 and the
   bar's bottom edge on the viewport's.
+
+## 2026-11-15 — Live-game queue, allergies, snacks, contacts
+
+### D113. The tap queue, instant swaps with Undo, the paused-clock nudge, 2-2 strikers
+
+A multi-sub (three off, three on) took six careful taps in order; a live swap only showed once
+the server answered; and the strikers of 2-2 stood on the opposing goal.
+
+- Taps on one side of the field build a line (`Selection` is now the queue, `resolveTap` returns
+  the action and the remaining queue): each queued jersey or empty spot carries a numbered badge
+  (`.qbadge`, 1 first); each tap on the other side moves the next in line, lowest number first,
+  and the rest renumber. A single change is still two taps. Tapping a queued jersey leaves the
+  line. An empty spot tapped with bench players in line takes the next of them; tapped with
+  on-field players in line, the first of them moves there. Players coming off join the end of
+  the bench line in the order they came off (unchanged). Exactly two players in line on one side
+  offer a **Swap positions** / **Swap places in line** button in the hint row, so position swaps
+  and manual bench reordering keep working; the same-side second tap now queues instead of
+  swapping, which the spec asked for ("queue field kids then tap bench kids"). Starters, period
+  cards and the live clock game share the engine; the hint names the whole line.
+- Nothing waits for the round trip: in a live clock game the page keeps its own view of the
+  spots and the bench (`ahead`) while the server calls run one after another in tap order
+  (`runLive` chains `mutateAsync`; `useInvalidateClock` resolves only once the stints and the
+  lineup are refetched, so the own view is dropped when the server state is the same). The
+  template and the period cards were already optimistic. No confirm step existed for swaps.
+- The toast carries an action (`toast(msg, { action })`, five seconds): **Undo** after every
+  change reverses it in all three modes (`clock_undo` on the clock: spots, bench order and
+  logged time; the previous plan on the template and on the period cards). The toolbar's Undo
+  stays for stepping further back.
+- The paused-clock nudge: a sub or a score while the game is on and the clock is not shows
+  "Clock is paused" above the card with a Resume (Start clock at 0:00) button and a Dismiss;
+  it goes on its own once the clock runs. The clock is never started by the app.
+- Formation fix: `SOCCER_ROW_OVERRIDES` puts the striker row of 2-2 at field y 25 (halfway
+  between the goal line and the halfway line) instead of the table's 18, in both views, with
+  or without a keeper. Checked the other soccer shapes: the generator uses y 18 for the forward
+  row of every multi-row shape (1-1, 2-1, 1-2, 1-1-1, 1-2-1, 2-1-1, 1-3, 3-1, every 5- to
+  11-a-side shape); only the one-row "2" differs (y 40). They all share the 2-2 problem to the
+  same degree and were left as they were, as asked.
+
+### D114. Allergies on the player profile; a team summary with no names
+
+`player_allergies` keeps three states per player: no row (not answered), `none`, or `has` with
+`allergens` from a fixed list (peanuts, tree nuts, dairy, eggs, wheat/gluten, soy, sesame, fish,
+shellfish, other) plus `other` (the allergen's name, required with the Other chip) and a separate
+`notes` text (severity, EpiPen…). Checks keep `none` empty and Other named. The row is private
+exactly like the birthdate (`can_see_player_private`: staff and the player's **approved**
+guardians read and write; a self-linked parent waits for the coach to confirm the link, D91),
+enforced by RLS and proved in pgTAP 25. `team_allergy_summary(team)` gives every active member
+the combined allergen list, the Other names and whether some family has not answered, never a
+name and never the notes. The chips (a None chip that clears and excludes the others) live on
+the player page and the parent Home's Details; the summary sits under the roster on the Team
+tab and tops the snack list (D115).
+
+### D115. Snack signup: one family per game or practice, capped per family, coaches override
+
+`teams.snack_signup` (off | games | both, default off; Settings, staff). The family is stored on
+the event (`games.snack_player_id`, `practices.snack_player_id`): a player, shown as "<Player>'s
+family", so either parent sees and changes it. Only `set_snack` / `clear_snack` write it. A
+parent (anyone who may RSVP for the player) claims an open, upcoming, eligible event while their
+family holds fewer than `snack_cap` = ceil(eligible events this season / active players)
+slots, may move a slot between their own children, and releases only their own; coaches and
+assistants assign, clear or override any slot with no cap. The parent Home links to `/snacks`
+(the allergy summary on top, every upcoming eligible event with Open or the family, one tap to
+claim, one tap to release); the signed-up family's Next up card and the event page say "You're
+bringing snacks" with the allergy summary; schedule rows carry a small apple icon (outline open,
+filled taken, red when the family can't make it) and nothing else. When the snack family's
+reply turns to "can't make it", a trigger flags the event for the coaches (`snack_flagged`,
+cleared when the reply changes back or the slot changes hands) and the app asks the family to
+release the slot. pgTAP 26 covers the gate, the cap, the override, the release and the flag.
+
+### D116. Duplicate contacts: a joining parent attaches to the coach's entry
+
+A contact the coach typed (no account) was doubled when that parent's link was confirmed,
+because `guardian_contact_row` matched by account only. Now it looks at the child's contacts
+without an account for the same phone digits (`phone_digits`, a leading +1 dropped) or the same
+email (`email_key`, lowercased and trimmed) and attaches the account to that row: the coach's
+name, relationship label and share setting stay, blank fields are filled from the account.
+`approve_member` (approval on) goes through the same function. A name-only match is never
+merged on its own: coaches see "Possible duplicate: A and B · They have the same name. Merge?"
+on the card (`findDuplicates`, pairs by phone, email or name, two different accounts never), and
+the contact edit screen offers "Merge with…" the player's other contacts. Both call
+`merge_contacts(keep, drop)`: the kept row keeps its label and sharing, takes the account and
+any blank field, the other row is deleted; allowed to whoever may edit both rows. Existing data:
+`scripts/contact-duplicates-dry-run.sql` lists every phone/email pair (to be merged) and every
+name-only pair (for the coaches to decide) across all teams; `contact-duplicates-apply.sql`
+merges the phone/email pairs only, after approval. pgTAP 27.
