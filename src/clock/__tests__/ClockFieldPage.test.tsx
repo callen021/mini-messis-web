@@ -227,7 +227,8 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     renderPage();
     await userEvent.click(field('Nolan'));
     expect(field('Nolan')).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText('Tap a player to swap with Nolan')).toBeInTheDocument();
+    expect(field('Nolan').querySelector('.qbadge')).toHaveTextContent('1');
+    expect(screen.getByText('Tap a bench player for Nolan')).toBeInTheDocument();
     await userEvent.click(bench('Hal'));
     expect(saveStarters).toHaveBeenCalledTimes(1);
     // both jerseys of the completed tap get the gold outline for a moment (D77)
@@ -239,28 +240,60 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     expect(arg.count).toBe(4);
   });
 
-  it('bench then field works the same way; two on-field jerseys swap positions', async () => {
+  it('bench then field works the same way; two on-field jerseys in line swap positions with the button (D113)', async () => {
     renderPage();
     await userEvent.click(bench('Nick'));
+    expect(screen.getByText('Tap a jersey on the field for Nick')).toBeInTheDocument();
     await userEvent.click(field('Teddy'));
     let arg = saveStarters.mock.calls[0]?.[0] as { starters: { slots: string[] } };
     expect(arg.starters.slots[1]).toBe('p9');
     saveStarters.mockReset();
     await userEvent.click(field('Nolan'));
     await userEvent.click(field('Jack'));
+    expect(field('Jack').querySelector('.qbadge')).toHaveTextContent('2');
+    expect(saveStarters).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Swap positions' }));
     arg = saveStarters.mock.calls[0]?.[0] as { starters: { slots: string[] } };
     expect(arg.starters.slots[0]).toBe('p3');
     expect(arg.starters.slots[2]).toBe('p1');
+    expect(field('Nolan')).toHaveAttribute('aria-pressed', 'false');
   });
 
-  it('tapping the selected jersey again cancels; two bench jerseys swap places in line (D79)', async () => {
+  it('taps on one side build a numbered line; each bench tap moves the next in line and the rest renumber (D113)', async () => {
+    renderPage();
+    await userEvent.click(field('Nolan'));
+    await userEvent.click(field('Teddy'));
+    await userEvent.click(field('Jack'));
+    expect(field('Nolan').querySelector('.qbadge')).toHaveTextContent('1');
+    expect(field('Teddy').querySelector('.qbadge')).toHaveTextContent('2');
+    expect(field('Jack').querySelector('.qbadge')).toHaveTextContent('3');
+    expect(field('Jack')).toHaveAccessibleName(/3 in line/);
+    expect(screen.getByText('Tap bench players for Nolan, Teddy, then Jack')).toBeInTheDocument();
+    // the first in line comes off for Hal; Teddy and Jack move up
+    await userEvent.click(bench('Hal'));
+    let arg = saveStarters.mock.calls[0]?.[0] as { starters: { slots: string[] } };
+    expect(arg.starters.slots[0]).toBe('p8');
+    expect(field('Teddy').querySelector('.qbadge')).toHaveTextContent('1');
+    expect(field('Jack').querySelector('.qbadge')).toHaveTextContent('2');
+    expect(field('Nolan').querySelector('.qbadge')).toBeNull();
+    expect(screen.getByText('Tap bench players for Teddy, then Jack')).toBeInTheDocument();
+    await userEvent.click(bench('Nick'));
+    arg = saveStarters.mock.calls[1]?.[0] as { starters: { slots: string[] } };
+    expect(arg.starters.slots[1]).toBe('p9');
+    expect(screen.getByText('Tap a bench player for Jack')).toBeInTheDocument();
+  });
+
+  it('tapping a queued jersey takes it out of the line; two bench jerseys in line swap places with the button (D79, D113)', async () => {
     renderPage();
     await userEvent.click(field('Nolan'));
     await userEvent.click(field('Nolan'));
     expect(field('Nolan')).toHaveAttribute('aria-pressed', 'false');
-    expect(screen.queryByText(/Tap a player to swap/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Tap a bench player/)).not.toBeInTheDocument();
     await userEvent.click(bench('Hal'));
     await userEvent.click(bench('Nick'));
+    expect(bench('Nick')).toHaveAccessibleName(/2 in line/);
+    expect(saveStarters).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Swap places in line' }));
     expect(bench('Hal')).toHaveAttribute('aria-pressed', 'false');
     const arg = saveStarters.mock.calls[0]?.[0] as { starters: { bench: string[] } };
     expect(arg.starters.bench).toEqual(['p9', 'p8']);
@@ -268,7 +301,7 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
 
   it('the how-to is behind the bench info button, not on the page; a tap elsewhere closes it (D112)', async () => {
     renderPage();
-    expect(screen.queryByText(/Tap a jersey, then another/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Tap a jersey on the field, then a bench player/)).not.toBeInTheDocument();
     // nothing selected: the hint row takes no room, so the card ends under the bench
     expect(document.querySelector('.taphint')).toHaveClass('empty');
     const info = screen.getByRole('button', { name: 'How to move players' });
@@ -276,14 +309,14 @@ describe('ClockFieldPage · starters on the template (D70)', () => {
     await userEvent.click(info);
     expect(info).toHaveAttribute('aria-expanded', 'true');
     expect(screen.getByRole('note')).toHaveTextContent(
-      'Tap a jersey, then another, to swap them. Tap an open spot, then a bench player, to fill it.',
+      'Tap a jersey on the field, then a bench player, to swap them. Tap several on one side to line them up; each tap on the other side moves the next in line. Tap an open spot, then a bench player, to fill it.',
     );
     await userEvent.click(screen.getByRole('heading', { level: 2 }));
     expect(screen.queryByRole('note')).not.toBeInTheDocument();
     // a selection puts the hint in the row
     await userEvent.click(field('Nolan'));
     expect(document.querySelector('.taphint')).not.toHaveClass('empty');
-    expect(screen.getByText('Tap a player to swap with Nolan')).toBeInTheDocument();
+    expect(screen.getByText('Tap a bench player for Nolan')).toBeInTheDocument();
   });
 
   it('a selected starter can be taken off with nobody on (Open the spot)', async () => {
@@ -390,6 +423,7 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(act).toHaveBeenCalledWith({ kind: 'sub', off: 'p1', on: 'p8' }, expect.anything());
     await userEvent.click(field('Teddy'));
     await userEvent.click(field('Jack'));
+    await userEvent.click(screen.getByRole('button', { name: 'Swap positions' }));
     expect(act).toHaveBeenCalledWith({ kind: 'swap', a: 'p2', b: 'p3' }, expect.anything());
     await userEvent.click(screen.getByRole('button', { name: 'Resume' }));
     expect(act).toHaveBeenCalledWith({ kind: 'start' }, expect.anything());
@@ -415,6 +449,7 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(names[1]).toMatch(/^Bench: Nick/);
     await userEvent.click(bench('Hal'));
     await userEvent.click(bench('Nick'));
+    await userEvent.click(screen.getByRole('button', { name: 'Swap places in line' }));
     expect(act).toHaveBeenCalledWith({ kind: 'bench', a: 'p8', b: 'p9' }, expect.anything());
   });
 

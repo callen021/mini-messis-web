@@ -127,6 +127,8 @@ test.describe('coach and parent flows', () => {
     // Ava (leftmost, next in line) and Cal change places
     await card.locator('.bslot .shirt').nth(0).click();
     await card.locator('.bslot .shirt').nth(2).click();
+    // two in line on the bench: the button swaps their places (D113)
+    await card.getByRole('button', { name: 'Swap places in line' }).click();
     await expect(coach.getByRole('status').filter({ hasText: 'swap places in line' })).toBeVisible();
     await expect(card.locator('.bslot .shirt .name').nth(0)).toHaveText('Cal', { ignoreCase: true });
     await expect(card.locator('.bslot .shirt .name').nth(2)).toHaveText('Ava', { ignoreCase: true });
@@ -833,7 +835,7 @@ test.describe('coach and parent flows', () => {
     expect(name).not.toBe('');
     await first.click();
     await expect(first).toHaveAttribute('aria-pressed', 'true');
-    await expect(coach.getByText(`Tap a player to swap with ${name}`, { exact: false })).toBeVisible();
+    await expect(coach.getByText(`Tap a bench player for ${name}`, { exact: false })).toBeVisible();
     const benchShirt = coach.locator('.bslot .shirt').first();
     const benchName = (await benchShirt.locator('.name').textContent())?.trim() ?? '';
     await benchShirt.click();
@@ -1254,7 +1256,7 @@ test.describe('coach and parent flows', () => {
     await coach.getByRole('button', { name: 'Cancel' }).click();
     await expect(coach.locator('.slot .shirt.pickable')).toHaveCount(0);
     await first.click();
-    await expect(coach.getByText(new RegExp(`Tap a player to swap with ${scorer}`, 'i'))).toBeVisible();
+    await expect(coach.getByText(new RegExp(`Tap a bench player for ${scorer}`, 'i'))).toBeVisible();
     await first.click();
     await coach.emulateMedia({ colorScheme: 'dark' });
     await expect(noHeaderOverlap(coach), 'basketball header overlap (dark)').resolves.toEqual([]);

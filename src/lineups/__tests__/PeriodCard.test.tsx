@@ -110,10 +110,27 @@ describe('PeriodCard', () => {
     expect(screen.queryByRole('button', { name: 'Open the spot' })).not.toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /^Bench: Jack/ }));
     expect(props.onAssign).toHaveBeenCalledWith(1, 'p3');
-    // the other way round: an on-field player moves into the selected open spot
-    await userEvent.click(open);
+    // the other way round: an on-field player, then the open spot, moves there (D113)
     await userEvent.click(screen.getByRole('button', { name: 'Quarter 1, STRIKER: Nolan' }));
+    await userEvent.click(open);
     expect(props.onAssign).toHaveBeenLastCalledWith(1, 'p1');
+  });
+
+  it('bench players queue up with numbers; each on-field tap moves the next in line (D113)', async () => {
+    const props = renderCard({ activePlayers: [...active, mk('p5', 'Milo', '5')], benchOrder: ['p5', 'p3'] });
+    const milo = screen.getByRole('button', { name: /^Bench: Milo/ });
+    const jack = screen.getByRole('button', { name: /^Bench: Jack/ });
+    await userEvent.click(milo);
+    await userEvent.click(jack);
+    expect(milo.querySelector('.qbadge')).toHaveTextContent('1');
+    expect(jack.querySelector('.qbadge')).toHaveTextContent('2');
+    expect(screen.getByText('Tap jerseys on the field for Milo, then Jack')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Quarter 1, STRIKER: Nolan' }));
+    expect(props.onAssign).toHaveBeenLastCalledWith(0, 'p5');
+    expect(jack.querySelector('.qbadge')).toHaveTextContent('1');
+    await userEvent.click(screen.getByRole('button', { name: 'Quarter 1, GOALIE: Teddy' }));
+    expect(props.onAssign).toHaveBeenLastCalledWith(6, 'p3');
+    expect(jack).toHaveAttribute('aria-pressed', 'false');
   });
 
   it('select-then-target: field then bench substitutes, two jerseys swap, both get the gold outline (D77)', async () => {
@@ -121,7 +138,7 @@ describe('PeriodCard', () => {
     const nolan = screen.getByRole('button', { name: 'Quarter 1, STRIKER: Nolan' });
     await userEvent.click(nolan);
     expect(nolan).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText('Tap a player to swap with Nolan')).toBeInTheDocument();
+    expect(screen.getByText('Tap a bench player for Nolan')).toBeInTheDocument();
     const jack = screen.getByRole('button', { name: /^Bench: Jack/ });
     await userEvent.click(jack);
     expect(props.onAssign).toHaveBeenCalledWith(0, 'p3');
@@ -131,13 +148,16 @@ describe('PeriodCard', () => {
     expect(jack).toHaveClass('flash');
     await userEvent.click(nolan);
     await userEvent.click(screen.getByRole('button', { name: 'Quarter 1, GOALIE: Teddy' }));
+    expect(props.onSwap).not.toHaveBeenCalled();
+    await userEvent.click(screen.getByRole('button', { name: 'Swap positions' }));
     expect(props.onSwap).toHaveBeenCalledWith(0, 6);
   });
 
-  it('two bench jerseys swap places in the queue (D79)', async () => {
+  it('two bench jerseys in line swap places in the queue with the button (D79, D113)', async () => {
     const props = renderCard({ activePlayers: [...active, mk('p5', 'Milo', '5')], benchOrder: ['p5', 'p3'] });
     await userEvent.click(screen.getByRole('button', { name: /^Bench: Milo/ }));
     await userEvent.click(screen.getByRole('button', { name: /^Bench: Jack/ }));
+    await userEvent.click(screen.getByRole('button', { name: 'Swap places in line' }));
     expect(props.onBenchSwap).toHaveBeenCalledWith('p5', 'p3');
     expect(props.onAssign).not.toHaveBeenCalled();
   });
@@ -187,10 +207,12 @@ describe('PeriodCard', () => {
       period: { formation: '3-3', slots: ['p1', 'p2', 'p3', 'p1', 'p2', 'p3', 'p1'], auto: [] },
       activePlayers: active,
     });
-    expect(screen.queryByText(/Tap a jersey, then another/)).not.toBeInTheDocument();
+    expect(screen.queryByText(/Tap a jersey on the field, then a bench player/)).not.toBeInTheDocument();
     expect(document.querySelector('.taphint')).toHaveClass('empty');
     await userEvent.click(screen.getByRole('button', { name: 'How to move players' }));
-    expect(screen.getByRole('note')).toHaveTextContent(/Tap a jersey, then another, to swap them/);
+    expect(screen.getByRole('note')).toHaveTextContent(
+      /Tap a jersey on the field, then a bench player, to swap them/,
+    );
     await userEvent.click(document.body);
     expect(screen.queryByRole('note')).not.toBeInTheDocument();
   });

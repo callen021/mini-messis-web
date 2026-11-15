@@ -9,7 +9,7 @@ import { type Formation, type SportDefinition, type SportKey } from '@/sports/ty
 import { type Player } from '@/teams/api';
 import { type BenchEntry, BenchRow, MOVE_HELP } from './BenchRow';
 import { type ClockState, type Stint, formatClock, isRunning, playerTimes } from './clock';
-import { type Selection } from './tap';
+import { type Selection, queueNumber, swapPair } from './tap';
 import { useServerNow } from './useNow';
 
 export interface ClockCardProps {
@@ -40,6 +40,8 @@ export interface ClockCardProps {
   hint: string;
   /** With an on-field jersey selected: take that player off with nobody on (injury, or clear a starter). */
   onOpenSpot?: () => void;
+  /** With exactly two jerseys in line on one side (D113): they change positions, or places in the bench line. */
+  onSwapPair?: (pair: { kind: 'field' | 'bench'; a: string; b: string }) => void;
   onFormationChange: (name: string) => void;
   onTapSlot: (slot: number) => void;
   onTapBench: (playerId: string) => void;
@@ -84,6 +86,7 @@ export function ClockCard({
   flashing,
   hint,
   onOpenSpot,
+  onSwapPair,
   onFormationChange,
   onTapSlot,
   onTapBench,
@@ -111,6 +114,7 @@ export function ClockCard({
   );
   const openCount = slots.filter((s) => !s).length;
   const benchColor = colors[S.groups[0]?.[0] ?? ''] ?? '#888';
+  const pair = swapPair(selected);
   return (
     <article className="qcard clockcard">
       <div className="qhead">
@@ -150,7 +154,8 @@ export function ClockCard({
           const pid = slots[i] ?? '';
           const player = byId.get(pid);
           const color = colors[S.group(pos.role)] ?? '#888';
-          const isSel = !!selected && selected.kind === 'field' && selected.slot === i;
+          const badge = queueNumber(selected, { kind: 'field', slot: i, playerId: pid });
+          const isSel = badge !== undefined;
           return (
             <Jersey
               id={`clock-${i}`}
@@ -161,11 +166,12 @@ export function ClockCard({
               code={pos.code}
               highlighted={!!pid && highlight.has(pid)}
               selected={canEdit ? isSel : undefined}
+              badge={canEdit ? badge : undefined}
               flash={!!pid && flashing.has(pid)}
               time={pid ? slotTimes?.[i] : undefined}
               heldOut={!!pid && parentOut.has(pid)}
               pickable={pickable && !!pid}
-              label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}${pickable && pid ? ', tap to credit the points' : ''}`}
+              label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}${pickable && pid ? ', tap to credit the points' : ''}${canEdit && badge !== undefined ? `, ${badge} in line` : ''}`}
               onClick={canEdit ? () => onTapSlot(i) : undefined}
               readOnly={!canEdit}
             />
@@ -177,7 +183,7 @@ export function ClockCard({
         color={benchColor}
         entries={benchEntries}
         canEdit={canEdit}
-        selectedId={selected?.kind === 'bench' ? selected.playerId : null}
+        badgeOf={(id) => queueNumber(selected, { kind: 'bench', playerId: id })}
         flashing={flashing}
         highlight={highlight}
         onTap={onTapBench}
@@ -190,12 +196,20 @@ export function ClockCard({
       {canEdit && (
         <div className={`taphint${hint ? ' on' : ''}${hint || hintExtra ? '' : ' empty'}`} aria-live="polite">
           {hint && <span>{hint}</span>}
-          {hintExtra ??
-            (selected?.kind === 'field' && onOpenSpot && (
-              <Button size="sm" variant="gray" onClick={onOpenSpot}>
-                Open the spot
-              </Button>
-            ))}
+          {hintExtra ?? (
+            <>
+              {pair && onSwapPair && (
+                <Button size="sm" variant="tinted" onClick={() => onSwapPair(pair)}>
+                  {pair.kind === 'field' ? 'Swap positions' : 'Swap places in line'}
+                </Button>
+              )}
+              {!pair && selected[0]?.kind === 'field' && onOpenSpot && (
+                <Button size="sm" variant="gray" onClick={onOpenSpot}>
+                  Open the spot
+                </Button>
+              )}
+            </>
+          )}
         </div>
       )}
     </article>

@@ -802,3 +802,30 @@
   text-align: left;
   white-space: normal;
 }
+
+/* the tap queue (D113): each selected jersey carries its number in line, top-left */
+.shirt .qbadge {
+  position: absolute;
+  top: -8%;
+  left: -4%;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 10px;
+  background: var(--tint);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 800;
+  line-height: 20px;
+  text-align: center;
+  box-shadow: 0 0 0 2px #fff;
+  pointer-events: none;
+  z-index: 2;
+}
+.bslot .shirt .qbadge {
+  min-width: 18px;
+  height: 18px;
+  font-size: 11px;
+  line-height: 18px;
+  border-radius: 9px;
+}

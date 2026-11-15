@@ -37,6 +37,8 @@ export interface JerseyProps {
   heldOut?: boolean;
   /** Scoring mode (D108): this on-court jersey answers "who scored?" — amber ring. */
   pickable?: boolean;
+  /** The jersey's place in the tap queue (D113): a numbered badge, 1 first. */
+  badge?: number;
 }
 
 /**
@@ -60,6 +62,7 @@ export const Jersey = memo(function Jersey({
   time,
   heldOut,
   pickable,
+  badge,
 }: JerseyProps) {
   const open = !name;
   const tc = textColor(color);
@@ -113,6 +116,11 @@ export const Jersey = memo(function Jersey({
         </span>
       )}
       {time && <span className="jtime">{time}</span>}
+      {badge !== undefined && (
+        <span className="qbadge" aria-hidden="true">
+          {badge}
+        </span>
+      )}
     </button>
   );
 });

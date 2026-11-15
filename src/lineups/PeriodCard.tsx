@@ -1,6 +1,6 @@
 import { type ReactNode, useMemo, useState } from 'react';
 import { BenchRow, MOVE_HELP } from '@/clock/BenchRow';
-import { type Selection, resolveTap, selectionHint } from '@/clock/tap';
+import { type Selection, type Target, queueNumber, resolveTap, selectionHint, swapPair } from '@/clock/tap';
 import { useFlash } from '@/clock/useFlash';
 import { OpenPill } from '@/components/Badge';
 import { Button } from '@/components/Button';
@@ -78,7 +78,7 @@ export function PeriodCard({
   parentOut = NOBODY,
   byParent = NOBODY,
 }: PeriodCardProps) {
-  const [selected, setSelected] = useState<Selection>(null);
+  const [selected, setSelected] = useState<Selection>([]);
   const [flashing, flash] = useFlash();
   const byId = useMemo(() => new Map(players.map((p) => [p.id, p])), [players]);
   const openCount = period.slots.filter((s) => !s).length;
@@ -92,30 +92,16 @@ export function PeriodCard({
   const autoN = period.auto.filter((i) => period.slots[i]).length;
   const canAutoFill = openCount > 0 && sittingOut.length > 0;
   const canRedo = !canAutoFill && autoN > 0;
-  const nameOf = (id: string) => byId.get(id)?.first_name ?? 'player';
+  const nameOf = (id: string) =>
+    byId.get(id)?.first_name ?? activePlayers.find((p) => p.id === id)?.first_name ?? 'player';
   const benchColor = colors[S.groups[0]?.[0] ?? ''] ?? '#888';
 
-  const tap = (target: Parameters<typeof resolveTap>[1]) => {
-    const o = resolveTap(selected, target);
-    if (o.action === 'select') {
-      setSelected(o.selection);
-      return;
-    }
-    if (o.action === 'none') return;
-    setSelected(null);
-    if (o.action === 'cancel') return;
-    if (o.action === 'benchswap') {
-      flash([o.a, o.b]);
-      onBenchSwap(o.a, o.b);
-      return;
-    }
-    if (o.action === 'swap') {
-      const ia = period.slots.indexOf(o.a);
-      const ib = period.slots.indexOf(o.b);
-      if (ia < 0 || ib < 0) return;
-      flash([o.a, o.b]);
-      onSwap(ia, ib);
-    } else if (o.action === 'move') {
+  // taps on one side queue up (D113); each tap on the other side moves the next in line
+  const tap = (target: Target) => {
+    const { action: o, queue } = resolveTap(selected, target);
+    setSelected(queue);
+    if (o.action === 'select' || o.action === 'none') return;
+    if (o.action === 'move') {
       flash([o.playerId]);
       onAssign(o.slot, o.playerId);
     } else if (o.action === 'sub') {
@@ -128,10 +114,24 @@ export function PeriodCard({
       onAssign(o.slot, o.playerId);
     }
   };
+  /** Exactly two in line on one side: positions on the field, or places in the bench line (D79). */
+  const swapTwo = (pair: { kind: 'field' | 'bench'; a: string; b: string }) => {
+    setSelected([]);
+    flash([pair.a, pair.b]);
+    if (pair.kind === 'bench') {
+      onBenchSwap(pair.a, pair.b);
+      return;
+    }
+    const ia = period.slots.indexOf(pair.a);
+    const ib = period.slots.indexOf(pair.b);
+    if (ia >= 0 && ib >= 0) onSwap(ia, ib);
+  };
+  const head = selected[0];
+  const pair = swapPair(selected);
   const openSelectedSpot = () => {
-    if (!selected || selected.kind !== 'field' || !selected.playerId) return;
-    setSelected(null);
-    onAssign(selected.slot, '');
+    if (!head || head.kind !== 'field' || !head.playerId) return;
+    setSelected(selected.slice(1));
+    onAssign(head.slot, '');
   };
 
   return (
@@ -174,6 +174,7 @@ export function PeriodCard({
           const player = byId.get(pid);
           const color = colors[S.group(pos.role)] ?? '#888';
           const roleLabel = S.label(pos.role);
+          const badge = queueNumber(selected, { kind: 'field', slot: i, playerId: pid });
           return (
             <Jersey
               id={`${periodIndex}-${i}`}
@@ -184,10 +185,11 @@ export function PeriodCard({
               code={pos.code}
               auto={canEdit && period.auto.includes(i)}
               highlighted={!!pid && highlight.has(pid)}
-              selected={canEdit ? !!selected && selected.kind === 'field' && selected.slot === i : undefined}
+              selected={canEdit ? badge !== undefined : undefined}
+              badge={canEdit ? badge : undefined}
               flash={!!pid && flashing.has(pid)}
               heldOut={!!pid && parentOut.has(pid)}
-              label={`${S.periodName(0)} ${periodIndex + 1}, ${roleLabel}: ${player ? playerName(player) : 'open'}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}`}
+              label={`${S.periodName(0)} ${periodIndex + 1}, ${roleLabel}: ${player ? playerName(player) : 'open'}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}${canEdit && badge !== undefined ? `, ${badge} in line` : ''}`}
               onClick={canEdit ? () => tap({ kind: 'field', slot: i, playerId: pid }) : undefined}
               readOnly={!canEdit}
             />
@@ -199,7 +201,7 @@ export function PeriodCard({
         color={benchColor}
         entries={sittingOut.map((player) => ({ player }))}
         canEdit={canEdit}
-        selectedId={selected?.kind === 'bench' ? selected.playerId : null}
+        badgeOf={(id) => queueNumber(selected, { kind: 'bench', playerId: id })}
         flashing={flashing}
         highlight={highlight}
         onTap={(playerId) => tap({ kind: 'bench', playerId })}
@@ -211,10 +213,10 @@ export function PeriodCard({
           ends under the bench otherwise; the live region itself stays mounted for the announcement */}
       {canEdit && (
         <div
-          className={`taphint${selected ? ' on' : ''}${selected || canAutoFill || canRedo ? '' : ' empty'}`}
+          className={`taphint${head ? ' on' : ''}${head || canAutoFill || canRedo ? '' : ' empty'}`}
           aria-live="polite"
         >
-          {selected && (
+          {head && (
             <span>
               {selectionHint(
                 selected,
@@ -223,12 +225,17 @@ export function PeriodCard({
               )}
             </span>
           )}
-          {selected?.kind === 'field' && !!selected.playerId && (
+          {pair && (
+            <Button size="sm" variant="tinted" onClick={() => swapTwo(pair)}>
+              {pair.kind === 'field' ? 'Swap positions' : 'Swap places in line'}
+            </Button>
+          )}
+          {!pair && head?.kind === 'field' && !!head.playerId && (
             <Button size="sm" variant="gray" onClick={openSelectedSpot}>
               Open the spot
             </Button>
           )}
-          {!selected && canAutoFill && (
+          {!head && canAutoFill && (
             <Button
               size="sm"
               variant="tinted"
@@ -238,7 +245,7 @@ export function PeriodCard({
               Auto-fill
             </Button>
           )}
-          {!selected && canRedo && (
+          {!head && canRedo && (
             <Button
               size="sm"
               variant="gray"

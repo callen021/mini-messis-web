@@ -9,7 +9,7 @@ export interface BenchEntry {
 
 /** The standing how-to for moving players (D112): behind the bench's info button, not on the page. */
 export const MOVE_HELP =
-  'Tap a jersey, then another, to swap them. Tap an open spot, then a bench player, to fill it.';
+  'Tap a jersey on the field, then a bench player, to swap them. Tap several on one side to line them up; each tap on the other side moves the next in line. Tap an open spot, then a bench player, to fill it.';
 
 /**
  * The bench under a field (D70, D77): the same jersey art, smaller, five to a row on a phone,
@@ -17,7 +17,8 @@ export const MOVE_HELP =
  * is the rightmost jersey of the top row, the line continues leftward and then along the next
  * row, rows are right-aligned, and a player coming off joins the end (leftmost of the last row).
  * The DOM order stays queue order, so screen readers and tests read it next-in first. Players
- * marked out are not shown. Staff tap to select a player; parents see it read-only. Nothing is
+ * marked out are not shown. Staff tap to select players, each tap joining the line with a numbered
+ * badge (D113); parents see it read-only. Nothing is
  * written under a bench jersey (D99): minutes and periods live on the Rotation view. The how-to
  * sits behind a small info button after the label (D112); a tap anywhere else closes it.
  */
@@ -26,7 +27,7 @@ export function BenchRow({
   color,
   entries,
   canEdit,
-  selectedId,
+  badgeOf,
   flashing,
   highlight,
   onTap,
@@ -38,7 +39,8 @@ export function BenchRow({
   color: string;
   entries: readonly BenchEntry[];
   canEdit: boolean;
-  selectedId: string | null;
+  /** A queued bench player's number in line (D113); undefined when not selected. */
+  badgeOf: (playerId: string) => number | undefined;
   /** Ids a just-completed tap touched, outlined for a moment (D77). */
   flashing?: ReadonlySet<string>;
   highlight: ReadonlySet<string>;
@@ -111,11 +113,12 @@ export function BenchRow({
               name={player.first_name}
               number={player.jersey_number ?? undefined}
               code=""
-              label={`Bench: ${player.first_name}${player.jersey_number ? ` #${player.jersey_number}` : ''}${i === 0 ? ', up next' : ''}`}
+              label={`Bench: ${player.first_name}${player.jersey_number ? ` #${player.jersey_number}` : ''}${i === 0 ? ', up next' : ''}${badgeOf(player.id) !== undefined ? `, ${badgeOf(player.id)} in line` : ''}`}
               onClick={canEdit ? () => onTap(player.id) : undefined}
               readOnly={!canEdit}
               highlighted={highlight.has(player.id)}
-              selected={canEdit ? selectedId === player.id : undefined}
+              selected={canEdit ? badgeOf(player.id) !== undefined : undefined}
+              badge={canEdit ? badgeOf(player.id) : undefined}
               flash={flashing?.has(player.id)}
             />
           </div>

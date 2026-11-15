@@ -52,7 +52,7 @@ import { useStartCheck } from './useStartCheck';
 import { MOVE_HELP } from './BenchRow';
 import { QuickScoreRow } from './QuickScoreRow';
 import { PeriodOverAlert } from './PeriodOverAlert';
-import { type Selection, type TapOutcome, resolveTap, selectionHint } from './tap';
+import { type Selection, type TapAction, type Target, resolveTap, selectionHint } from './tap';
 import { useFlash } from './useFlash';
 import { serverNow } from './serverTime';
 import { useSaveStarters } from './template';
@@ -92,7 +92,7 @@ export function ClockFieldPage() {
   const startGame = useStartGame(teamId);
   const confirmStart = useStartCheck(teamId);
   const seasonMinutes = useSeasonMinutes(teamId, isStaff);
-  const [selected, setSelected] = useState<Selection>(null);
+  const [selected, setSelected] = useState<Selection>([]);
   const [flashing, flash] = useFlash();
   const [scoring, setScoring] = useState(false);
   const [starting, setStarting] = useState(false);
@@ -214,18 +214,10 @@ export function ClockFieldPage() {
     saveStarters.mutate({ starters: { ...period, bench }, count: Math.max(1, fixed.length) }, { onError });
     if (message) toast(message);
   };
-  const templateTap = (o: TapOutcome) => {
+  const templateTap = (o: TapAction) => {
     if (!shown) return;
     const p: Period = { formation: formation.name, slots: [...slots], auto: [...shown.auto] };
-    if (o.action === 'swap') {
-      const ia = p.slots.indexOf(o.a);
-      const ib = p.slots.indexOf(o.b);
-      if (ia < 0 || ib < 0) return;
-      p.slots[ia] = o.b;
-      p.slots[ib] = o.a;
-      p.auto = p.auto.filter((k) => k !== ia && k !== ib);
-      commitTemplate(p, `${nameOf(o.a)} and ${nameOf(o.b)} swap positions`);
-    } else if (o.action === 'move') {
+    if (o.action === 'move') {
       commitTemplate(assignSlot(p, o.slot, o.playerId).period, `${nameOf(o.playerId)} moved`);
     } else if (o.action === 'sub') {
       const i = p.slots.indexOf(o.off);
@@ -237,14 +229,9 @@ export function ClockFieldPage() {
   };
 
   /* ---------- live game: atomic server calls ---------- */
-  const liveTap = (o: TapOutcome) => {
+  const liveTap = (o: TapAction) => {
     const done = (msg: string) => () => toast(msg);
-    if (o.action === 'swap')
-      act.mutate(
-        { kind: 'swap', a: o.a, b: o.b },
-        { onError, onSuccess: done(`${nameOf(o.a)} and ${nameOf(o.b)} swap positions`) },
-      );
-    else if (o.action === 'move')
+    if (o.action === 'move')
       act.mutate(
         { kind: 'fill', playerId: o.playerId, slot: o.slot },
         { onError, onSuccess: done(`${nameOf(o.playerId)} moved`) },
@@ -261,7 +248,8 @@ export function ClockFieldPage() {
       );
   };
 
-  const tap = (target: Parameters<typeof resolveTap>[1]) => {
+  // taps on one side queue up (D113); each tap on the other side moves the next in line
+  const tap = (target: Target) => {
     if (fullTime) {
       toast('Full time · finish the game on the Schedule tab');
       return;
@@ -272,20 +260,22 @@ export function ClockFieldPage() {
       else toast('Tap a player on the court, or Team');
       return;
     }
-    const o = resolveTap(selected, target);
-    if (o.action === 'select') {
-      setSelected(o.selection);
-      return;
-    }
-    if (o.action === 'none') return;
-    setSelected(null);
-    if (o.action === 'cancel') return;
-    if (o.action === 'benchswap') {
-      flash([o.a, o.b]);
+    const { action: o, queue: rest } = resolveTap(selected, target);
+    setSelected(rest);
+    if (o.action === 'select' || o.action === 'none') return;
+    flash(o.action === 'sub' ? [o.off, o.on] : [o.playerId]);
+    if (live) liveTap(o);
+    else templateTap(o);
+  };
+  /** Exactly two in line on one side: positions on the field, or places in the bench line (D79). */
+  const swapTwo = (pair: { kind: 'field' | 'bench'; a: string; b: string }) => {
+    setSelected([]);
+    flash([pair.a, pair.b]);
+    if (pair.kind === 'bench') {
       if (live)
         act.mutate(
-          { kind: 'bench', a: o.a, b: o.b },
-          { onError, onSuccess: () => toast(`${nameOf(o.a)} and ${nameOf(o.b)} swap places in line`) },
+          { kind: 'bench', a: pair.a, b: pair.b },
+          { onError, onSuccess: () => toast(`${nameOf(pair.a)} and ${nameOf(pair.b)} swap places in line`) },
         );
       else if (shown)
         commitTemplate(
@@ -293,21 +283,33 @@ export function ClockFieldPage() {
             formation: formation.name,
             slots: [...slots],
             auto: [...shown.auto],
-            bench: benchSwap(queue, o.a, o.b),
+            bench: benchSwap(queue, pair.a, pair.b),
           },
-          `${nameOf(o.a)} and ${nameOf(o.b)} swap places in line`,
+          `${nameOf(pair.a)} and ${nameOf(pair.b)} swap places in line`,
         );
       return;
     }
-    flash(o.action === 'swap' ? [o.a, o.b] : o.action === 'sub' ? [o.off, o.on] : [o.playerId]);
-    if (live) liveTap(o);
-    else templateTap(o);
+    const msg = `${nameOf(pair.a)} and ${nameOf(pair.b)} swap positions`;
+    if (live) {
+      act.mutate({ kind: 'swap', a: pair.a, b: pair.b }, { onError, onSuccess: () => toast(msg) });
+      return;
+    }
+    if (!shown) return;
+    const p: Period = { formation: formation.name, slots: [...slots], auto: [...shown.auto] };
+    const ia = p.slots.indexOf(pair.a);
+    const ib = p.slots.indexOf(pair.b);
+    if (ia < 0 || ib < 0) return;
+    p.slots[ia] = pair.b;
+    p.slots[ib] = pair.a;
+    p.auto = p.auto.filter((k) => k !== ia && k !== ib);
+    commitTemplate(p, msg);
   };
-  /** Take the selected on-field player off with nobody on: an injury in a live game, an open starter spot otherwise. */
+  /** Take the first on-field player in line off with nobody on: an injury in a live game, an open starter spot otherwise. */
   const openSpot = () => {
-    if (!selected || selected.kind !== 'field' || !selected.playerId) return;
-    const { slot, playerId } = selected;
-    setSelected(null);
+    const head = selected[0];
+    if (!head || head.kind !== 'field' || !head.playerId) return;
+    const { slot, playerId } = head;
+    setSelected(selected.slice(1));
     if (live)
       act.mutate(
         { kind: 'empty', off: playerId },
@@ -601,7 +603,8 @@ export function ClockFieldPage() {
               </>
             ) : undefined
           }
-          onOpenSpot={selected?.kind === 'field' && selected.playerId ? openSpot : undefined}
+          onOpenSpot={selected[0]?.kind === 'field' && selected[0].playerId ? openSpot : undefined}
+          onSwapPair={swapTwo}
           onFormationChange={onFormationChange}
           onTapSlot={(slot) => tap({ kind: 'field', slot, playerId: slots[slot] ?? '' })}
           onTapBench={(playerId) => tap({ kind: 'bench', playerId })}
