@@ -3,6 +3,7 @@ import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { Page } from '@/components/Page';
 import { useMyChildLinks } from '@/lineups/api';
 import { type PlayerBackState, playerBack } from './playerBack';
+import { AllergiesSection } from '@/players/AllergiesSection';
 import { DetailsSection } from '@/players/DetailsSection';
 import { PeopleSection } from '@/players/PeopleSection';
 import { textColor } from '@/sports/colors';
@@ -68,6 +69,7 @@ export function PlayerPage() {
         isStaff={isStaff}
       />
       {canEdit && <DetailsSection playerId={playerId} playerName={player.first_name} canEdit={canEdit} />}
+      {canEdit && <AllergiesSection playerId={playerId} teamId={teamId} playerName={player.first_name} />}
     </Page>
   );
 }

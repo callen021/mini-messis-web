@@ -7,6 +7,7 @@ import { useCurrentPlan, useMyChildren } from '@/lineups/api';
 import { SPORTS, periodPlural } from '@/sports/definitions';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
+import { AllergySummary } from '@/players/AllergySummary';
 import { RosterView } from './RosterView';
 import { RotationView } from './RotationView';
 import { ClockRotationView } from '@/clock/ClockRotationView';
@@ -55,7 +56,10 @@ export function TeamPage() {
           <RotationView players={list} canEdit={isStaff} highlight={highlight} />
         )
       ) : (
-        <RosterView players={list} canEdit={isStaff} highlight={highlight} />
+        <>
+          <RosterView players={list} canEdit={isStaff} highlight={highlight} />
+          <AllergySummary teamId={teamId} />
+        </>
       )}
     </Page>
   );

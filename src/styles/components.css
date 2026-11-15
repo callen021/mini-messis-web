@@ -2795,3 +2795,52 @@ a.prow.dir .pname {
 .rsvprow .rsvpctl {
   margin-top: 2px;
 }
+
+/* ---------- allergies (D114): chips, Other name, notes ---------- */
+.group.allergies {
+  padding: 12px 14px 4px;
+  display: grid;
+  gap: 10px;
+}
+.achips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.achip {
+  min-height: 36px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 18px;
+  background: var(--fill);
+  color: var(--text);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+}
+.achip.on {
+  background: var(--tint);
+  color: #fff;
+}
+.achip:active {
+  transform: scale(0.96);
+}
+.afield {
+  display: grid;
+  gap: 4px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.afield .input {
+  font-size: 15px;
+}
+.anote {
+  margin: 0 0 8px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.asummary {
+  display: block;
+  font-size: 13px;
+  color: var(--text2);
+}

@@ -8,6 +8,7 @@ import { type DbErrorLike, dbError } from '@/lib/errors';
 export type PlayerDetails = Tables<'player_details'>;
 export type PlayerContact = Tables<'player_contacts'>;
 export type ShirtSize = Enums<'shirt_size'>;
+export type PlayerAllergies = Tables<'player_allergies'>;
 
 export const SHIRT_SIZES: readonly { value: ShirtSize; label: string }[] = [
   { value: 'YXS', label: 'Youth XS' },
@@ -26,6 +27,8 @@ export const shirtSizeLabel = (s: ShirtSize | null | undefined): string =>
 
 export const playerKeys = {
   details: (playerId: string) => ['player', playerId, 'details'] as const,
+  allergies: (playerId: string) => ['player', playerId, 'allergies'] as const,
+  teamAllergies: (teamId: string) => ['team', teamId, 'allergies'] as const,
   people: (playerId: string) => ['player', playerId, 'people'] as const,
   directory: (teamId: string) => ['team', teamId, 'directory'] as const,
   teamContacts: (teamId: string) => ['team', teamId, 'contacts'] as const,
@@ -87,6 +90,78 @@ export function useSavePlayerDetails(playerId: string) {
       if (ctx?.previous !== undefined) qc.setQueryData(key, ctx.previous);
     },
     onSettled: () => void qc.invalidateQueries({ queryKey: key }),
+  });
+}
+
+/* ---------- allergies (D114) ---------- */
+
+export function usePlayerAllergies(playerId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: playerKeys.allergies(playerId ?? ''),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('player_allergies')
+        .select('*')
+        .eq('player_id', playerId as string)
+        .maybeSingle();
+      fail(error);
+      return (data as PlayerAllergies | null) ?? null;
+    },
+    enabled: !!playerId && enabled,
+  });
+}
+
+export type AllergiesInput = Pick<PlayerAllergies, 'status' | 'allergens' | 'other' | 'notes'>;
+
+/** Upsert the one allergies row; optimistic. */
+export function useSavePlayerAllergies(playerId: string, teamId: string) {
+  const qc = useQueryClient();
+  const key = playerKeys.allergies(playerId);
+  return useMutation({
+    mutationFn: async (input: AllergiesInput) =>
+      fail(
+        (
+          await supabase
+            .from('player_allergies')
+            .upsert({ player_id: playerId, ...input }, { onConflict: 'player_id' })
+        ).error,
+      ),
+    onMutate: async (input) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<PlayerAllergies | null>(key);
+      qc.setQueryData<PlayerAllergies | null>(key, {
+        player_id: playerId,
+        updated_at: new Date().toISOString(),
+        updated_by: null,
+        ...previous,
+        ...input,
+      });
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous !== undefined) qc.setQueryData(key, ctx.previous);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key });
+      void qc.invalidateQueries({ queryKey: playerKeys.teamAllergies(teamId) });
+    },
+  });
+}
+
+/** The team's combined allergen list, no names, never the notes (every active member may read it). */
+export function useTeamAllergySummary(teamId: string, enabled = true) {
+  return useQuery({
+    queryKey: playerKeys.teamAllergies(teamId),
+    queryFn: async () => {
+      const { data, error } = await supabase.rpc('team_allergy_summary', { p_team_id: teamId });
+      fail(error);
+      const r = data?.[0];
+      return r
+        ? { allergens: r.allergens ?? [], others: r.others ?? [], unanswered: !!r.unanswered }
+        : { allergens: [], others: [], unanswered: false };
+    },
+    enabled,
+    staleTime: 60_000,
   });
 }
 

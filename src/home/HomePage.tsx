@@ -23,6 +23,7 @@ import { ChildClockRow } from '@/clock/ChildClockRow';
 import { useCurrentPlan, useFormations, useMyChildLinks, useMyChildren } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
 import { errorMessage } from '@/lib/supabase';
+import { AllergiesSection } from '@/players/AllergiesSection';
 import { DetailsSection } from '@/players/DetailsSection';
 import { useRsvps, useSetRsvp } from '@/rsvp/api';
 import { RsvpControl } from '@/rsvp/RsvpControl';
@@ -323,7 +324,11 @@ function ChildHome({ child }: { child: Player }) {
 
       <Section>Details</Section>
       {confirmed ? (
-        <DetailsSection compact playerId={child.id} playerName={child.first_name} canEdit />
+        <>
+          <DetailsSection compact playerId={child.id} playerName={child.first_name} canEdit />
+          <Section>Allergies</Section>
+          <AllergiesSection compact playerId={child.id} teamId={teamId} playerName={child.first_name} />
+        </>
       ) : (
         <Group>
           <Row
