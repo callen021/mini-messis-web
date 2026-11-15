@@ -55,6 +55,19 @@ describe('soccerFormations', () => {
     expect(f?.positions.map((p) => p.code)).toEqual(['ST', 'LM', 'RM', 'LFB', 'SW', 'RFB', 'GK']);
   });
 
+  it('2-2 keeps its strikers off the opposing goal: halfway to the halfway line, with or without a keeper (D113)', () => {
+    for (const gk of [true, false]) {
+      const f = soccerFormations(gk ? 5 : 4, gk).find((x) => x.name === '2-2');
+      const strikers = f?.positions.filter((p) => p.role === 'ST') ?? [];
+      expect(strikers.map((p) => p.code)).toEqual(['LS', 'RS']);
+      expect(strikers.map((p) => p.y)).toEqual([25, 25]);
+      expect(f?.positions.filter((p) => p.role === 'DEF').map((p) => p.y)).toEqual(gk ? [75, 75] : [88, 88]);
+    }
+    // the other two-row shapes are untouched
+    const f31 = soccerFormations(5, true).find((x) => x.name === '3-1');
+    expect(f31?.positions.find((p) => p.role === 'ST')?.y).toBe(18);
+  });
+
   it('uses DM/AM code sets for four-row shapes', () => {
     const f = soccerFormations(11, true).find((x) => x.name === '4-2-3-1');
     expect(f?.positions.map((p) => p.code)).toEqual([

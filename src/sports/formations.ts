@@ -65,6 +65,14 @@ const SOCCER_ROWS: Readonly<Record<string, readonly number[]>> = {
   open4: [18, 39, 60, 88],
 };
 const SOCCER_GK_Y = 98;
+/**
+ * Per-shape row depths that override the table, far row first (D113). In 2-2 the two strikers
+ * stood on the opposing goal (y 18); they now play halfway between the goal line and the halfway
+ * line (y 25) in both views. Every other multi-row shape still has its forward row at y 18.
+ */
+const SOCCER_ROW_OVERRIDES: Readonly<Record<string, Readonly<Record<number, number>>>> = {
+  '2-2': { 0: 25 },
+};
 
 /**
  * Across a row of k, centred, with a spread wide enough that neighbours clear each other at the
@@ -101,7 +109,8 @@ export function soccerFormations(size: number, gk: boolean): Formation[] {
     const codeSets = R === 4 ? ['DEF', 'DM', 'AM', 'ST'] : roles;
     const maxRow = Math.max(...parts, gk ? 1 : 0);
     const w = Math.min(24, 100 / (maxRow + 1) - 2);
-    const rows = SOCCER_ROWS[`${gk ? 'gk' : 'open'}${Math.min(4, R)}`] ?? SOCCER_ROWS.gk3 ?? [];
+    const table = SOCCER_ROWS[`${gk ? 'gk' : 'open'}${Math.min(4, R)}`] ?? SOCCER_ROWS.gk3 ?? [];
+    const rows = table.map((y, i) => SOCCER_ROW_OVERRIDES[name]?.[i] ?? y);
     const positions: Position[] = [];
     for (let r = R - 1; r >= 0; r--) {
       // draw FWD row first (top of field)
