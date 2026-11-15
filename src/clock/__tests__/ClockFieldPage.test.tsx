@@ -439,17 +439,39 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
       .getAllByRole('button', { name: /^Bench:/ })
       .map((b) => b.getAttribute('aria-label') ?? '');
     expect(names[names.length - 1]).toMatch(/^Bench: Nolan/);
-    expect(screen.getByRole('status')).not.toHaveTextContent('Hal on for Nolan');
+    expect(document.querySelector('.toast') as HTMLElement).not.toHaveTextContent('Hal on for Nolan');
     // the server answers: the toast carries its own Undo
     const done = settle;
     settle = null;
     await reactAct(async () => {
       done?.();
     });
-    expect(screen.getByRole('status')).toHaveTextContent('Hal on for Nolan');
-    const undo = within(screen.getByRole('status')).getByRole('button', { name: 'Undo' });
+    expect(document.querySelector('.toast') as HTMLElement).toHaveTextContent('Hal on for Nolan');
+    const undo = within(document.querySelector('.toast') as HTMLElement).getByRole('button', {
+      name: 'Undo',
+    });
     await userEvent.click(undo);
     expect(act).toHaveBeenLastCalledWith({ kind: 'undo' }, expect.anything());
+  });
+
+  it('a sub while the clock is paused shows the nudge with Resume; Dismiss hides it; nothing while running (D113)', async () => {
+    renderPage();
+    expect(screen.queryByText('Clock is paused')).not.toBeInTheDocument();
+    await userEvent.click(bench('Hal'));
+    await userEvent.click(field('Nolan'));
+    const banner = screen.getByText('Clock is paused').closest('.nudge') as HTMLElement;
+    expect(banner).toHaveAttribute('role', 'status');
+    await userEvent.click(within(banner).getByRole('button', { name: 'Resume' }));
+    expect(act).toHaveBeenLastCalledWith({ kind: 'start' }, expect.anything());
+    // the clock is still paused in this mocked page: Dismiss hides the banner
+    await userEvent.click(within(banner).getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByText('Clock is paused')).not.toBeInTheDocument();
+    cleanup();
+    clock = { ...clock, runningSince: new Date().toISOString() };
+    renderPage();
+    await userEvent.click(bench('Hal'));
+    await userEvent.click(field('Nolan'));
+    expect(screen.queryByText('Clock is paused')).not.toBeInTheDocument();
   });
 
   it('a substitution and a swap are single server calls', async () => {
@@ -461,7 +483,9 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     await userEvent.click(field('Jack'));
     await userEvent.click(screen.getByRole('button', { name: 'Swap positions' }));
     expect(act).toHaveBeenCalledWith({ kind: 'swap', a: 'p2', b: 'p3' }, expect.anything());
-    await userEvent.click(screen.getByRole('button', { name: 'Resume' }));
+    await userEvent.click(
+      within(document.querySelector('.actionbar') as HTMLElement).getByRole('button', { name: 'Resume' }),
+    );
     expect(act).toHaveBeenCalledWith({ kind: 'start' }, expect.anything());
     await userEvent.click(
       within(document.querySelector('.actionbar') as HTMLElement).getByRole('button', { name: 'Undo' }),

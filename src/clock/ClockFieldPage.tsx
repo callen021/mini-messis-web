@@ -105,6 +105,8 @@ export function ClockFieldPage() {
   const aheadRef = useRef<{ slots: string[]; bench: string[] } | null>(null);
   const inFlight = useRef(0);
   const chain = useRef<Promise<unknown>>(Promise.resolve());
+  // the paused-clock nudge (D113): a sub or a score while the clock is paused shows a banner with Resume
+  const [nudge, setNudge] = useState(false);
 
   const clock = clockQ.data ?? PAUSED_CLOCK;
   const running = !!live && isRunning(clock);
@@ -113,6 +115,16 @@ export function ClockFieldPage() {
   // soccer may change shape mid-game while the clock is paused (D108); every sport may at 0:00
   const canChangeFormationLive = !!live && sport === 'soccer' && !running;
   useServerTimeSync(!!live);
+  // the clock starting clears the nudge (state adjusted during render, no effect)
+  const [nudgedWhileRunning, setNudgedWhileRunning] = useState(running);
+  if (running !== nudgedWhileRunning) {
+    setNudgedWhileRunning(running);
+    if (running) setNudge(false);
+  }
+  /** After a sub or a score: if the game is on but the clock is not, say so (never start it). */
+  const nudgeIfPaused = () => {
+    if (live && !running && !fullTime) setNudge(true);
+  };
   // the page never ticks (D95): the clock, the shift times and the period alert tick on their own
   // inside leaf components, so an open sheet is never re-rendered or remounted by the clock
   useWakeLock(!!live && isStaff);
@@ -188,6 +200,7 @@ export function ClockFieldPage() {
     if (next) {
       aheadRef.current = next;
       setAhead(next);
+      nudgeIfPaused();
     }
     inFlight.current += 1;
     chain.current = chain.current
@@ -241,6 +254,7 @@ export function ClockFieldPage() {
       { onError },
     );
     setPendingPts(null);
+    nudgeIfPaused();
     setLastScore({
       text:
         side === 'them'
@@ -634,6 +648,22 @@ export function ClockFieldPage() {
           label={shortPeriod(S, N, periodIndex)}
         />
       )}
+      {live && nudge && !running && !fullTime && (
+        <div className="nudge" role="status">
+          <span>Clock is paused</span>
+          <Button
+            size="sm"
+            variant="primary"
+            disabled={act.isPending}
+            onClick={() => act.mutate({ kind: 'start' }, { onError })}
+          >
+            {clock.clockSeconds > 0 ? 'Resume' : 'Start clock'}
+          </Button>
+          <button type="button" className="nudgex" aria-label="Dismiss" onClick={() => setNudge(false)}>
+            ×
+          </button>
+        </div>
+      )}
       <div className="quarters">
         <ClockCard
           sport={sport}
@@ -728,6 +758,7 @@ export function ClockFieldPage() {
           events={log}
           onAdd={(ev) => {
             addEvent.mutate({ ...ev, period_index: periodIndex }, { onError });
+            nudgeIfPaused();
             toast(
               ev.side === 'them'
                 ? `${live.opponent} scored · ${N === 1 ? '' : `${shortPeriod(S, N, periodIndex)} `}${formatClock(elapsedAt(clock, serverNow()))}`
