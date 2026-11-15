@@ -252,6 +252,16 @@ export function useSetContactShared(playerId: string) {
   });
 }
 
+/** Fold one contact into another of the same player (D116): the kept row's label and share setting stay. */
+export function useMergeContacts(playerId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ keepId, dropId }: { keepId: string; dropId: string }) =>
+      fail((await supabase.rpc('merge_contacts', { p_keep: keepId, p_drop: dropId })).error),
+    onSettled: () => invalidatePeople(qc, playerId),
+  });
+}
+
 export function useDeleteContact(playerId: string) {
   const qc = useQueryClient();
   return useMutation({

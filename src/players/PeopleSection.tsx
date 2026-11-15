@@ -7,8 +7,16 @@ import { Switch } from '@/components/Switch';
 import { useToast } from '@/components/Toast';
 import { formatPhone, smsHref, telHref } from '@/lib/phone';
 import { errorMessage } from '@/lib/supabase';
-import { type Person, useDeleteContact, usePlayerPeople, useSaveContact, useSetContactShared } from './api';
+import {
+  type Person,
+  useDeleteContact,
+  useMergeContacts,
+  usePlayerPeople,
+  useSaveContact,
+  useSetContactShared,
+} from './api';
 import { ContactSheet } from './ContactSheet';
+import { MATCH_TEXT, findDuplicates } from './duplicates';
 import { buildVCard, deliverVcf } from './vcard';
 
 /** Phone / text / email / vCard actions under a person's row. */
@@ -79,9 +87,25 @@ export function PeopleSection({
   const save = useSaveContact(playerId);
   const setShared = useSetContactShared(playerId);
   const remove = useDeleteContact(playerId);
+  const merge = useMergeContacts(playerId);
   const [editing, setEditing] = useState<Person | 'new' | null>(null);
   const onError = (e: unknown) => toast(errorMessage(e));
   const list = people.data ?? [];
+  // two rows that look like the same person (D116): the coaches get a prompt, never an automatic merge
+  const duplicates = isStaff ? findDuplicates(list) : [];
+  const mergeFlow = async (keep: Person, drop: Person) => {
+    if (!keep.contact_id || !drop.contact_id) return;
+    const ok = await sheet({
+      title: `Merge ${drop.name} into ${keep.name}?`,
+      message: `One contact is kept with ${keep.name}’s label and sharing; anything blank is filled from ${drop.name}, who is removed.`,
+      actions: [{ label: 'Merge', value: true }],
+    });
+    if (!ok) return;
+    merge.mutate(
+      { keepId: keep.contact_id, dropId: drop.contact_id },
+      { onError, onSuccess: () => toast('Contacts merged') },
+    );
+  };
   const hasOwnEntry = list.some((p) => !!p.contact_id && p.user_id === user?.id);
   const canAddSelf = !canEdit && selfLinked && !hasOwnEntry;
 
@@ -154,6 +178,18 @@ export function PeopleSection({
             }
           />
         )}
+        {duplicates.map((d) => (
+          <Row
+            key={`${d.keep.contact_id}-${d.drop.contact_id}`}
+            className="dupe"
+            icon="⚠︎"
+            iconColor="var(--orange)"
+            label={`Possible duplicate: ${d.keep.name} and ${d.drop.name}`}
+            detail={`They have ${MATCH_TEXT[d.match]}. Merge?`}
+            onClick={() => void mergeFlow(d.keep, d.drop)}
+            chevron
+          />
+        ))}
         {(canEdit || canAddSelf) && (
           <Row
             link
@@ -174,6 +210,20 @@ export function PeopleSection({
           forceSelf={!canEdit}
           onClose={() => setEditing(null)}
           onDelete={editing === 'new' || !editing.contact_id ? undefined : () => void removeFlow(editing)}
+          others={editing === 'new' ? [] : list.filter((p) => !!p.contact_id && p.can_edit)}
+          onMerge={
+            editing === 'new' || !editing.contact_id
+              ? undefined
+              : async (dropId) => {
+                  try {
+                    await merge.mutateAsync({ keepId: editing.contact_id as string, dropId });
+                    toast('Contacts merged');
+                    setEditing(null);
+                  } catch (e) {
+                    onError(e);
+                  }
+                }
+          }
           onSave={async (input) => {
             try {
               await save.mutateAsync(editing === 'new' ? input : { ...input, id: editing.contact_id });

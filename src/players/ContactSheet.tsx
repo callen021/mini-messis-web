@@ -8,22 +8,31 @@ import { type ContactInput, type Person } from './api';
 
 const RELATIONSHIPS = ['Mother', 'Father', 'Parent', 'Guardian', 'Grandparent', 'Step-parent', 'Other'];
 
-/** Add or edit one contact (D57): name, relationship, phone, email, "this is me", share with team. */
+/**
+ * Add or edit one contact (D57): name, relationship, phone, email, "this is me", share with
+ * team. Editing also offers "Merge with…" another contact of the player (D116): this one stays,
+ * its blanks filled from the other, which is removed.
+ */
 export function ContactSheet({
   contact,
   selfId,
   forceSelf = false,
+  others = [],
   onClose,
   onSave,
   onDelete,
+  onMerge,
 }: {
   contact: Person | null;
   selfId: string | null;
   /** The entry can only be the signed-in parent's own (an unconfirmed link, D91). */
   forceSelf?: boolean;
+  /** The player's other contact rows, offered under "Merge with…". */
+  others?: readonly Person[];
   onClose: () => void;
   onSave: (input: ContactInput) => Promise<void>;
   onDelete?: () => void;
+  onMerge?: (dropId: string) => Promise<void>;
 }) {
   const [name, setName] = useState(contact?.name ?? '');
   const [relationship, setRelationship] = useState(contact?.relationship ?? '');
@@ -32,7 +41,15 @@ export function ContactSheet({
   const [isMe, setIsMe] = useState(forceSelf || (!!contact && !!selfId && contact.user_id === selfId));
   const [shared, setShared] = useState(contact?.share_with_team ?? true);
   const [busy, setBusy] = useState(false);
+  const [mergeWith, setMergeWith] = useState('');
   const phoneOk = !phone.trim() || normalizePhone(phone) !== null;
+  const mergeable = others.filter((o) => !!o.contact_id && o.contact_id !== contact?.contact_id);
+  const merge = async () => {
+    if (!mergeWith || !onMerge) return;
+    setBusy(true);
+    await onMerge(mergeWith);
+    setBusy(false);
+  };
 
   const submit = async (e: FormEvent) => {
     e.preventDefault();
@@ -118,6 +135,24 @@ export function ContactSheet({
         <Button type="submit" disabled={busy || !name.trim() || !phoneOk}>
           {busy ? 'Saving…' : contact ? 'Save contact' : 'Add contact'}
         </Button>
+        {contact && onMerge && mergeable.length > 0 && (
+          <Field label="Merge with…">
+            <Select value={mergeWith} onChange={(e) => setMergeWith(e.target.value)} aria-label="Merge with">
+              <option value="">—</option>
+              {mergeable.map((o) => (
+                <option key={o.contact_id ?? ''} value={o.contact_id ?? ''}>
+                  {o.name}
+                  {o.relationship ? ` · ${o.relationship}` : ''}
+                </option>
+              ))}
+            </Select>
+          </Field>
+        )}
+        {contact && onMerge && mergeWith && (
+          <Button type="button" variant="tinted" disabled={busy} onClick={() => void merge()}>
+            Merge into {name.trim() || 'this contact'}
+          </Button>
+        )}
         {onDelete && (
           <Button type="button" variant="gray" onClick={onDelete}>
             Remove contact

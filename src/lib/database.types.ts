@@ -919,6 +919,9 @@ isOneToOne: false
 "email_confirmed":
 { Args: { "p_user_id": string }; Returns: boolean
                            },
+"email_key":
+{ Args: { "p_email": string }; Returns: string
+                           },
 "finish_game":
 { Args: { "p_game_id": string }; Returns: undefined
                            },
@@ -994,6 +997,9 @@ isOneToOne: false
 "member_role_on":
 { Args: { "p_team_id": string }; Returns: Database["public"]['Enums']["member_role"]
                            },
+"merge_contacts":
+{ Args: { "p_drop": string,"p_keep": string }; Returns: undefined
+                           },
 "my_pending_requests":
 { Args: Record<PropertyKey, never>; Returns: {
               "created_at": string,"member_id": string,"requested_role": Database["public"]['Enums']["member_role"],"sport": Database["public"]['Enums']["sport"],"team_id": string,"team_name": string
@@ -1006,6 +1012,9 @@ isOneToOne: false
 { Args: { "p_player_ids": (string)[] }; Returns: {
               "children": (string)[],"display_name": string,"user_id": string
             }[]
+                           },
+"phone_digits":
+{ Args: { "p_phone": string }; Returns: string
                            },
 "player_people":
 { Args: { "p_player_id": string }; Returns: {
