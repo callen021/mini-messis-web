@@ -24,6 +24,9 @@ import { useCurrentPlan, useFormations, useMyChildLinks, useMyChildren } from '@
 import { toEnginePeriods } from '@/lineups/convert';
 import { errorMessage } from '@/lib/supabase';
 import { AllergiesSection } from '@/players/AllergiesSection';
+import { AllergySummary } from '@/players/AllergySummary';
+import { snackWanted } from '@/snacks/snacks';
+import { useSnackFamily } from '@/snacks/useSnackFamily';
 import { DetailsSection } from '@/players/DetailsSection';
 import { useRsvps, useSetRsvp } from '@/rsvp/api';
 import { RsvpControl } from '@/rsvp/RsvpControl';
@@ -118,6 +121,7 @@ function ChildHome({ child }: { child: Player }) {
   const links = useMyChildLinks();
   const rsvps = useRsvps(teamId);
   const setRsvp = useSetRsvp(teamId);
+  const snack = useSnackFamily();
   const confirmed = links.data?.get(child.id) === 'approved';
 
   const today = todayISO();
@@ -184,6 +188,9 @@ function ChildHome({ child }: { child: Player }) {
     const locked = isGame
       ? parentLocked({ kind: 'game', status: next.game.status }, now)
       : parentLocked({ kind: 'practice', status: next.practice.status, date, time }, now);
+    // snack signup (D115): this family's turn shows on the card, with the allergies to mind
+    const slot = isGame ? next.game : next.practice;
+    const bringingSnacks = snackWanted(team.snack_signup, next.kind) && slot.snack_player_id === child.id;
     nextCard = (
       <Group className="homecard">
         <Row
@@ -215,6 +222,12 @@ function ChildHome({ child }: { child: Player }) {
             {timingLabel(date, today)}
           </Badge>
         </Row>
+        {bringingSnacks && (
+          <p className="snacknote" role="status">
+            <b>You’re bringing snacks.</b>{' '}
+            <AllergySummary teamId={teamId} bare label="Allergies on the team" />
+          </p>
+        )}
         <div className="rsvpblock">
           <RsvpControl
             status={status}
@@ -226,8 +239,10 @@ function ChildHome({ child }: { child: Player }) {
                 { event: ev, playerId: child.id, status: s },
                 {
                   onError: (e) => toast(errorMessage(e)),
-                  onSuccess: () =>
-                    toast(s === 'none' ? 'Reply cleared' : `${child.first_name} · ${RSVP_LABEL[s]}`),
+                  onSuccess: () => {
+                    toast(s === 'none' ? 'Reply cleared' : `${child.first_name} · ${RSVP_LABEL[s]}`);
+                    void snack.afterRsvp(ev, slot, child.id, s);
+                  },
                 },
               )
             }
@@ -257,6 +272,18 @@ function ChildHome({ child }: { child: Player }) {
     <>
       <Section>{live ? 'Right now' : 'Next up'}</Section>
       {nextCard}
+      {team.snack_signup !== 'off' && (
+        <Group>
+          <Row
+            to="/snacks"
+            icon="🍎"
+            iconColor="var(--green)"
+            label="Snack signup"
+            detail={`Who brings snacks to each ${team.snack_signup === 'both' ? 'game and practice' : 'game'}`}
+            chevron
+          />
+        </Group>
+      )}
 
       <Section>{live ? `${child.first_name} in this game` : `${child.first_name} in the next game`}</Section>
       <Group>

@@ -7,6 +7,8 @@ const practice = (over: Partial<Practice>): Practice => ({
   id: 'p',
   team_id: 't',
   season_id: 's',
+  snack_player_id: null,
+  snack_flagged: false,
   practice_date: '2030-05-12',
   start_time: '18:30:00',
   end_time: null,

@@ -4,7 +4,9 @@ import { supabase } from '@/lib/supabase';
 import { type Team } from './api';
 import { invalidateTeamCaches, patchTeamCaches } from './teamCache';
 
-type TeamPatch = Partial<Pick<Team, 'parent_stats' | 'name' | 'require_approval' | 'join_enabled'>>;
+type TeamPatch = Partial<
+  Pick<Team, 'parent_stats' | 'name' | 'require_approval' | 'join_enabled' | 'snack_signup'>
+>;
 
 /**
  * One optimistic update of team columns: every cached copy changes at once (D88), rolls back on
@@ -31,6 +33,11 @@ export function useSetParentStats(teamId: string) {
 /** Rename the team (coach only; the database trigger enforces it). Optimistic. */
 export function useRenameTeam(teamId: string) {
   return useTeamPatch(teamId, (name: string) => ({ name }));
+}
+
+/** Snack signup: off, games, or games and practices (staff, D115). Optimistic. */
+export function useSetSnackSignup(teamId: string) {
+  return useTeamPatch(teamId, (snack_signup: Team['snack_signup']) => ({ snack_signup }));
 }
 
 /** "Approve new parents before they join" (staff, D91). Optimistic. */

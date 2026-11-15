@@ -2,7 +2,10 @@ import { useMemo } from 'react';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
+import { useGames } from '@/games/api';
+import { usePractices } from '@/games/practices';
 import { useMyChildren } from '@/lineups/api';
+import { useSnackFamily } from '@/snacks/useSnackFamily';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useRsvps, useSetRsvp } from './api';
@@ -28,6 +31,14 @@ export function ParentRsvpSection({
   const children = useMyChildren();
   const rsvps = useRsvps(teamId);
   const setRsvp = useSetRsvp(teamId);
+  // the snack family saying "can't make it" is asked to release the slot (D115)
+  const snack = useSnackFamily();
+  const games = useGames(teamId);
+  const practices = usePractices(teamId);
+  const slot =
+    event.kind === 'game'
+      ? games.data?.find((g) => g.id === event.id)
+      : practices.data?.find((p) => p.id === event.id);
   const replies = useMemo(() => repliesFor(rsvps.data ?? [], event), [rsvps.data, event]);
   const mine = useMemo(() => {
     const ids = children.data ?? new Set<string>();
@@ -40,8 +51,10 @@ export function ParentRsvpSection({
       { event, playerId, status },
       {
         onError: (e) => toast(errorMessage(e)),
-        onSuccess: () =>
-          toast(status === 'none' ? `${name} · reply cleared` : `${name} · ${RSVP_LABEL[status]}`),
+        onSuccess: () => {
+          toast(status === 'none' ? `${name} · reply cleared` : `${name} · ${RSVP_LABEL[status]}`);
+          void snack.afterRsvp(event, slot, playerId, status);
+        },
       },
     );
 

@@ -56,6 +56,7 @@ const base: Team = {
   require_approval: false,
   timezone: 'America/Chicago',
   parent_stats: 'own',
+  snack_signup: 'off',
   time_mode: 'periods',
   clock_periods: 2,
   period_minutes: null,

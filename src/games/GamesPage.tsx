@@ -33,6 +33,8 @@ import { useMyChildren } from '@/lineups/api';
 import { useRsvps } from '@/rsvp/api';
 import { type RsvpMark, RsvpCountMark, RsvpMarks } from '@/rsvp/RsvpMarks';
 import { type EventRef, repliesFor, replyDue, rsvpCount, statusOf } from '@/rsvp/rsvp';
+import { SnackMark } from '@/snacks/SnackMark';
+import { snackWanted } from '@/snacks/snacks';
 import { GameBadge } from './GameBadge';
 import { downloadScheduleIcs } from './ics';
 import { makeNameLookup, periodSuffix } from './names';
@@ -80,11 +82,14 @@ export function PracticeRow({
   practice: p,
   today,
   mark,
+  snack,
 }: {
   practice: Practice;
   today: string;
   /** RSVP marks or the coach's count, right of the date (D107). */
   mark?: React.ReactNode;
+  /** The snack icon, open or taken (D115). */
+  snack?: React.ReactNode;
 }) {
   const cancelled = p.status === 'cancelled';
   const directions = cancelled ? null : directionsUrl(p.address, p.location);
@@ -98,6 +103,7 @@ export function PracticeRow({
           <>
             <When date={p.practice_date} time={p.start_time} end={p.end_time} />
             {!cancelled && mark}
+            {!cancelled && snack}
             {(p.location || (p.notes && !cancelled)) && (
               <>
                 <br />
@@ -119,11 +125,14 @@ function GameRow({
   game: g,
   today,
   mark,
+  snack,
 }: {
   game: GameWithScore;
   today: string;
   /** RSVP marks or the coach's count, right of the date (D107). */
   mark?: React.ReactNode;
+  /** The snack icon, open or taken (D115). */
+  snack?: React.ReactNode;
 }) {
   const directions = directionsUrl(g.address, g.location);
   const place = [g.location, g.home_away ? HOME_AWAY_LABEL[g.home_away] : ''].filter(Boolean).join(' · ');
@@ -137,6 +146,7 @@ function GameRow({
           <>
             <When date={g.game_date} time={g.start_time} />
             {mark}
+            {snack}
             {(place || g.parent_notes) && (
               <>
                 <br />
@@ -200,6 +210,15 @@ export function GamesPage() {
       .map((p) => ({ playerId: p.id, name: p.first_name, status: statusOf(replies, p.id), due }));
     return <RsvpMarks marks={marks} />;
   };
+
+  // snack signup (D115): a small icon per eligible row, open or taken, nothing more
+  const snackFor = (
+    kind: 'game' | 'practice',
+    slot: { snack_player_id: string | null; snack_flagged: boolean },
+  ) =>
+    snackWanted(team.snack_signup, kind) ? (
+      <SnackMark slot={slot} nameOf={(id) => (players.data ?? []).find((p) => p.id === id)?.first_name} />
+    ) : undefined;
 
   const addFlow = async () => {
     const choice = await sheet<AddChoice>({
@@ -315,6 +334,7 @@ export function GamesPage() {
               game={item.game}
               today={today}
               mark={markFor({ kind: 'game', id: item.game.id }, item.date)}
+              snack={snackFor('game', item.game)}
             />
           ) : (
             <PracticeRow
@@ -322,6 +342,7 @@ export function GamesPage() {
               practice={item.practice}
               today={today}
               mark={markFor({ kind: 'practice', id: item.practice.id }, item.date)}
+              snack={snackFor('practice', item.practice)}
             />
           ),
         )}

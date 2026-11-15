@@ -4,6 +4,7 @@ import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { useStartCheck } from '@/clock/useStartCheck';
 import { AttendanceSection } from '@/rsvp/AttendanceSection';
 import { ParentRsvpSection } from '@/rsvp/ParentRsvpSection';
+import { SnackSection } from '@/snacks/SnackSection';
 import { useOfferBoardPost } from '@/board/offer';
 import { PeriodTag, Scoreline } from '@/components/Badge';
 import { Button, Toolbar } from '@/components/Button';
@@ -494,6 +495,8 @@ function GameDetail({ game }: { game: GameWithScore }) {
           }
         />
       )}
+
+      <SnackSection event={{ kind: 'game', id: game.id }} slot={game} open={isUpcoming} />
 
       {!isUpcoming && S.scoring.panel !== 'goal' && log.length > 0 && periodCount > 1 && (
         <>

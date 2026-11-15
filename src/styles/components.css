@@ -2844,3 +2844,51 @@ a.prow.dir .pname {
   font-size: 13px;
   color: var(--text2);
 }
+
+/* ---------- snack signup (D115) ---------- */
+.snackmark {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  vertical-align: middle;
+}
+.snackmark svg {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--text3);
+  stroke-width: 1.8;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.snackmark.taken svg {
+  fill: var(--green);
+  stroke: var(--green);
+}
+.snackmark.flagged svg {
+  fill: var(--red);
+  stroke: var(--red);
+}
+.snackrow .val {
+  color: var(--text2);
+}
+.snackrow .val.open {
+  color: var(--tint);
+  font-weight: 600;
+}
+.snackrow .val.mine {
+  color: var(--green);
+  font-weight: 600;
+}
+.snacknote {
+  margin: 0;
+  padding: 0 16px 12px;
+  font-size: 13px;
+  color: var(--text2);
+}
+.snacknote b {
+  color: var(--green);
+}
+.snacknote.warn b {
+  color: var(--red);
+}

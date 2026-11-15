@@ -195,14 +195,14 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "address": string | null,"clock_auto_paused": boolean,"clock_limit": number | null,"clock_period": number,"clock_period_lengths": (number)[],"clock_running_since": string | null,"clock_seconds": number,"created_at": string,"finished_at": string | null,"game_date": string,"home_away": Database["public"]['Enums']["home_away"] | null,"id": string,"location": string | null,"opponent": string,"parent_notes": string | null,"season_id": string,"start_time": string | null,"started_at": string | null,"status": Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot": string | null,"updated_at": string,"updated_by": string | null
+                    "address": string | null,"clock_auto_paused": boolean,"clock_limit": number | null,"clock_period": number,"clock_period_lengths": (number)[],"clock_running_since": string | null,"clock_seconds": number,"created_at": string,"finished_at": string | null,"game_date": string,"home_away": Database["public"]['Enums']["home_away"] | null,"id": string,"location": string | null,"opponent": string,"parent_notes": string | null,"season_id": string,"snack_flagged": boolean,"snack_player_id": string | null,"start_time": string | null,"started_at": string | null,"status": Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot": string | null,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"clock_auto_paused"?: boolean,"clock_limit"?: number | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id": string,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"clock_auto_paused"?: boolean,"clock_limit"?: number | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id": string,"snack_flagged"?: boolean,"snack_player_id"?: string | null,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "address"?: string | null,"clock_auto_paused"?: boolean,"clock_limit"?: number | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id"?: string,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id"?: string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"clock_auto_paused"?: boolean,"clock_limit"?: number | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id"?: string,"snack_flagged"?: boolean,"snack_player_id"?: string | null,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id"?: string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -210,6 +210,12 @@ isOneToOne: false
       columns: ["season_id"]
 isOneToOne: false
       referencedRelation: "seasons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "games_snack_player_id_fkey"
+      columns: ["snack_player_id"]
+isOneToOne: false
+      referencedRelation: "players"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "games_team_id_fkey"
@@ -425,14 +431,14 @@ isOneToOne: false
                   ]
                 },"practices": {
                   Row: {
-                    "address": string | null,"created_at": string,"created_by": string | null,"end_time": string | null,"id": string,"location": string | null,"notes": string | null,"practice_date": string,"season_id": string,"start_time": string | null,"status": Database["public"]['Enums']["practice_status"],"team_id": string,"updated_at": string,"updated_by": string | null
+                    "address": string | null,"created_at": string,"created_by": string | null,"end_time": string | null,"id": string,"location": string | null,"notes": string | null,"practice_date": string,"season_id": string,"snack_flagged": boolean,"snack_player_id": string | null,"start_time": string | null,"status": Database["public"]['Enums']["practice_status"],"team_id": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"created_at"?: string,"created_by"?: string | null,"end_time"?: string | null,"id"?: string,"location"?: string | null,"notes"?: string | null,"practice_date": string,"season_id": string,"start_time"?: string | null,"status"?: Database["public"]['Enums']["practice_status"],"team_id": string,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"created_at"?: string,"created_by"?: string | null,"end_time"?: string | null,"id"?: string,"location"?: string | null,"notes"?: string | null,"practice_date": string,"season_id": string,"snack_flagged"?: boolean,"snack_player_id"?: string | null,"start_time"?: string | null,"status"?: Database["public"]['Enums']["practice_status"],"team_id": string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "address"?: string | null,"created_at"?: string,"created_by"?: string | null,"end_time"?: string | null,"id"?: string,"location"?: string | null,"notes"?: string | null,"practice_date"?: string,"season_id"?: string,"start_time"?: string | null,"status"?: Database["public"]['Enums']["practice_status"],"team_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"created_at"?: string,"created_by"?: string | null,"end_time"?: string | null,"id"?: string,"location"?: string | null,"notes"?: string | null,"practice_date"?: string,"season_id"?: string,"snack_flagged"?: boolean,"snack_player_id"?: string | null,"start_time"?: string | null,"status"?: Database["public"]['Enums']["practice_status"],"team_id"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -440,6 +446,12 @@ isOneToOne: false
       columns: ["season_id"]
 isOneToOne: false
       referencedRelation: "seasons"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "practices_snack_player_id_fkey"
+      columns: ["snack_player_id"]
+isOneToOne: false
+      referencedRelation: "players"
       referencedColumns: ["id"]
     },{
       foreignKeyName: "practices_team_id_fkey"
@@ -627,14 +639,14 @@ isOneToOne: false
                   ]
                 },"teams": {
                   Row: {
-                    "archived_at": string | null,"clock_periods": number,"colors": NonNullable<Json>,"created_at": string,"has_gk": boolean,"id": string,"join_code": string,"join_code_rotated_at": string,"join_enabled": boolean,"last_batter_player_id": string | null,"name": string,"owner_id": string,"parent_stats": Database["public"]['Enums']["parent_stats"],"period_minutes": number | null,"periods_count": number,"require_approval": boolean,"side_size": number,"sport": Database["public"]['Enums']["sport"],"time_mode": Database["public"]['Enums']["time_mode"],"timezone": string,"updated_at": string,"updated_by": string | null
+                    "archived_at": string | null,"clock_periods": number,"colors": NonNullable<Json>,"created_at": string,"has_gk": boolean,"id": string,"join_code": string,"join_code_rotated_at": string,"join_enabled": boolean,"last_batter_player_id": string | null,"name": string,"owner_id": string,"parent_stats": Database["public"]['Enums']["parent_stats"],"period_minutes": number | null,"periods_count": number,"require_approval": boolean,"side_size": number,"snack_signup": Database["public"]['Enums']["snack_mode"],"sport": Database["public"]['Enums']["sport"],"time_mode": Database["public"]['Enums']["time_mode"],"timezone": string,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code": string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name": string,"owner_id": string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count": number,"require_approval"?: boolean,"side_size": number,"sport": Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code": string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name": string,"owner_id": string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count": number,"require_approval"?: boolean,"side_size": number,"snack_signup"?: Database["public"]['Enums']["snack_mode"],"sport": Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code"?: string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name"?: string,"owner_id"?: string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count"?: number,"require_approval"?: boolean,"side_size"?: number,"sport"?: Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code"?: string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name"?: string,"owner_id"?: string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count"?: number,"require_approval"?: boolean,"side_size"?: number,"snack_signup"?: Database["public"]['Enums']["snack_mode"],"sport"?: Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -762,6 +774,9 @@ isOneToOne: false
 "clear_player_from_plans":
 { Args: { "p_player_id": string }; Returns: undefined
                            },
+"clear_snack":
+{ Args: { "p_game_id"?: string,"p_practice_id"?: string }; Returns: undefined
+                           },
 "clock_bench_swap":
 { Args: { "p_a": string,"p_b": string,"p_game_id": string }; Returns: undefined
                            },
@@ -806,6 +821,8 @@ isOneToOne: false
 "opponent": string,
 "parent_notes": string | null,
 "season_id": string,
+"snack_flagged": boolean,
+"snack_player_id": string | null,
 "start_time": string | null,
 "started_at": string | null,
 "status": Database["public"]['Enums']["game_status"],
@@ -1067,6 +1084,18 @@ isOneToOne: false
 "set_skill_test_order":
 { Args: { "p_ids": (string)[],"p_team_id": string }; Returns: undefined
                            },
+"set_snack":
+{ Args: { "p_game_id"?: string,"p_player_id": string,"p_practice_id"?: string }; Returns: undefined
+                           },
+"snack_cap":
+{ Args: { "p_team_id": string }; Returns: number
+                           },
+"snack_claims":
+{ Args: { "p_player_id": string }; Returns: number
+                           },
+"snack_wanted":
+{ Args: { "p_kind": string,"p_team_id": string }; Returns: boolean
+                           },
 "snapshot_game_players":
 { Args: { "p_game_id": string,"p_team_id": string }; Returns: undefined
                            },
@@ -1126,7 +1155,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "allergy_status": "none"|"has","body_side": "left"|"right","field_view": "persp"|"flat","game_status": "upcoming"|"live"|"done","guardian_status": "pending"|"approved","home_away": "home"|"away"|"neutral","member_role": "coach"|"assistant"|"parent","member_status": "pending"|"active"|"removed","pa_result": "none"|"single"|"double"|"triple"|"home_run"|"walk"|"hit_by_pitch"|"strikeout"|"out"|"sacrifice"|"fielders_choice"|"reached_on_error","parent_stats": "own"|"team","practice_status": "scheduled"|"cancelled","rsvp_setter": "parent"|"coach","rsvp_status": "going"|"out"|"none","score_side": "us"|"them","shirt_size": "YXS"|"YS"|"YM"|"YL"|"YXL"|"AS"|"AM"|"AL"|"AXL","skill_metric": "count"|"time_seconds"|"distance"|"made_of_attempted","sport": "soccer"|"baseball"|"basketball"|"lacrosse"|"football","theme": "light"|"dark"|"auto","time_mode": "periods"|"clock"
+            "allergy_status": "none"|"has","body_side": "left"|"right","field_view": "persp"|"flat","game_status": "upcoming"|"live"|"done","guardian_status": "pending"|"approved","home_away": "home"|"away"|"neutral","member_role": "coach"|"assistant"|"parent","member_status": "pending"|"active"|"removed","pa_result": "none"|"single"|"double"|"triple"|"home_run"|"walk"|"hit_by_pitch"|"strikeout"|"out"|"sacrifice"|"fielders_choice"|"reached_on_error","parent_stats": "own"|"team","practice_status": "scheduled"|"cancelled","rsvp_setter": "parent"|"coach","rsvp_status": "going"|"out"|"none","score_side": "us"|"them","shirt_size": "YXS"|"YS"|"YM"|"YL"|"YXL"|"AS"|"AM"|"AL"|"AXL","skill_metric": "count"|"time_seconds"|"distance"|"made_of_attempted","snack_mode": "off"|"games"|"both","sport": "soccer"|"baseball"|"basketball"|"lacrosse"|"football","theme": "light"|"dark"|"auto","time_mode": "periods"|"clock"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1242,7 +1271,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "allergy_status": ["none", "has"],"body_side": ["left", "right"],"field_view": ["persp", "flat"],"game_status": ["upcoming", "live", "done"],"guardian_status": ["pending", "approved"],"home_away": ["home", "away", "neutral"],"member_role": ["coach", "assistant", "parent"],"member_status": ["pending", "active", "removed"],"pa_result": ["none", "single", "double", "triple", "home_run", "walk", "hit_by_pitch", "strikeout", "out", "sacrifice", "fielders_choice", "reached_on_error"],"parent_stats": ["own", "team"],"practice_status": ["scheduled", "cancelled"],"rsvp_setter": ["parent", "coach"],"rsvp_status": ["going", "out", "none"],"score_side": ["us", "them"],"shirt_size": ["YXS", "YS", "YM", "YL", "YXL", "AS", "AM", "AL", "AXL"],"skill_metric": ["count", "time_seconds", "distance", "made_of_attempted"],"sport": ["soccer", "baseball", "basketball", "lacrosse", "football"],"theme": ["light", "dark", "auto"],"time_mode": ["periods", "clock"]
+            "allergy_status": ["none", "has"],"body_side": ["left", "right"],"field_view": ["persp", "flat"],"game_status": ["upcoming", "live", "done"],"guardian_status": ["pending", "approved"],"home_away": ["home", "away", "neutral"],"member_role": ["coach", "assistant", "parent"],"member_status": ["pending", "active", "removed"],"pa_result": ["none", "single", "double", "triple", "home_run", "walk", "hit_by_pitch", "strikeout", "out", "sacrifice", "fielders_choice", "reached_on_error"],"parent_stats": ["own", "team"],"practice_status": ["scheduled", "cancelled"],"rsvp_setter": ["parent", "coach"],"rsvp_status": ["going", "out", "none"],"score_side": ["us", "them"],"shirt_size": ["YXS", "YS", "YM", "YL", "YXL", "AS", "AM", "AL", "AXL"],"skill_metric": ["count", "time_seconds", "distance", "made_of_attempted"],"snack_mode": ["off", "games", "both"],"sport": ["soccer", "baseball", "basketball", "lacrosse", "football"],"theme": ["light", "dark", "auto"],"time_mode": ["periods", "clock"]
           }
         }
 } as const

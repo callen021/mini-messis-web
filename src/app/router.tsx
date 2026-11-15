@@ -196,6 +196,12 @@ export const routes: RouteObject[] = [
                         ),
                       },
                       {
+                        path: '/snacks',
+                        element: lazyPage(() =>
+                          import('@/snacks/SnackSignupPage').then((m) => ({ default: m.SnackSignupPage })),
+                        ),
+                      },
+                      {
                         path: '/stats',
                         element: lazyPage(() =>
                           import('@/games/StatsPage').then((m) => ({ default: m.StatsPage })),

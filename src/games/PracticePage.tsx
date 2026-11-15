@@ -2,6 +2,7 @@ import { useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { AttendanceSection } from '@/rsvp/AttendanceSection';
 import { ParentRsvpSection } from '@/rsvp/ParentRsvpSection';
+import { SnackSection } from '@/snacks/SnackSection';
 import { parentLocked } from '@/rsvp/rsvp';
 import { useOfferBoardPost } from '@/board/offer';
 import { Textarea } from '@/components/Form';
@@ -238,6 +239,18 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
             new Date(),
           )}
           lockedText="Replies closed: the practice has started."
+        />
+      )}
+      {!cancelled && (
+        <SnackSection
+          event={{ kind: 'practice', id: p.id }}
+          slot={p}
+          open={
+            !parentLocked(
+              { kind: 'practice', status: p.status, date: p.practice_date, time: p.start_time },
+              new Date(),
+            )
+          }
         />
       )}
       {isStaff && (

@@ -117,3 +117,10 @@ export const CopyIcon = (p: IconProps) => (
     <path d="M15 9V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h3" />
   </Svg>
 );
+/** A snack (an apple): outline when the slot is open, filled when a family has it (D115). */
+export const SnackIcon = (p: IconProps) => (
+  <Svg {...p}>
+    <path d="M12 7.5c-1.4-1.2-3.4-1.4-5-.4-2.6 1.6-3 5.6-1.3 8.9 1.2 2.4 2.8 4 4.5 4 .7 0 1.2-.3 1.8-.3s1.1.3 1.8.3c1.7 0 3.3-1.6 4.5-4 1.7-3.3 1.3-7.3-1.3-8.9-1.6-1-3.6-.8-5 .4z" />
+    <path d="M12 7.5c0-2 1.2-3.6 3-4" />
+  </Svg>
+);

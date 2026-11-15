@@ -72,6 +72,7 @@ const team: Team = {
   require_approval: false,
   timezone: 'America/Chicago',
   parent_stats: 'own',
+  snack_signup: 'off',
   time_mode: 'periods',
   clock_periods: 2,
   period_minutes: null,
@@ -117,6 +118,8 @@ const practice = (over: Partial<Practice>): Practice => ({
   id: 'p',
   team_id: 't1',
   season_id: 's',
+  snack_player_id: null,
+  snack_flagged: false,
   practice_date: '2030-05-12',
   start_time: '18:30:00',
   end_time: null,
@@ -270,6 +273,30 @@ describe('Schedule page', () => {
     expect(text?.match(/BEGIN:VEVENT/g)).toHaveLength(2); // Tigers game + the scheduled practice; cancelled one skipped
     expect(text).not.toContain('game-g0'); // completed games are not in the schedule
     expect(screen.getByRole('status')).toHaveTextContent('2 events ready for your calendar');
+  });
+
+  it('a small snack icon per eligible row, open or taken, nothing more (D115)', () => {
+    games = [
+      game({ id: 'g1', opponent: 'Tigers', game_date: '2030-05-10' }),
+      game({
+        id: 'g2',
+        opponent: 'Owls',
+        game_date: '2030-05-17',
+        snack_player_id: 'p9',
+        snack_flagged: false,
+      }),
+    ];
+    team.snack_signup = 'games';
+    try {
+      renderPage();
+      expect(screen.getByRole('img', { name: 'Snacks: open' })).toHaveClass('open');
+      expect(screen.getByRole('img', { name: 'Snacks: a family' })).toHaveClass('taken');
+      // games only: the practice rows carry no icon
+      expect(screen.getAllByRole('img', { name: /^Snacks:/ })).toHaveLength(2);
+      expect(screen.queryByText(/Snacks:/)).not.toBeInTheDocument();
+    } finally {
+      team.snack_signup = 'off';
+    }
   });
 
   it('shows an empty message per segment', async () => {

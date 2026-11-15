@@ -16,7 +16,8 @@ import { errorMessage } from '@/lib/supabase';
 import { DataSection } from './DataSection';
 import { signOut, unconfirmedLinkCount, useTeamMembers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
-import { useSetParentStats } from '@/teams/teamMutations';
+import { useSetParentStats, useSetSnackSignup } from '@/teams/teamMutations';
+import { SNACK_MODE_LABEL, type SnackMode } from '@/snacks/snacks';
 
 export function SettingsPage() {
   const { team, role } = useCurrentTeam();
@@ -25,6 +26,7 @@ export function SettingsPage() {
   const sheet = useActionSheet();
   const toast = useToast();
   const setParentStats = useSetParentStats(team.id);
+  const setSnackSignup = useSetSnackSignup(team.id);
   const theme = useUIStore((s) => s.theme);
   const setTheme = useUIStore((s) => s.setTheme);
   const fieldView = useUIStore((s) => s.fieldView);
@@ -138,6 +140,33 @@ export function SettingsPage() {
               options={[
                 { value: 'own', label: 'Own' },
                 { value: 'team', label: 'Team' },
+              ]}
+            />
+          </Row>
+        </RoleGate>
+        <RoleGate allow={STAFF_ROLES}>
+          <Row
+            label="Snack signup"
+            detail={
+              team.snack_signup === 'off'
+                ? 'Off · parents see no snack list'
+                : `One family per ${team.snack_signup === 'both' ? 'game or practice' : 'game'} · parents sign up on their Home tab`
+            }
+          >
+            <Segmented<SnackMode>
+              label="Snack signup"
+              value={team.snack_signup}
+              onChange={(v) =>
+                setSnackSignup.mutate(v, {
+                  onSuccess: () => toast(`Snack signup · ${SNACK_MODE_LABEL[v]}`),
+                  onError: (e) => toast(errorMessage(e)),
+                })
+              }
+              style={{ width: 190 }}
+              options={[
+                { value: 'off', label: 'Off' },
+                { value: 'games', label: 'Games' },
+                { value: 'both', label: 'Both' },
               ]}
             />
           </Row>
