@@ -75,6 +75,17 @@ export const FIELDS: Readonly<
     },
     flat: { src: 'fields/volleyball-flat.svg', w: 1000, h: 1000, H: [9.2, 0, 40, 0, 8.6, 110, 0, 0, 1] },
   },
+  // Hockey is our defensive half of the rink (D122): y 0 the centre red line, y 100 our end boards;
+  // vector artwork from scripts/gen-rink.mjs.
+  hockey: {
+    persp: {
+      src: 'fields/hockey-persp.svg',
+      w: 1200,
+      h: 1160,
+      H: [8.8, -1.44827586, 160, 0, 5.96551724, 200, 0, -0.00241379, 1],
+    },
+    flat: { src: 'fields/hockey-flat.svg', w: 1000, h: 1100, H: [9.2, 0, 40, 0, 9.6, 90, 0, 0, 1] },
+  },
 };
 
 /** Football has no artwork yet; it reuses the soccer pitch (the sport is disabled anyway). */
@@ -159,6 +170,7 @@ export const PERSP_JERSEY_SCALE: Readonly<Record<SportKey, number>> = {
   softball: 1,
   basketball: 1,
   volleyball: 1,
+  hockey: 1,
   football: 0.8,
 };
 
@@ -237,4 +249,6 @@ export const STANDING: Readonly<Record<SportKey, readonly Standing[]>> = {
   softball: [],
   // the net stands on the far line, across the whole court (D121)
   volleyball: [['net', 50, 0, 104]],
+  // our net on the goal line (D122)
+  hockey: [['goal-near', 50, 90, 9]],
 };

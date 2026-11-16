@@ -17,6 +17,8 @@ export interface FillOptions {
   random?: () => number;
   /** Eligible positions (D117): false keeps the player out of a spot of that position group. */
   eligible?: (playerId: string, group: string) => boolean;
+  /** Position roles never filled here (D122: the hockey goalie stays unless the coach changes them). */
+  skipRoles?: readonly string[];
 }
 
 export interface FillResult {
@@ -37,11 +39,13 @@ export function fillByTime(
   sport: SportDefinition,
   candidates: readonly { id: string }[],
   rank: ReadonlyMap<string, TimeRank>,
-  { random = Math.random, eligible }: FillOptions = {},
+  { random = Math.random, eligible, skipRoles }: FillOptions = {},
 ): FillResult {
   const slots = [...period.slots];
   const auto = [...period.auto];
-  const open = formation.positions.map((_, i) => i).filter((i) => !slots[i]);
+  const open = formation.positions
+    .map((_, i) => i)
+    .filter((i) => !slots[i] && !skipRoles?.includes(formation.positions[i]?.role ?? ''));
   if (!open.length) return { period, filled: 0, skipped: [] };
   open.sort(
     (a, b) => Number(formation.positions[b]?.role === 'GK') - Number(formation.positions[a]?.role === 'GK'),

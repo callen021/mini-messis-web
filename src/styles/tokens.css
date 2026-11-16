@@ -167,6 +167,25 @@
   }
 }
 
+/* hockey (D122): a steel blue */
+:root[data-sport='hockey'] {
+  --tint: #3a63a8;
+  --tint-soft: rgba(58, 99, 168, 0.13);
+}
+:root[data-theme='dark'][data-sport='hockey'] {
+  --tint: #8fb4ff;
+  --tint-soft: rgba(143, 180, 255, 0.16);
+  --on-tint: #0a1d44;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='auto'][data-sport='hockey'],
+  :root:not([data-theme])[data-sport='hockey'] {
+    --tint: #8fb4ff;
+    --tint-soft: rgba(143, 180, 255, 0.16);
+    --on-tint: #0a1d44;
+  }
+}
+
 /* softball (D119) wears the baseball tint */
 :root[data-sport='softball'] {
   --tint: #b4532a;

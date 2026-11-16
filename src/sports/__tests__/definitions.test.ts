@@ -20,6 +20,7 @@ describe('SPORTS definitions', () => {
       'basketball',
       'lacrosse',
       'volleyball',
+      'hockey',
     ]);
   });
 

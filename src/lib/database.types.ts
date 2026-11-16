@@ -239,6 +239,26 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"lines": {
+                  Row: {
+                    "created_at": string,"id": string,"kind": string,"name": string,"player_ids": (string)[],"slot": number,"team_id": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"kind": string,"name"?: string,"player_ids"?: (string)[],"slot": number,"team_id": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"kind"?: string,"name"?: string,"player_ids"?: (string)[],"slot"?: number,"team_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "lines_team_id_fkey"
+      columns: ["team_id"]
+isOneToOne: false
+      referencedRelation: "teams"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"lineup_slots": {
                   Row: {
                     "auto_picked": boolean,"lineup_id": string,"player_id": string | null,"position_code": string,"position_role": string,"slot_index": number
@@ -899,6 +919,9 @@ isOneToOne: false
 "clock_limit_for":
 { Args: { "p_seconds": number,"p_team_id": string }; Returns: number
                            },
+"clock_line_change":
+{ Args: { "p_game_id": string,"p_line_id": string }; Returns: (string)[]
+                           },
 "clock_new_op":
 { Args: { "p_game_id": string,"p_kind": string,"p_period": number }; Returns: string
                            },
@@ -1314,7 +1337,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "allergy_status": "none"|"has","body_side": "left"|"right","field_view": "persp"|"flat","game_status": "upcoming"|"live"|"done","guardian_status": "pending"|"approved","home_away": "home"|"away"|"neutral","member_role": "coach"|"assistant"|"parent","member_status": "pending"|"active"|"removed","pa_result": "none"|"single"|"double"|"triple"|"home_run"|"walk"|"hit_by_pitch"|"strikeout"|"out"|"sacrifice"|"fielders_choice"|"reached_on_error","parent_stats": "own"|"team","position_pref": "preferred"|"can"|"never","practice_status": "scheduled"|"cancelled","rsvp_setter": "parent"|"coach","rsvp_status": "going"|"out"|"none","score_side": "us"|"them","shirt_size": "YXS"|"YS"|"YM"|"YL"|"YXL"|"AS"|"AM"|"AL"|"AXL","skill_metric": "count"|"time_seconds"|"distance"|"made_of_attempted","snack_mode": "off"|"games"|"both","sport": "soccer"|"baseball"|"basketball"|"lacrosse"|"football"|"softball"|"volleyball","stat_type": "rebound"|"assist"|"steal"|"foul","theme": "light"|"dark"|"auto","time_mode": "periods"|"clock"
+            "allergy_status": "none"|"has","body_side": "left"|"right","field_view": "persp"|"flat","game_status": "upcoming"|"live"|"done","guardian_status": "pending"|"approved","home_away": "home"|"away"|"neutral","member_role": "coach"|"assistant"|"parent","member_status": "pending"|"active"|"removed","pa_result": "none"|"single"|"double"|"triple"|"home_run"|"walk"|"hit_by_pitch"|"strikeout"|"out"|"sacrifice"|"fielders_choice"|"reached_on_error","parent_stats": "own"|"team","position_pref": "preferred"|"can"|"never","practice_status": "scheduled"|"cancelled","rsvp_setter": "parent"|"coach","rsvp_status": "going"|"out"|"none","score_side": "us"|"them","shirt_size": "YXS"|"YS"|"YM"|"YL"|"YXL"|"AS"|"AM"|"AL"|"AXL","skill_metric": "count"|"time_seconds"|"distance"|"made_of_attempted","snack_mode": "off"|"games"|"both","sport": "soccer"|"baseball"|"basketball"|"lacrosse"|"football"|"softball"|"volleyball"|"hockey","stat_type": "rebound"|"assist"|"steal"|"foul","theme": "light"|"dark"|"auto","time_mode": "periods"|"clock"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1430,7 +1453,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "allergy_status": ["none", "has"],"body_side": ["left", "right"],"field_view": ["persp", "flat"],"game_status": ["upcoming", "live", "done"],"guardian_status": ["pending", "approved"],"home_away": ["home", "away", "neutral"],"member_role": ["coach", "assistant", "parent"],"member_status": ["pending", "active", "removed"],"pa_result": ["none", "single", "double", "triple", "home_run", "walk", "hit_by_pitch", "strikeout", "out", "sacrifice", "fielders_choice", "reached_on_error"],"parent_stats": ["own", "team"],"position_pref": ["preferred", "can", "never"],"practice_status": ["scheduled", "cancelled"],"rsvp_setter": ["parent", "coach"],"rsvp_status": ["going", "out", "none"],"score_side": ["us", "them"],"shirt_size": ["YXS", "YS", "YM", "YL", "YXL", "AS", "AM", "AL", "AXL"],"skill_metric": ["count", "time_seconds", "distance", "made_of_attempted"],"snack_mode": ["off", "games", "both"],"sport": ["soccer", "baseball", "basketball", "lacrosse", "football", "softball", "volleyball"],"stat_type": ["rebound", "assist", "steal", "foul"],"theme": ["light", "dark", "auto"],"time_mode": ["periods", "clock"]
+            "allergy_status": ["none", "has"],"body_side": ["left", "right"],"field_view": ["persp", "flat"],"game_status": ["upcoming", "live", "done"],"guardian_status": ["pending", "approved"],"home_away": ["home", "away", "neutral"],"member_role": ["coach", "assistant", "parent"],"member_status": ["pending", "active", "removed"],"pa_result": ["none", "single", "double", "triple", "home_run", "walk", "hit_by_pitch", "strikeout", "out", "sacrifice", "fielders_choice", "reached_on_error"],"parent_stats": ["own", "team"],"position_pref": ["preferred", "can", "never"],"practice_status": ["scheduled", "cancelled"],"rsvp_setter": ["parent", "coach"],"rsvp_status": ["going", "out", "none"],"score_side": ["us", "them"],"shirt_size": ["YXS", "YS", "YM", "YL", "YXL", "AS", "AM", "AL", "AXL"],"skill_metric": ["count", "time_seconds", "distance", "made_of_attempted"],"snack_mode": ["off", "games", "both"],"sport": ["soccer", "baseball", "basketball", "lacrosse", "football", "softball", "volleyball", "hockey"],"stat_type": ["rebound", "assist", "steal", "foul"],"theme": ["light", "dark", "auto"],"time_mode": ["periods", "clock"]
           }
         }
 } as const

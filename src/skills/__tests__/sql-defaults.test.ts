@@ -4,8 +4,9 @@ import { DEFAULT_SKILL_TESTS } from '../defaults';
 import sql0800 from '../../../supabase/migrations/20261109000800_skills_defaults.sql?raw';
 // volleyball's set (D121) lives in its own migration
 import sqlVb from '../../../supabase/migrations/20261116000700_volleyball.sql?raw';
+import sqlHk from '../../../supabase/migrations/20261116000900_hockey.sql?raw';
 
-const sql = sql0800 + sqlVb;
+const sql = sql0800 + sqlVb + sqlHk;
 
 describe('default_skill_tests() in SQL mirrors src/skills/defaults.ts', () => {
   it('every TS default appears in the SQL set with the same key, name, metric and attempts', () => {
@@ -23,7 +24,15 @@ describe('default_skill_tests() in SQL mirrors src/skills/defaults.ts', () => {
     }
   });
   it('every enabled sport has a sprint-speed test', () => {
-    for (const sport of ['soccer', 'baseball', 'softball', 'basketball', 'lacrosse', 'volleyball'] as const) {
+    for (const sport of [
+      'soccer',
+      'baseball',
+      'softball',
+      'basketball',
+      'lacrosse',
+      'volleyball',
+      'hockey',
+    ] as const) {
       expect(DEFAULT_SKILL_TESTS[sport].find((t) => t.key === 'sprint')?.name).toBe('Sprint speed');
     }
   });

@@ -244,6 +244,47 @@ const DEFAULTS_BY_SPORT: Readonly<Record<Exclude<SportKey, 'softball'>, readonly
       { draft: true },
     ),
   ],
+  // hockey (D122): the SQL twin lives in the hockey migration
+  hockey: [
+    T(
+      'skate',
+      'Skating speed',
+      'Skate goal line to far blue line from a standing start. Two tries, same start signal and timing method each session.',
+      'time_seconds',
+      { draft: true },
+    ),
+    T(
+      'puckweave',
+      'Puck control',
+      'Stickhandle through five cones and back. Time the run; a lost puck restarts the attempt.',
+      'time_seconds',
+      { draft: true },
+    ),
+    T(
+      'shooting',
+      'Shooting accuracy',
+      'Ten shots from the slot at an empty net with corner targets. Count targets hit.',
+      'made_of_attempted',
+      { attempts: 10, draft: true },
+    ),
+    T(
+      'passing',
+      'Passing',
+      'Ten passes from 20 feet to a stick-width target. Count passes that hit it.',
+      'made_of_attempted',
+      {
+        attempts: 10,
+        draft: true,
+      },
+    ),
+    T(
+      'sprint',
+      'Sprint speed',
+      'Run 20 yards from a standing start. Two tries, same start signal and timing method each session.',
+      'time_seconds',
+      { draft: true },
+    ),
+  ],
   football: [],
 };
 

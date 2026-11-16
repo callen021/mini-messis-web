@@ -138,7 +138,9 @@ type ClockCall =
   | { kind: 'vb_serve'; side: 'us' | 'them' }
   | { kind: 'vb_rotate' }
   | { kind: 'vb_end_set' }
-  | { kind: 'vb_undo' };
+  | { kind: 'vb_undo' }
+  /** Hockey (D122): a line change, returning the position codes left open. */
+  | { kind: 'line'; lineId: string };
 
 /** One mutation for every clock action: each is a single atomic server function (D66, D67). */
 export function useClockAction(teamId: string, gameId: string) {
@@ -210,6 +212,11 @@ export function useClockAction(teamId: string, gameId: string) {
         case 'vb_end_set':
           fail((await supabase.rpc('vb_end_set', g)).error);
           return null;
+        case 'line': {
+          const res = await supabase.rpc('clock_line_change', { ...g, p_line_id: call.lineId });
+          fail(res.error);
+          return (res.data ?? []).join(',');
+        }
         case 'vb_undo': {
           const res = await supabase.rpc('vb_undo', g);
           fail(res.error);

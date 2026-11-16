@@ -46,6 +46,7 @@ const SPORT_LABEL: Record<SportKey, string> = {
   baseball: '⚾ Baseball',
   softball: '🥎 Softball',
   volleyball: '🏐 Volleyball',
+  hockey: '🏒 Hockey',
   basketball: '🏀 Basketball',
   lacrosse: '🥍 Lacrosse',
   football: '🏈 Football',

@@ -592,3 +592,24 @@ export const VOLLEYBALL_ROTATION: Formation = {
 export function volleyballFormations(): Formation[] {
   return [VOLLEYBALL_ROTATION];
 }
+
+/* ---------- hockey (D122) ---------- */
+
+// Our defensive zone, our net at the near end: the goalie in front of it, the pair ahead, the
+// forwards up toward the blue line. Slots: G, LD, RD, LW, C, RW.
+const HK = (code: string, x: number, y: number): Position => ({ role: code, code, x, y });
+export const HOCKEY_LINES: Formation = {
+  name: 'Lines',
+  positions: [
+    HK('G', 50, 86),
+    HK('LD', 27, 64),
+    HK('RD', 73, 64),
+    HK('LW', 20, 30),
+    HK('C', 50, 38),
+    HK('RW', 80, 30),
+  ],
+  w: 22,
+};
+export function hockeyFormations(): Formation[] {
+  return [HOCKEY_LINES];
+}

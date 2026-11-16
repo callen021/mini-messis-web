@@ -2986,3 +2986,23 @@ a.prow.dir .pname {
 .sub.keeperbar .btn {
   flex: none;
 }
+
+/* the hockey lines page (D122): a name and the spot pickers per line */
+.lineeditor {
+  padding: 10px 16px 12px;
+  border-bottom: 1px solid var(--sep);
+}
+.lineeditor:last-child {
+  border-bottom: 0;
+}
+.lineeditor .fld {
+  margin-bottom: 6px;
+}
+.linepicks {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
+  gap: 8px;
+}
+.linepicks .fld {
+  margin-bottom: 0;
+}

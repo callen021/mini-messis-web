@@ -600,9 +600,17 @@ test.describe('coach and parent flows', () => {
     await coach.setViewportSize({ width: 375, height: 420 });
     await coach.goto('/stats');
     await coach.getByRole('radio', { name: 'Skills' }).click();
-    await coach.evaluate(() => document.querySelector('.app-main')?.scrollTo(0, 400));
+    // the table renders once the results arrive; scroll restoration may reset an early scroll, so
+    // scroll inside the poll until it sticks
+    await expect(coach.locator('.matrix').getByRole('link', { name: 'Ava' })).toBeVisible();
     await expect
-      .poll(() => coach.evaluate(() => document.querySelector('.app-main')?.scrollTop ?? 0))
+      .poll(() =>
+        coach.evaluate(() => {
+          const main = document.querySelector('.app-main');
+          main?.scrollTo(0, 400);
+          return main?.scrollTop ?? 0;
+        }),
+      )
       .toBeGreaterThan(100);
     await coach.locator('.matrix').getByRole('link', { name: 'Ava' }).click();
     await expect(coach).toHaveURL(/\/skills$/);
@@ -1801,6 +1809,85 @@ test.describe('coach and parent flows', () => {
     await expect(coach.getByRole('group', { name: 'Exit spot' })).toBeVisible();
     await expect(coach.getByRole('radiogroup', { name: 'Track playing time by' })).toHaveCount(0);
     await coach.setViewportSize({ width: 1280, height: 900 });
+  });
+
+  test('hockey: six on the ice with three periods, Auto-fill leaves the goalie, a saved forward line goes on in one tap and Undo takes it back (D122)', async () => {
+    await coach.goto('/create-team');
+    await coach.getByLabel('Team name').fill(`Blades ${run}`);
+    await coach.getByRole('button', { name: /^Hockey/ }).click();
+    await expect(
+      coach.getByText(/Defaults for hockey: 6 on the ice including the goalkeeper, 3 periods/),
+    ).toBeVisible();
+    await coach.getByRole('button', { name: 'Create team' }).click();
+    await expect(coach).toHaveURL(/\/field$/);
+    const nav = coach.getByRole('navigation', { name: 'Main' });
+    await expect(nav.getByRole('link', { name: 'Rink' })).toBeVisible();
+    await expect(coach.locator('.stage.hockey img.pitch').first()).toHaveAttribute('src', /hockey-persp/);
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await coach.getByRole('button', { name: 'Edit roster' }).click();
+    for (const [i, name] of ['Ace', 'Bo', 'Cy', 'Dax', 'Eli', 'Finn', 'Gus', 'Hal', 'Ike'].entries()) {
+      await coach.getByRole('button', { name: 'Add player' }).first().click();
+      const sheet = coach.getByRole('dialog', { name: 'Add player' });
+      await sheet.getByLabel('First name').fill(name);
+      await sheet.getByLabel('Jersey number (optional)').fill(String(i + 1));
+      await sheet.getByRole('button', { name: 'Add player' }).click();
+      await expect(sheet).toBeHidden();
+    }
+    // the Lines screen: F2 is Gus, Hal, Ike
+    await coach.getByRole('button', { name: 'Lines' }).click();
+    await expect(coach).toHaveURL(/\/team\/lines$/);
+    const f2 = coach.getByRole('group', { name: 'F2' });
+    await f2.getByLabel('F2 name').fill('Second');
+    await f2.getByLabel('F2 LW').selectOption({ label: '#7 Gus' });
+    await f2.getByLabel('F2 C').selectOption({ label: '#8 Hal' });
+    await f2.getByLabel('F2 RW').selectOption({ label: '#9 Ike' });
+    await coach.waitForTimeout(600);
+    await coach.reload();
+    await expect(coach.getByRole('group', { name: 'F2' }).getByLabel('F2 LW')).toHaveValue(/./);
+    // Auto-fill on the rink leaves the goalie open; the coach places Ace in the net by hand
+    await coach.goto('/field');
+    await expect(coach.locator('.slot .shirt')).toHaveCount(6);
+    await coach.locator('.actionbar').getByRole('button', { name: 'Auto-fill' }).click();
+    await expect(coach.locator('.slot .shirt.open')).toHaveCount(1);
+    await expect(coach.getByRole('button', { name: /^GOALIE: open/ })).toBeVisible();
+    await coach.getByRole('button', { name: /^GOALIE: open/ }).click();
+    await coach
+      .getByRole('button', { name: /^Bench: / })
+      .first()
+      .click();
+    await expect(coach.locator('.slot .shirt.open')).toHaveCount(0);
+    const goalie = (await coach.getByRole('button', { name: /^GOALIE: / }).getAttribute('aria-label')) ?? '';
+    // start the game: the clock runs; the lines row sits under the bench
+    await coach.getByRole('button', { name: /Start a game and record goals/ }).click();
+    await coach
+      .getByRole('dialog', { name: 'Start a game' })
+      .getByRole('button', { name: 'New game' })
+      .click();
+    const form = coach.getByRole('dialog', { name: 'Start a game to record the score' });
+    await form.getByLabel('Opponent').fill('Sharks');
+    await form.getByRole('button', { name: 'Start game' }).click();
+    await expect(form).toBeHidden();
+    await expect(coach.locator('.gclock.run')).toBeVisible();
+    await expect(coach.getByRole('heading', { level: 2, name: 'P1' })).toBeVisible();
+    const lines = coach.getByRole('group', { name: 'Lines' });
+    await expect(lines.getByRole('button')).toHaveText(['Second']);
+    const wingBefore =
+      (await coach.getByRole('button', { name: /^LEFT WING: / }).getAttribute('aria-label')) ?? '';
+    await lines.getByRole('button', { name: 'Forward line Second on' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Second on' })).toBeVisible();
+    await expect(coach.getByRole('button', { name: /^LEFT WING: Gus/ })).toBeVisible();
+    await expect(coach.getByRole('button', { name: /^CENTER: Hal/ })).toBeVisible();
+    await expect(coach.getByRole('button', { name: /^RIGHT WING: Ike/ })).toBeVisible();
+    // the goalie and the pair are untouched
+    await expect(coach.getByRole('button', { name: new RegExp(`^${goalie.split(',')[0]}`) })).toBeVisible();
+    await expect(coach.locator('.slot .shirt.open')).toHaveCount(0);
+    // one Undo takes the whole change back
+    await coach.locator('.actionbar').getByRole('button', { name: 'Undo' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Last change undone' })).toBeVisible();
+    await expect(
+      coach.getByRole('button', { name: new RegExp(`^${wingBefore.split(',')[0]}`) }),
+    ).toBeVisible();
   });
 });
 

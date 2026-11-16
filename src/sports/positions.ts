@@ -66,6 +66,15 @@ const VOLLEYBALL: Record<string, string> = {
   MB: 'Middle back · spot 6',
 };
 
+const HOCKEY: Record<string, string> = {
+  G: 'Goalie',
+  LD: 'Left defense',
+  RD: 'Right defense',
+  LW: 'Left wing',
+  C: 'Center',
+  RW: 'Right wing',
+};
+
 const LACROSSE: Record<string, string> = {
   GK: 'Goalie',
   A: 'Attack',
@@ -121,6 +130,7 @@ export const POSITION_NAMES: Readonly<Record<SportKey, Readonly<Record<string, s
   basketball: BASKETBALL,
   lacrosse: LACROSSE,
   volleyball: VOLLEYBALL,
+  hockey: HOCKEY,
   football: FOOTBALL,
 };
 

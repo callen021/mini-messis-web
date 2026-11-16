@@ -1,6 +1,6 @@
 /** Sport keys. Football is defined but disabled in the UI, exactly as the legacy `ENABLED_SPORTS`. */
 export type SportKey =
-  'soccer' | 'baseball' | 'softball' | 'basketball' | 'lacrosse' | 'volleyball' | 'football';
+  'soccer' | 'baseball' | 'softball' | 'basketball' | 'lacrosse' | 'volleyball' | 'hockey' | 'football';
 
 export const ALL_SPORTS: readonly SportKey[] = [
   'soccer',
@@ -9,6 +9,7 @@ export const ALL_SPORTS: readonly SportKey[] = [
   'basketball',
   'lacrosse',
   'volleyball',
+  'hockey',
   'football',
 ];
 export const ENABLED_SPORTS: readonly SportKey[] = [
@@ -18,6 +19,7 @@ export const ENABLED_SPORTS: readonly SportKey[] = [
   'basketball',
   'lacrosse',
   'volleyball',
+  'hockey',
 ];
 
 export const isSportKey = (v: unknown): v is SportKey =>
@@ -53,8 +55,8 @@ export interface SportDefinition {
   key: SportKey;
   name: string;
   emoji: string;
-  /** Field / Diamond / Court — also the first tab's label. */
-  field: 'Field' | 'Diamond' | 'Court';
+  /** Field / Diamond / Court / Rink — also the first tab's label. */
+  field: 'Field' | 'Diamond' | 'Court' | 'Rink';
   sizes: readonly number[];
   defaultSize: number;
   hasGK: boolean;

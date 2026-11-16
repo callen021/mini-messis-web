@@ -183,6 +183,8 @@ export interface AutoFillOptions {
    * Absent, everyone may play anywhere.
    */
   eligible?: (playerId: string, group: string) => boolean;
+  /** Position roles Auto-fill leaves alone, open or not (D122: the hockey goalie stays unless the coach changes them). */
+  skipRoles?: readonly string[];
 }
 
 export interface AutoFillResult {
@@ -198,7 +200,7 @@ export function autoFill(
   forms: readonly Formation[],
   sport: SportDefinition,
   players: readonly EnginePlayer[],
-  { redo = false, random = Math.random, eligible }: AutoFillOptions = {},
+  { redo = false, random = Math.random, eligible, skipRoles }: AutoFillOptions = {},
 ): AutoFillResult {
   const src = periods[periodIndex];
   if (!src) return { periods: [...periods], filled: 0, skipped: [] };
@@ -208,7 +210,9 @@ export function autoFill(
     q.auto.forEach((i) => (q.slots[i] = ''));
     q.auto = [];
   }
-  const open = f.positions.map((_, i) => i).filter((i) => !q.slots[i]);
+  const open = f.positions
+    .map((_, i) => i)
+    .filter((i) => !q.slots[i] && !skipRoles?.includes(f.positions[i]?.role ?? ''));
   if (!open.length) return { periods: [...periods], filled: 0, skipped: [] };
 
   const working = periods.map((p, i) => (i === periodIndex ? q : p));

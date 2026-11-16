@@ -1624,3 +1624,26 @@ and `vb_undo` share `clock_undo_inner`). The live court (ClockFieldPage with a `
 the server's jersey, points under each jersey, and the point bar (serve, +1 Us / +1 Them, Rotate,
 Undo, End set) where basketball has its quick-score row. Playing time lists read in points.
 pgTAP 31.
+
+### D122. Hockey; named lines and the one-tap line change
+
+Hockey is a sport of its own (`sport` enum value `hockey`, its own migration first). Six on the ice
+as one formation, "Lines" — G, LD, RD, LW, C, RW — on our defensive half of a rink drawn by
+`scripts/gen-rink.mjs` with our net on the goal line; a clock-mode team with three periods
+(`clock_periods` from the template, like volleyball's sets) and the existing period length; goals
+keep the soccer model (a scorer and an optional assist, editable after the fact); eligibility
+groups Goalie / Defense / Forward. **Auto-fill and Suggest starters leave the goalie spot alone**
+(`skipRoles: ['G']` in both engines, never flagged): the goalie stays in the net unless the coach
+changes them by hand, and the halftime suggestion keeps the current goalie and re-picks the
+skaters around them.
+
+**Lines** (`lines`: per team, three forward lines LW/C/RW and two defense pairs LD/RD, each with a
+name and up to three or two players of the team; members read, staff write) are edited on the
+Lines screen (Team tab, Edit roster → Lines, `/team/lines`), every change saving on its own. On the
+live rink a Lines row under the bench shows the saved lines as chips; one tap calls
+`clock_line_change(game, line)`, one undoable op (`clock_ops.kind = 'line'`) that puts the line on
+exactly as saved: a line player already on the ice elsewhere moves to their line spot (their stint
+continues), players displaced from the line's spots who are not in the line go to the end of the
+bench line, and a spot left empty by a move stays open and is returned as a code so the toast
+flags it ("Second on · LW left open"). A forward line change never touches the pair or the goalie;
+a pair change never touches the forwards. The tap queue still works for single subs. pgTAP 32.

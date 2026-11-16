@@ -66,6 +66,8 @@ import { serverNow } from './serverTime';
 import { useSaveStarters } from './template';
 import { useWakeLock } from './useWakeLock';
 import { VolleyballBar } from './VolleyballBar';
+import { LinesRow } from './LinesRow';
+import { useLines } from '@/lines/api';
 import { matchDecided, pointsLabel, setTarget, setWon, setsState } from './volleyball';
 
 /**
@@ -137,6 +139,10 @@ export function ClockFieldPage() {
   // the point bar under the court replaces the clock controls
   const vb = sport === 'volleyball';
   const vbScoring = vb && !!live && canLog;
+  // hockey (D122): named lines go on in one tap; Auto-fill leaves the goalie to the coach
+  const hockey = sport === 'hockey';
+  const linesQ = useLines(teamId, hockey);
+  const skipRoles = hockey ? ['G'] : undefined;
   const picking = pendingPts !== null || pendingStat !== null;
   // soccer may change shape mid-game while the clock is paused (D108); every sport may at 0:00
   const canChangeFormationLive = !!live && sport === 'soccer' && !running;
@@ -545,7 +551,7 @@ export function ClockFieldPage() {
     const p: Period = { formation: formation.name, slots: [...slots], auto: [...shown.auto] };
     const offField = activePlayers.filter((pl) => !slots.includes(pl.id));
     const rank = seasonMinutes.data ?? new Map();
-    const r = fillByTime(p, formation, S, offField, rank, { eligible });
+    const r = fillByTime(p, formation, S, offField, rank, { eligible, skipRoles });
     if (!r.filled) {
       toast(
         r.skipped.length
@@ -572,7 +578,23 @@ export function ClockFieldPage() {
       })),
       S.group,
     );
-    const r = suggestStarters(formation, S, activePlayers, rank, { eligible });
+    // hockey (D122): the goalie keeps the net; the skaters are suggested around them
+    const r = hockey
+      ? fillByTime(
+          {
+            formation: formation.name,
+            slots: slots.map((id, i) => (formation.positions[i]?.role === 'G' ? id : '')),
+            auto: [],
+          },
+          formation,
+          S,
+          activePlayers.filter(
+            (p) => !slots.some((id, i) => id === p.id && formation.positions[i]?.role === 'G'),
+          ),
+          rank,
+          { eligible, skipRoles },
+        )
+      : suggestStarters(formation, S, activePlayers, rank, { eligible });
     sendLineup(r.period, withSkipped('Starters picked by minutes this game', r.skipped));
   };
 
@@ -840,6 +862,25 @@ export function ClockFieldPage() {
           servingSlot={vb && live?.vb_serving === 'us' ? 0 : null}
         />
       </div>
+      {hockey && live && isStaff && !fullTime && (
+        <LinesRow
+          lines={linesQ.data ?? []}
+          disabled={act.isPending}
+          onChange={(line) =>
+            act.mutate(
+              { kind: 'line', lineId: line.id },
+              {
+                onError,
+                onSuccess: (open) => {
+                  const label = line.name.trim() || `${line.kind === 'forward' ? 'F' : 'D'}${line.slot}`;
+                  const codes = open ? open.split(',').filter(Boolean) : [];
+                  toast(codes.length ? `${label} on · ${codes.join(', ')} left open` : `${label} on`);
+                },
+              },
+            )
+          }
+        />
+      )}
       {vbScoring && live && (
         <VolleyballBar
           opponent={live.opponent}

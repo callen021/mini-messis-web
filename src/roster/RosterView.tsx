@@ -183,6 +183,11 @@ export function RosterView({
               Positions
             </Button>
           )}
+          {editing && sport === 'hockey' && (
+            <Button variant="gray" onClick={() => void navigate('/team/lines')}>
+              Lines
+            </Button>
+          )}
           {!editing && (
             <Button variant="gray" onClick={addAll} disabled={!contactCount}>
               Add all to contacts
