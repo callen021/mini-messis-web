@@ -19,7 +19,7 @@ describe('default_skill_tests() in SQL mirrors src/skills/defaults.ts', () => {
     }
   });
   it('every enabled sport has a sprint-speed test', () => {
-    for (const sport of ['soccer', 'baseball', 'basketball', 'lacrosse'] as const) {
+    for (const sport of ['soccer', 'baseball', 'softball', 'basketball', 'lacrosse'] as const) {
       expect(DEFAULT_SKILL_TESTS[sport].find((t) => t.key === 'sprint')?.name).toBe('Sprint speed');
     }
   });

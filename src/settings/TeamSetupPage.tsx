@@ -216,7 +216,7 @@ export function TeamSetupPage() {
           detail={
             S.hasGK && team.has_gk
               ? 'including the goalkeeper'
-              : sport === 'baseball'
+              : S.lineup
                 ? 'fielders per inning'
                 : `per ${noun.toLowerCase()}`
           }
@@ -233,6 +233,37 @@ export function TeamSetupPage() {
             }}
           />
         </Row>
+        {S.lineup && (
+          // baseball and softball (D119): nine fielders, or ten with a fourth outfielder
+          <Row
+            label="Fielders"
+            detail={
+              team.side_size === 10
+                ? 'Ten · a fourth outfielder'
+                : team.side_size === 9
+                  ? 'Nine · the standard diamond'
+                  : 'Pick 9 or 10 here; other sizes with the stepper above'
+            }
+          >
+            <Segmented<'9' | '10' | 'other'>
+              label="Fielders"
+              value={team.side_size === 9 ? '9' : team.side_size === 10 ? '10' : 'other'}
+              onChange={(v) => {
+                if (v === 'other') return;
+                const size = Number(v);
+                if (size !== team.side_size) patch({ side_size: size }, `${size} ${S.unit}`);
+              }}
+              style={{ width: team.side_size === 9 || team.side_size === 10 ? 120 : 170 }}
+              options={[
+                { value: '9', label: '9' },
+                { value: '10', label: '10' },
+                ...(team.side_size === 9 || team.side_size === 10
+                  ? []
+                  : [{ value: 'other' as const, label: String(team.side_size), ariaLabel: 'Other' }]),
+              ]}
+            />
+          </Row>
+        )}
         {S.hasGK && (
           <Row label="Goalkeeper" detail="one of the players above is the goalie">
             <Switch label="Goalkeeper" checked={team.has_gk} onChange={(on) => patch({ has_gk: on })} />

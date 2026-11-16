@@ -13,7 +13,7 @@ describe('SPORTS definitions', () => {
   it('football exists but is disabled', () => {
     expect(ALL_SPORTS).toContain('football');
     expect(ENABLED_SPORTS).not.toContain('football');
-    expect(ENABLED_SPORTS).toEqual(['soccer', 'baseball', 'basketball', 'lacrosse']);
+    expect(ENABLED_SPORTS).toEqual(['soccer', 'baseball', 'softball', 'basketball', 'lacrosse']);
   });
 
   it.each(ALL_SPORTS)('%s: defaults are consistent and every role has a colour and a label', (key) => {

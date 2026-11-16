@@ -44,7 +44,7 @@ const T = (
  * cross-sport library: Restore defaults brings built-ins back, Add a custom test adds new ones.
  * The SQL twin is default_skill_tests() in supabase/migrations/20261109000800_skills_defaults.sql.
  */
-export const DEFAULT_SKILL_TESTS: Readonly<Record<SportKey, readonly DefaultSkillTest[]>> = {
+const DEFAULTS_BY_SPORT: Readonly<Record<Exclude<SportKey, 'softball'>, readonly DefaultSkillTest[]>> = {
   soccer: [
     T(
       'ticktocks',
@@ -204,6 +204,12 @@ export const DEFAULT_SKILL_TESTS: Readonly<Record<SportKey, readonly DefaultSkil
     ),
   ],
   football: [],
+};
+
+/** Softball (D119) takes the baseball set; the SQL twin routes it the same way. */
+export const DEFAULT_SKILL_TESTS: Readonly<Record<SportKey, readonly DefaultSkillTest[]>> = {
+  ...DEFAULTS_BY_SPORT,
+  softball: DEFAULTS_BY_SPORT.baseball,
 };
 
 /** Payload shape for `create_team(p_skill_tests)` / `restore_skill_tests`. */

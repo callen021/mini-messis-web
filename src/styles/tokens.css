@@ -147,3 +147,22 @@
     --on-tint: #042040;
   }
 }
+
+/* softball (D119) wears the baseball tint */
+:root[data-sport='softball'] {
+  --tint: #b4532a;
+  --tint-soft: rgba(180, 83, 42, 0.13);
+}
+:root[data-theme='dark'][data-sport='softball'] {
+  --tint: #ff8a5b;
+  --tint-soft: rgba(255, 138, 91, 0.16);
+  --on-tint: #2a0d02;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='auto'][data-sport='softball'],
+  :root:not([data-theme])[data-sport='softball'] {
+    --tint: #ff8a5b;
+    --tint-soft: rgba(255, 138, 91, 0.16);
+    --on-tint: #2a0d02;
+  }
+}

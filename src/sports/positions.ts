@@ -108,6 +108,7 @@ const FOOTBALL: Record<string, string> = {
 export const POSITION_NAMES: Readonly<Record<SportKey, Readonly<Record<string, string>>>> = {
   soccer: SOCCER,
   baseball: BASEBALL,
+  softball: BASEBALL,
   basketball: BASKETBALL,
   lacrosse: LACROSSE,
   football: FOOTBALL,

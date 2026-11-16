@@ -44,6 +44,7 @@ import { ENABLED_SPORTS, type SportKey } from '@/sports/types';
 const SPORT_LABEL: Record<SportKey, string> = {
   soccer: '⚽ Soccer',
   baseball: '⚾ Baseball',
+  softball: '🥎 Softball',
   basketball: '🏀 Basketball',
   lacrosse: '🥍 Lacrosse',
   football: '🏈 Football',

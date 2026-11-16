@@ -38,6 +38,16 @@ export const FIELDS: Readonly<
     },
     flat: { src: 'fields/baseball-flat.webp', w: 1200, h: 1200, H: [12, 0, 0, 0, 12, 0, 0, 0, 1] },
   },
+  // softball (D119) plays on the same diamond artwork
+  softball: {
+    persp: {
+      src: 'fields/baseball-persp.webp',
+      w: 1200,
+      h: 1200,
+      H: [12.0, -1.83333333, 0, 0, 7.95833333, 0, 0, -0.00305556, 1],
+    },
+    flat: { src: 'fields/baseball-flat.webp', w: 1200, h: 1200, H: [12, 0, 0, 0, 12, 0, 0, 0, 1] },
+  },
   // Basketball is a half court (D106): y 0 is the baseline under our basket, y 100 the half-court
   // line. The artwork is vector, drawn by scripts/gen-court.mjs from these same homographies; the
   // 3D tilt is gentle (far end 75% of the near end) so the back row is not squeezed.
@@ -135,6 +145,7 @@ export const PERSP_JERSEY_SCALE: Readonly<Record<SportKey, number>> = {
   soccer: 0.84,
   lacrosse: 0.82,
   baseball: 1,
+  softball: 1,
   basketball: 1,
   football: 0.8,
 };
@@ -211,4 +222,5 @@ export const STANDING: Readonly<Record<SportKey, readonly Standing[]>> = {
   // half court (D106): one basket, its stanchion standing just behind the baseline
   basketball: [['hoop-far', 50, -6, 15]],
   baseball: [],
+  softball: [],
 };

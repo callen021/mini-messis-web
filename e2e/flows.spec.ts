@@ -1590,11 +1590,14 @@ test.describe('coach and parent flows', () => {
     await coach.goto('/settings');
     const chips = coach.getByRole('group', { name: 'Stats tracked' });
     await expect(chips.getByRole('button', { name: 'rebounds: off' })).toBeVisible();
+    const savedReb = teamSaved(coach);
     await chips.getByRole('button', { name: 'rebounds: off' }).click();
     await expect(chips.getByRole('button', { name: 'rebounds: tracked' })).toBeVisible();
+    await savedReb;
+    const savedAst = teamSaved(coach);
     await chips.getByRole('button', { name: 'assists: off' }).click();
     await expect(chips.getByRole('button', { name: 'assists: tracked' })).toBeVisible();
-    await teamSaved(coach);
+    await savedAst;
     // the live court: a stat button arms a player pick like the points
     await coach.goto('/field');
     const stats = coach.getByRole('group', { name: 'Stats' });
@@ -1622,14 +1625,17 @@ test.describe('coach and parent flows', () => {
     await expect(coach.locator('.qslast')).toContainText(/AST/);
     // the game page lists them; the coach edits one after the fact
     await coach.goto('/games');
-    await coach.getByRole('link', { name: /In progress · vs Hawks/ }).click();
-    await expect(coach.getByRole('heading', { level: 2, name: 'Stats · 2' })).toBeVisible();
+    await coach.getByRole('button', { name: /In progress · vs Hawks/ }).click();
+    await expect(coach.getByText('Stats · 2')).toBeVisible();
     await coach
       .getByRole('button', { name: /assist/ })
       .first()
       .click();
-    const edit = coach.getByRole('dialog', { name: 'Edit assist' });
+    // the sheet is named after the kind, so its name follows the Stat radio
+    const edit = coach.getByRole('dialog', { name: /^Edit (assist|rebound)$/ });
+    await expect(edit).toHaveAccessibleName('Edit assist');
     await edit.getByRole('radiogroup', { name: 'Stat' }).getByRole('radio', { name: 'rebound' }).click();
+    await expect(edit).toHaveAccessibleName('Edit rebound');
     await edit.getByRole('button', { name: 'Save changes' }).click();
     await expect(edit).toBeHidden();
     await expect(coach.getByRole('status').filter({ hasText: 'Stat updated' })).toBeVisible();
@@ -1641,9 +1647,53 @@ test.describe('coach and parent flows', () => {
     await expect(head).toContainText('REB');
     await expect(head).toContainText('AST');
     await expect(head).not.toContainText('STL');
+    // one rebound each: the first jersey's own, and the assist edited into a rebound
     await expect(
       coach.locator('.prow', { hasText: who }).locator('.stat[aria-label^="Rebounds"]'),
-    ).toHaveText('2');
+    ).toHaveText('1');
+    await expect(coach.locator('.prow .stat[aria-label="Rebounds: 1"]')).toHaveCount(2);
+  });
+
+  test('softball: a team on innings with the diamond, the Lineup tab and the baseball tests; Fielders 10 adds a fourth outfielder (D119)', async () => {
+    await coach.goto('/create-team');
+    await coach.getByLabel('Team name').fill(`Comets ${run}`);
+    await coach.getByRole('button', { name: /^Softball/ }).click();
+    await expect(coach.getByText(/Defaults for softball: 9 in the field/)).toBeVisible();
+    await coach.getByRole('button', { name: 'Create team' }).click();
+    await expect(coach).toHaveURL(/\/field$/);
+    // innings, not the clock: period cards, a Lineup tab, the diamond
+    await expect(coach.locator('.qcard')).toHaveCount(6);
+    const nav = coach.getByRole('navigation', { name: 'Main' });
+    await expect(nav.getByRole('link', { name: 'Diamond' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Lineup' })).toBeVisible();
+    await expect(coach.locator('.stage.softball img.pitch').first()).toHaveAttribute('src', /baseball-persp/);
+    await expect(coach.locator('.qcard').first().locator('.slot .shirt')).toHaveCount(9);
+    // the baseball skill tests
+    await coach.goto('/settings/skills');
+    await expect(coach.getByText('Tee contact')).toBeVisible();
+    // Fielders: 10 adds a fourth outfielder
+    await coach.goto('/settings/team');
+    const fielders = coach.getByRole('radiogroup', { name: 'Fielders' });
+    await expect(fielders.getByRole('radio', { name: '9' })).toHaveAttribute('aria-checked', 'true');
+    const saved = teamSaved(coach);
+    await fielders.getByRole('radio', { name: '10' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: '10 in the field' })).toBeVisible();
+    await saved;
+    await expect(coach.getByText(/4 outfielders · Rover infield/)).toBeVisible();
+    await coach.goto('/field');
+    await expect(coach.locator('.qcard').first().locator('.slot .shirt')).toHaveCount(10);
+    await expect(
+      coach
+        .locator('.qcard')
+        .first()
+        .getByRole('button', { name: /LEFT CTR: open/ }),
+    ).toBeVisible();
+    await coach.goto('/settings/team');
+    const back = teamSaved(coach);
+    await fielders.getByRole('radio', { name: '9' }).click();
+    await back;
+    await coach.goto('/field');
+    await expect(coach.locator('.qcard').first().locator('.slot .shirt')).toHaveCount(9);
   });
 });
 

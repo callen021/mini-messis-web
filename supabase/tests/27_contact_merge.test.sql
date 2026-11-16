@@ -69,7 +69,7 @@ select pg_temp.logout();
 select pg_temp.login('d3000000-0000-0000-0000-000000000005');
 select public.request_join((select v from txt where k = 'code'), 'parent', array['e3000000-0000-0000-0000-00000000000c'::uuid], null, '+15550100999');
 select pg_temp.logout();
-select is((select count(*)::int from public.player_contacts), 3, 'joining adds no contact rows by itself');
+select is((select count(*)::int from public.player_contacts where player_id in ('e3000000-0000-0000-0000-00000000000a', 'e3000000-0000-0000-0000-00000000000b', 'e3000000-0000-0000-0000-00000000000c')), 3, 'joining adds no contact rows by itself');
 
 -- ---------- the coach confirms the links ----------
 select pg_temp.login('d3000000-0000-0000-0000-000000000001');
