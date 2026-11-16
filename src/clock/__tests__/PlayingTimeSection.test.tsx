@@ -60,6 +60,7 @@ const ctx: TeamContextValue = {
   memberships: [],
   switchTeam: () => undefined,
   statKeeper: false,
+  userId: 'u-coach',
   adminActing: false,
 };
 const periods: StoredPeriod[] = [

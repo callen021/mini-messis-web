@@ -34,7 +34,16 @@ const actAsync = vi.fn((call: unknown) => {
   });
 });
 let staff = true;
-let liveGame: { id: string; opponent: string } | null = null;
+let liveGame: {
+  id: string;
+  opponent: string;
+  status?: 'live';
+  keeper_user_id?: string | null;
+  keeper_name?: string | null;
+} | null = null;
+/** The viewer's keeper standing (D120): a granted stat keeper, and which user they are. */
+let viewer = { statKeeper: false, userId: 'u-coach' };
+const keepStats = vi.fn();
 let periods: StoredPeriod[] = [];
 let clock: ClockState = { periodIndex: 0, clockSeconds: 0, runningSince: null, periodLengths: [] };
 let stints: Stint[] = [];
@@ -76,6 +85,7 @@ vi.mock('@/games/api', () => ({
   useDeleteStatEvent: () => ({ mutate: vi.fn() }),
   useCreateGame: () => ({ mutate: vi.fn(), isPending: false }),
   useStartGame: () => ({ mutate: startGame, isPending: false }),
+  useKeepStats: () => ({ mutate: keepStats, isPending: false }),
 }));
 vi.mock('../api', () => ({
   useClockAction: () => ({ mutate: act, mutateAsync: actAsync, isPending: false }),
@@ -195,7 +205,8 @@ function renderPage() {
     isOwner: staff,
     memberships: [],
     switchTeam: () => undefined,
-    statKeeper: false,
+    statKeeper: viewer.statKeeper,
+    userId: viewer.userId,
     adminActing: false,
   };
   render(
@@ -763,5 +774,85 @@ describe('ClockFieldPage · the live game round (D108)', () => {
     expect(
       await screen.findByRole('dialog', { name: 'Start a game to record the score' }),
     ).toBeInTheDocument();
+  });
+});
+
+describe('ClockFieldPage · one active stat keeper (D120)', () => {
+  beforeEach(() => {
+    act.mockReset();
+    keepStats.mockReset();
+    staff = true;
+    viewer = { statKeeper: false, userId: 'u-coach' };
+    plannedGame = null;
+    liveGame = {
+      id: 'g1',
+      opponent: 'Lions',
+      status: 'live',
+      keeper_user_id: 'u-coach',
+      keeper_name: 'Coach Cam',
+    };
+    periods = [stored(STARTERS, 0), stored(STARTERS, 1)];
+    stints = STARTERS.map((id, i) =>
+      stint({ player_id: id, slot_index: i, position_code: f33.positions[i]?.code ?? '' }),
+    );
+    clock = { periodIndex: 0, clockSeconds: 0, runningSince: null, periodLengths: [] };
+    scoreEvents = [];
+  });
+
+  it('the coach who started the game keeps the stats: the score is a button and the bar says so', () => {
+    renderPage();
+    expect(screen.getByText(/You keep the stats/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Score 0 to 0. Add a goal/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Keep stats' })).not.toBeInTheDocument();
+  });
+
+  it('while someone else keeps them a coach only reads the score, sees who has them and may take them back', async () => {
+    liveGame = {
+      id: 'g1',
+      opponent: 'Lions',
+      status: 'live',
+      keeper_user_id: 'u-parent',
+      keeper_name: 'Parent Pat',
+    };
+    renderPage();
+    expect(screen.getByText(/Parent Pat keeps the stats/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Add a goal/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Score 0 to 0')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Keep stats' }));
+    expect(keepStats).toHaveBeenCalledWith('g1', expect.anything());
+  });
+
+  it('a granted stat keeper sees Keep stats until they take over, then logs; a plain parent sees neither', () => {
+    staff = false;
+    viewer = { statKeeper: true, userId: 'u-parent' };
+    renderPage();
+    expect(screen.getByText(/Coach Cam keeps the stats/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Keep stats' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Add a goal/ })).not.toBeInTheDocument();
+    cleanup();
+    liveGame = {
+      id: 'g1',
+      opponent: 'Lions',
+      status: 'live',
+      keeper_user_id: 'u-parent',
+      keeper_name: 'Parent Pat',
+    };
+    renderPage();
+    expect(screen.getByText(/You keep the stats/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Add a goal/ })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Keep stats' })).not.toBeInTheDocument();
+    cleanup();
+    viewer = { statKeeper: false, userId: 'u-other' };
+    renderPage();
+    expect(screen.getByText(/Parent Pat keeps the stats/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Keep stats' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Add a goal/ })).not.toBeInTheDocument();
+  });
+
+  it('with no live game there is no keeper bar', () => {
+    liveGame = null;
+    renderPage();
+    expect(screen.queryByText(/keeps the stats/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Keep stats' })).not.toBeInTheDocument();
   });
 });

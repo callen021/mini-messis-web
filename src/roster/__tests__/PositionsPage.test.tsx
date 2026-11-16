@@ -42,6 +42,7 @@ const ctx = (sport: 'soccer' | 'basketball'): TeamContextValue => ({
   memberships: [],
   switchTeam: () => undefined,
   statKeeper: false,
+  userId: 'u-coach',
   adminActing: false,
 });
 const renderPage = (sport: 'soccer' | 'basketball' = 'soccer') =>

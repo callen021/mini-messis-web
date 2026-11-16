@@ -1572,3 +1572,17 @@ Team setup gains a **Fielders** row for baseball and softball: 9 or 10, where 10
 outfielder. It writes the same `side_size` the stepper does (the stepper stays for the small-sided
 sizes), and the existing shape rules do the rest: at 10 the template moves to the first ten-player
 formation, "4 outfielders", and the coach may still pick "Rover infield" from the card. pgTAP 30.
+
+### D120. One active stat keeper per live game
+
+Only one person logs scores and stats in a live game at a time. `games.keeper_user_id` (with
+`keeper_name` snapshotted for the game bar) names the active keeper: `start_game` sets it to the
+staff member who starts the game; `keep_stats(game)` lets a coach, an assistant or a granted stat
+keeper (D118) take it over, or back, with one tap. `can_log_stats(game)` is now: while the game is
+live, the active keeper alone (a live game nobody keeps falls to the staff); afterwards the staff,
+as before. It stays the write policy on `score_events` and `stat_events`, so the single keeper
+holds outside the app too. The pages derive the same answer from the game row (`canLogGame`): the
+score button, the quick-score and stat rows and Add score / Add stat show for the active keeper
+only, coaches included; everyone else reads the score. A `KeeperBar` under the title ("You keep
+the stats" / "Pat keeps the stats") carries Keep stats for whoever may take over. The context
+carries `userId` for the comparison. Finishing a game is still the staff's. pgTAP 29.

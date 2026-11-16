@@ -12,10 +12,13 @@ import {
   useCreateGame,
   useDeleteScoreEvent,
   useDeleteStatEvent,
+  useKeepStats,
   useScoreEvents,
   useStartGame,
   useStatEvents,
 } from '@/games/api';
+import { canKeepStats, canLogGame, keeperText } from '@/games/keeper';
+import { KeeperBar } from '@/games/KeeperBar';
 import { fmtDate, fmtTime, todayISO } from '@/games/format';
 import { makeNameLookup } from '@/games/names';
 import { NewGameSheet } from '@/games/NewGameSheet';
@@ -69,7 +72,7 @@ import { useWakeLock } from './useWakeLock';
  * atomic server call on the running clock and all devices see the same state.
  */
 export function ClockFieldPage() {
-  const { teamId, team, sport, statKeeper } = useCurrentTeam();
+  const { teamId, team, sport, statKeeper, userId } = useCurrentTeam();
   const S = SPORTS[sport];
   const N = team.clock_periods;
   const isStaff = useIsStaff();
@@ -123,8 +126,10 @@ export function ClockFieldPage() {
   const clock = clockQ.data ?? PAUSED_CLOCK;
   const running = !!live && isRunning(clock);
   const atZero = !!live && clock.clockSeconds === 0 && !isRunning(clock);
-  // a stat keeper (D118) logs scores and stats during a live game, and nothing else
-  const canLog = isStaff || (statKeeper && !!live);
+  // one active keeper (D120): while the game is live, only the one keeping its stats logs them
+  const viewer = { userId, isStaff, statKeeper };
+  const canLog = canLogGame(live, viewer);
+  const keep = useKeepStats(teamId);
   const quickScoring = sport === 'basketball' && !!live && canLog;
   const picking = pendingPts !== null || pendingStat !== null;
   // soccer may change shape mid-game while the clock is paused (D108); every sport may at 0:00
@@ -674,8 +679,10 @@ export function ClockFieldPage() {
   );
   const outText = outCaption(allPlayers, parentOut, planned.byParent);
   const title = live ? (fullTime ? 'Full time' : shortPeriod(S, N, periodIndex)) : 'Starters';
+  // who keeps the stats (D120) rides on the title line unless the bar below offers a takeover
+  const keeperNote = live && !canKeepStats(live, viewer) ? keeperText(live, userId) : null;
   const sub = live
-    ? `Live vs ${live.opponent}`
+    ? `Live vs ${live.opponent}${keeperNote ? ` · ${keeperNote}` : ''}`
     : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${periodCountText(S, N)} on the clock${isStaff ? ' · tap jerseys to set the starters · tap the score to start a game' : ''}`;
 
   return (
@@ -683,6 +690,14 @@ export function ClockFieldPage() {
       <JerseyDefs />
       <EditableTitle value={team.name} onSave={onRename} editable={isCoach} />
       <p className="sub">{sub}</p>
+      {live && (
+        <KeeperBar
+          game={live}
+          viewer={viewer}
+          busy={keep.isPending}
+          onKeep={() => keep.mutate(live.id, { onError, onSuccess: () => toast('You keep the stats') })}
+        />
+      )}
       {isStaff && heldNote && (
         <p className="sub capnote outnote" role="status">
           {heldNote} The red OUT tag marks the jersey: tap it, then a bench player, to replace them.

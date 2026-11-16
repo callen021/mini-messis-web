@@ -39,6 +39,7 @@ import {
   useDeletePlateAppearance,
   useDeleteScoreEvent,
   useFinishGame,
+  useKeepStats,
   useGame,
   useGamePlayers,
   usePlateAppearances,
@@ -58,6 +59,8 @@ import { EditScoreSheet } from './EditScoreSheet';
 import { EditStatSheet } from './EditStatSheet';
 import { type StatType } from '@/sports/types';
 import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
+import { canLogGame } from './keeper';
+import { KeeperBar } from './KeeperBar';
 import { GameBadge } from './GameBadge';
 import { downloadIcs } from './ics';
 import { PlaceDatalist } from './PlaceDatalist';
@@ -86,7 +89,7 @@ export function GamePage() {
 type HomeAwayChoice = HomeAway | 'unset';
 
 function GameDetail({ game }: { game: GameWithScore }) {
-  const { teamId, team, sport, statKeeper } = useCurrentTeam();
+  const { teamId, team, sport, statKeeper, userId } = useCurrentTeam();
   const S = SPORTS[sport];
   const isStaff = useIsStaff();
   const toast = useToast();
@@ -97,8 +100,11 @@ function GameDetail({ game }: { game: GameWithScore }) {
   // a game of a past season is viewable, never editable (D94)
   const pastSeason = !!currentSeason.data && game.season_id !== currentSeason.data.id;
   const canEdit = isStaff && !pastSeason;
-  // a stat keeper (D118) adds scores and stats while the game is live; editing stays with the staff
-  const canLog = canEdit || (statKeeper && game.status === 'live');
+  // one active keeper (D120): while the game is live, only the one keeping its stats adds scores and
+  // stats; editing the game stays with the staff
+  const viewer = { userId, isStaff, statKeeper };
+  const canLog = !pastSeason && canLogGame(game, viewer);
+  const keep = useKeepStats(teamId);
 
   const players = usePlayers(teamId);
   const snapshots = useGamePlayers(game.id);
@@ -348,6 +354,15 @@ function GameDetail({ game }: { game: GameWithScore }) {
       back={{ to: '/games', label: 'Schedule' }}
     >
       {!isUpcoming && <Scoreline big us={game.us} them={game.them} />}
+      {isLive && (
+        <KeeperBar
+          game={game}
+          viewer={viewer}
+          busy={keep.isPending}
+          onKeep={() => keep.mutate(game.id, { onError, onSuccess: () => toast('You keep the stats') })}
+          always
+        />
+      )}
       {isLive && clockMode && gameClock.data?.autoPaused && (
         <p className="sub capnote" role="status">
           {capNote(gameClock.data, team.period_minutes)}

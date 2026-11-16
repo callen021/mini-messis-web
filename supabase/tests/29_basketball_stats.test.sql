@@ -1,10 +1,10 @@
 -- Basketball stats (pgTAP, D118): stat entries are basketball-only and tied to a team player;
 -- the coach chooses the tracked stats; a stat keeper logs scores and stats while the game is
--- live and nothing else; parents read them through game_stats with the usual withholding; the
+-- live and nothing else, and only once they have taken the stats over (D120: one active keeper); parents read them through game_stats with the usual withholding; the
 -- season stats carry rebounds, assists, steals and fouls.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(31);
+select plan(39);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -66,6 +66,7 @@ select pg_temp.login('d5000000-0000-0000-0000-000000000001');
 update public.teams set tracked_stats = '{rebound,assist}' where id = (select v from ctx where k = 'team');
 select is((select tracked_stats from public.teams where id = (select v from ctx where k = 'team')), '{rebound,assist}'::public.stat_type[], 'the coach chooses the tracked stats');
 select public.start_game('a5000000-0000-0000-0000-000000000001');
+select is((select keeper_user_id from public.games where id = 'a5000000-0000-0000-0000-000000000001'), 'd5000000-0000-0000-0000-000000000001'::uuid, 'the coach who starts the game keeps its stats');
 select lives_ok($$insert into public.stat_events (game_id, player_id, stat_type) values ('a5000000-0000-0000-0000-000000000001', 'e5000000-0000-0000-0000-00000000000a', 'rebound')$$, 'the coach logs a rebound');
 select is((select period_index || '/' || clock_seconds || '/' || created_by from public.stat_events where player_id = 'e5000000-0000-0000-0000-00000000000a'), '0/0/d5000000-0000-0000-0000-000000000001', 'stamped with the period, the clock second and who logged it');
 select lives_ok($$insert into public.stat_events (game_id, player_id, stat_type) values ('a5000000-0000-0000-0000-000000000001', 'e5000000-0000-0000-0000-00000000000b', 'assist')$$, 'and an assist for Bo');
@@ -84,6 +85,7 @@ select pg_temp.logout();
 select pg_temp.login('d5000000-0000-0000-0000-000000000004');
 select throws_ok($$insert into public.stat_events (game_id, player_id, stat_type) values ('a5000000-0000-0000-0000-000000000001', 'e5000000-0000-0000-0000-00000000000c', 'rebound')$$, '42501', null, 'a plain parent cannot log');
 select is((select count(*)::int from public.stat_events where game_id = 'a5000000-0000-0000-0000-000000000001'), 0, 'and reads nothing on an own-only team');
+select throws_ok($$select public.keep_stats('a5000000-0000-0000-0000-000000000001')$$, '42501', null, 'nor take the stats over');
 select pg_temp.logout();
 
 -- ---------- the coach names a stat keeper ----------
@@ -92,8 +94,11 @@ select lives_ok($$select public.set_stat_keeper((select id from public.team_memb
 select is((select is_stat_keeper from public.list_team_members((select v from ctx where k = 'team')) where user_id = 'd5000000-0000-0000-0000-000000000004'), true, 'the members list carries the flag');
 select pg_temp.logout();
 
--- ---------- the stat keeper logs scores and stats while the game is live, and nothing else ----------
+-- ---------- the stat keeper takes over, then logs scores and stats while the game is live, and nothing else ----------
 select pg_temp.login('d5000000-0000-0000-0000-000000000004');
+select throws_ok($$insert into public.stat_events (game_id, player_id, stat_type) values ('a5000000-0000-0000-0000-000000000001', 'e5000000-0000-0000-0000-00000000000c', 'steal')$$, '42501', null, 'a named keeper logs nothing until they take the stats over');
+select lives_ok($$select public.keep_stats('a5000000-0000-0000-0000-000000000001')$$, 'the keeper taps Keep stats');
+select is((select keeper_name from public.games where id = 'a5000000-0000-0000-0000-000000000001'), 'keeper-bs', 'the game bar names who keeps the stats');
 select lives_ok($$insert into public.stat_events (game_id, player_id, stat_type) values ('a5000000-0000-0000-0000-000000000001', 'e5000000-0000-0000-0000-00000000000c', 'steal')$$, 'the keeper logs a steal');
 select lives_ok($$insert into public.score_events (game_id, side, period_index, event_type, scorer_player_id) values ('a5000000-0000-0000-0000-000000000001', 'us', 0, 'field_goal', 'e5000000-0000-0000-0000-00000000000c')$$, 'the keeper logs a field goal');
 select is((select count(*)::int from public.game_stats('a5000000-0000-0000-0000-000000000001') where not hidden), 3, 'the keeper reads the live game''s entries with the players named');
@@ -102,6 +107,15 @@ select is((select count(*)::int from public.stat_events where game_id = 'a500000
 update public.teams set tracked_stats = '{foul}' where id = (select v from ctx where k = 'team');
 select is((select tracked_stats from public.teams where id = (select v from ctx where k = 'team')), '{rebound,assist}'::public.stat_type[], 'the keeper cannot change the team settings');
 select throws_ok($$insert into public.player_position_prefs (player_id, group_key, level) values ('e5000000-0000-0000-0000-00000000000a', 'C', 'never')$$, '42501', null, 'nor anything else of the staff''s');
+select pg_temp.logout();
+
+-- ---------- one keeper at a time: the coach's buttons are gone until they take it back ----------
+select pg_temp.login('d5000000-0000-0000-0000-000000000001');
+select throws_ok($$insert into public.stat_events (game_id, player_id, stat_type) values ('a5000000-0000-0000-0000-000000000001', 'e5000000-0000-0000-0000-00000000000a', 'foul')$$, '42501', null, 'the coach cannot log while the keeper is active');
+select lives_ok($$select public.keep_stats('a5000000-0000-0000-0000-000000000001')$$, 'the coach takes the stats back with one tap');
+select pg_temp.logout();
+select pg_temp.login('d5000000-0000-0000-0000-000000000004');
+select throws_ok($$insert into public.stat_events (game_id, player_id, stat_type) values ('a5000000-0000-0000-0000-000000000001', 'e5000000-0000-0000-0000-00000000000c', 'steal')$$, '42501', null, 'and the keeper is read-only again');
 select pg_temp.logout();
 
 -- ---------- after the game the keeper is a plain parent again ----------

@@ -96,6 +96,7 @@ const ctx = (role: TeamContextValue['role']): TeamContextValue => ({
   memberships: [],
   switchTeam: () => undefined,
   statKeeper: false,
+  userId: 'u-coach',
   adminActing: false,
 });
 

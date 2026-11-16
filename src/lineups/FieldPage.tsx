@@ -14,12 +14,15 @@ import {
   useAddStatEvent,
   useCreateGame,
   useDeleteScoreEvent,
+  useKeepStats,
   useScoreEvents,
   useStartGame,
 } from '@/games/api';
 import { fmtDate, fmtTime, todayISO } from '@/games/format';
 import { LineupPage } from '@/games/LineupPage';
 import { makeNameLookup, periodSuffix } from '@/games/names';
+import { canKeepStats, canLogGame, keeperText } from '@/games/keeper';
+import { KeeperBar } from '@/games/KeeperBar';
 import { NewGameSheet } from '@/games/NewGameSheet';
 import { ScorePanel } from '@/games/ScorePanel';
 import { describeEvent, scoreNoun as scoreNounFor } from '@/games/scoring';
@@ -55,7 +58,7 @@ export function FieldPage() {
 }
 
 function PeriodFieldPage() {
-  const { teamId, team, sport, statKeeper } = useCurrentTeam();
+  const { teamId, team, sport, statKeeper, userId } = useCurrentTeam();
   const S = SPORTS[sport];
   const isStaff = useIsStaff();
   const isCoach = useIsCoach();
@@ -74,8 +77,10 @@ function PeriodFieldPage() {
   const addEvent = useAddScoreEvent(teamId, plan.gameId ?? '');
   const deleteEvent = useDeleteScoreEvent(teamId, plan.gameId ?? '');
   const addStat = useAddStatEvent(teamId, plan.gameId ?? '');
-  // a stat keeper (D118) adds scores and stats while the game is live, and nothing else
-  const canLog = isStaff || (statKeeper && !!plan.liveGame);
+  // one active keeper (D120): while the game is live, only the one keeping its stats logs them
+  const viewer = { userId, isStaff, statKeeper };
+  const canLog = canLogGame(plan.liveGame, viewer);
+  const keep = useKeepStats(teamId);
   const createGame = useCreateGame(teamId);
   const startGame = useStartGame(teamId);
   const eligibility = useEligibility(teamId, isStaff);
@@ -312,8 +317,11 @@ function PeriodFieldPage() {
       .map((p) => ({ name: p.first_name, byParent: planned.byParent.has(p.id) })),
     planned.game?.opponent ?? null,
   );
+  // who keeps the stats (D120) rides on the title line unless the bar below offers a takeover
+  const keeperNote =
+    plan.liveGame && !canKeepStats(plan.liveGame, viewer) ? keeperText(plan.liveGame, userId) : null;
   const sub = plan.liveGame
-    ? `Live vs ${plan.liveGame.opponent}`
+    ? `Live vs ${plan.liveGame.opponent}${keeperNote ? ` · ${keeperNote}` : ''}`
     : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${periodCountText(S, N)}${isStaff ? ' · tap a jersey to assign · tap a score to start a game' : ''}`;
 
   return (
@@ -321,6 +329,19 @@ function PeriodFieldPage() {
       <JerseyDefs />
       <EditableTitle value={team.name} onSave={onRename} editable={isCoach} />
       <p className="sub">{sub}</p>
+      {plan.liveGame && (
+        <KeeperBar
+          game={plan.liveGame}
+          viewer={viewer}
+          busy={keep.isPending}
+          onKeep={() =>
+            keep.mutate(plan.liveGame?.id ?? '', {
+              onError: (e) => toast(errorMessage(e)),
+              onSuccess: () => toast('You keep the stats'),
+            })
+          }
+        />
+      )}
       {isStaff && heldNote && (
         <p className="sub capnote outnote" role="status">
           {heldNote} The red OUT tag marks the jersey: tap it, then a bench player, to replace them.

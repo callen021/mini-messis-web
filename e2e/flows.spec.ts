@@ -1600,6 +1600,9 @@ test.describe('coach and parent flows', () => {
     await savedAst;
     // the live court: a stat button arms a player pick like the points
     await coach.goto('/field');
+    // the coach who started the game keeps its stats (D120): the bar says so and offers no takeover
+    await expect(coach.getByText(/You keep the stats/)).toBeVisible();
+    await expect(coach.getByRole('button', { name: 'Keep stats' })).toHaveCount(0);
     const stats = coach.getByRole('group', { name: 'Stats' });
     await expect(stats.getByRole('button')).toHaveText(['REB', 'AST']);
     await coach.waitForTimeout(500);
@@ -1627,6 +1630,7 @@ test.describe('coach and parent flows', () => {
     await coach.goto('/games');
     await coach.getByRole('button', { name: /In progress · vs Hawks/ }).click();
     await expect(coach.getByText('Stats · 2')).toBeVisible();
+    await expect(coach.getByText(/You keep the stats/)).toBeVisible();
     await coach
       .getByRole('button', { name: /assist/ })
       .first()

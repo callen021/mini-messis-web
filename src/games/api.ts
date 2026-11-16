@@ -268,6 +268,16 @@ export function useStartGame(teamId: string) {
   });
 }
 
+/** Take the scores and stats of a live game over, or back (D120). */
+export function useKeepStats(teamId: string) {
+  const invalidate = useInvalidateGameLifecycle(teamId);
+  return useMutation({
+    mutationFn: async (gameId: string) =>
+      fail((await supabase.rpc('keep_stats', { p_game_id: gameId })).error),
+    onSettled: (_d, _e, gameId) => invalidate(gameId),
+  });
+}
+
 export function useFinishGame(teamId: string) {
   const invalidate = useInvalidateGameLifecycle(teamId);
   return useMutation({

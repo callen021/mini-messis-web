@@ -195,14 +195,14 @@ isOneToOne: false
                   ]
                 },"games": {
                   Row: {
-                    "address": string | null,"clock_auto_paused": boolean,"clock_limit": number | null,"clock_period": number,"clock_period_lengths": (number)[],"clock_running_since": string | null,"clock_seconds": number,"created_at": string,"finished_at": string | null,"game_date": string,"home_away": Database["public"]['Enums']["home_away"] | null,"id": string,"location": string | null,"opponent": string,"parent_notes": string | null,"season_id": string,"snack_flagged": boolean,"snack_player_id": string | null,"start_time": string | null,"started_at": string | null,"status": Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot": string | null,"updated_at": string,"updated_by": string | null
+                    "address": string | null,"clock_auto_paused": boolean,"clock_limit": number | null,"clock_period": number,"clock_period_lengths": (number)[],"clock_running_since": string | null,"clock_seconds": number,"created_at": string,"finished_at": string | null,"game_date": string,"home_away": Database["public"]['Enums']["home_away"] | null,"id": string,"keeper_name": string | null,"keeper_user_id": string | null,"location": string | null,"opponent": string,"parent_notes": string | null,"season_id": string,"snack_flagged": boolean,"snack_player_id": string | null,"start_time": string | null,"started_at": string | null,"status": Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot": string | null,"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "address"?: string | null,"clock_auto_paused"?: boolean,"clock_limit"?: number | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id": string,"snack_flagged"?: boolean,"snack_player_id"?: string | null,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"clock_auto_paused"?: boolean,"clock_limit"?: number | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"keeper_name"?: string | null,"keeper_user_id"?: string | null,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id": string,"snack_flagged"?: boolean,"snack_player_id"?: string | null,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id": string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "address"?: string | null,"clock_auto_paused"?: boolean,"clock_limit"?: number | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id"?: string,"snack_flagged"?: boolean,"snack_player_id"?: string | null,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id"?: string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
+                    "address"?: string | null,"clock_auto_paused"?: boolean,"clock_limit"?: number | null,"clock_period"?: number,"clock_period_lengths"?: (number)[],"clock_running_since"?: string | null,"clock_seconds"?: number,"created_at"?: string,"finished_at"?: string | null,"game_date"?: string,"home_away"?: Database["public"]['Enums']["home_away"] | null,"id"?: string,"keeper_name"?: string | null,"keeper_user_id"?: string | null,"location"?: string | null,"opponent"?: string,"parent_notes"?: string | null,"season_id"?: string,"snack_flagged"?: boolean,"snack_player_id"?: string | null,"start_time"?: string | null,"started_at"?: string | null,"status"?: Database["public"]['Enums']["game_status"],"team_id"?: string,"team_name_snapshot"?: string | null,"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -872,6 +872,8 @@ isOneToOne: false
 "game_date": string,
 "home_away": Database["public"]['Enums']["home_away"] | null,
 "id": string,
+"keeper_name": string | null,
+"keeper_user_id": string | null,
 "location": string | null,
 "opponent": string,
 "parent_notes": string | null,
@@ -1046,6 +1048,9 @@ isOneToOne: false
 "is_stat_keeper":
 { Args: { "p_team_id": string }; Returns: boolean
                            },
+"keep_stats":
+{ Args: { "p_game_id": string }; Returns: undefined
+                           },
 "lineup_of":
 { Args: { "p_game_id": string,"p_period": number }; Returns: string
                            },
@@ -1059,6 +1064,9 @@ isOneToOne: false
                            },
 "lookup_join_code":
 { Args: { "p_code": string }; Returns: Json
+                           },
+"member_display_name":
+{ Args: { "p_user_id": string }; Returns: string
                            },
 "member_role_on":
 { Args: { "p_team_id": string }; Returns: Database["public"]['Enums']["member_role"]

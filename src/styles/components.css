@@ -2974,3 +2974,15 @@ a.prow.dir .pname {
   height: 44px;
   font-size: 15px;
 }
+
+/* who keeps the stats of the live game, with Keep stats for whoever may take over (D120) */
+.sub.keeperbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 32px;
+}
+.sub.keeperbar .btn {
+  flex: none;
+}

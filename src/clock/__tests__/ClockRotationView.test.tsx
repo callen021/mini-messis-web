@@ -113,6 +113,7 @@ function renderView(canEdit = true, highlight = new Set<string>()) {
     memberships: [],
     switchTeam: () => undefined,
     statKeeper: false,
+    userId: 'u-coach',
     adminActing: false,
   };
   render(

@@ -68,6 +68,7 @@ function renderPage(role: 'coach' | 'assistant' = 'coach') {
     memberships: [],
     switchTeam: () => undefined,
     statKeeper: false,
+    userId: 'u-coach',
     adminActing: false,
   };
   render(

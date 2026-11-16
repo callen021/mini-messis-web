@@ -89,6 +89,7 @@ function Harness() {
     memberships: q.data ?? [],
     switchTeam: () => undefined,
     statKeeper: false,
+    userId: 'u-coach',
     adminActing: false,
   };
   return (

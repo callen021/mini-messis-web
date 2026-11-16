@@ -77,6 +77,7 @@ const ctx: TeamContextValue = {
   memberships: [],
   switchTeam: () => undefined,
   statKeeper: false,
+  userId: 'u-coach',
   adminActing: false,
 };
 const mk = (id: string, first_name: string, n: string, is_available = true): Player => ({
