@@ -1025,6 +1025,8 @@ test.describe('coach and parent flows', () => {
     const card = coach.locator('.qcard').first();
     const first = card.locator('.slot .shirt').first();
     const name = (await first.locator('.name').textContent())?.trim() ?? '';
+    const q2First = coach.locator('.qcard').nth(1).locator('.slot .shirt').first().locator('.name');
+    const q2Name = (await q2First.textContent())?.trim() ?? '';
     await first.click();
     await expect(first).toHaveAttribute('aria-pressed', 'true');
     const benchShirt = card.locator('.bslot .shirt').first();
@@ -1036,10 +1038,8 @@ test.describe('coach and parent flows', () => {
     await expect(card.locator('.bslot .shirt').first().locator('.name')).toHaveText(name, {
       ignoreCase: true,
     });
-    // the other quarters are untouched
-    await expect(
-      coach.locator('.qcard').nth(1).locator('.slot .shirt').first().locator('.name'),
-    ).not.toHaveText(benchName, { ignoreCase: true });
+    // the other quarters are untouched (Q2's first spot keeps whoever Auto-fill put there)
+    await expect(q2First).toHaveText(q2Name, { ignoreCase: true });
   });
 
   test('coach switches the team to the clock in Team setup (D65)', async () => {
@@ -1580,6 +1580,70 @@ test.describe('coach and parent flows', () => {
     });
     await coach.emulateMedia({ colorScheme: null });
     await coach.setViewportSize({ width: 412, height: 915 });
+  });
+
+  test('basketball stats: tracked in Settings, REB and AST buttons on the live court, Undo, the game page lists and edits them, the Stats tab shows the columns (D118)', async () => {
+    // nothing tracked: no stat row, no stat columns
+    await coach.goto('/field');
+    await expect(coach.getByRole('group', { name: 'Quick scoring' })).toBeVisible();
+    await expect(coach.getByRole('group', { name: 'Stats' })).toHaveCount(0);
+    await coach.goto('/settings');
+    const chips = coach.getByRole('group', { name: 'Stats tracked' });
+    await expect(chips.getByRole('button', { name: 'rebounds: off' })).toBeVisible();
+    await chips.getByRole('button', { name: 'rebounds: off' }).click();
+    await expect(chips.getByRole('button', { name: 'rebounds: tracked' })).toBeVisible();
+    await chips.getByRole('button', { name: 'assists: off' }).click();
+    await expect(chips.getByRole('button', { name: 'assists: tracked' })).toBeVisible();
+    await teamSaved(coach);
+    // the live court: a stat button arms a player pick like the points
+    await coach.goto('/field');
+    const stats = coach.getByRole('group', { name: 'Stats' });
+    await expect(stats.getByRole('button')).toHaveText(['REB', 'AST']);
+    await coach.waitForTimeout(500);
+    await stats.getByRole('button', { name: 'REB, rebound' }).click();
+    await expect(coach.getByText('Who got the rebound?')).toBeVisible();
+    await expect(coach.locator('.slot .shirt.pickable')).toHaveCount(5);
+    const first = coach.locator('.slot .shirt').first();
+    const who = (await first.locator('.name').textContent())?.trim() ?? '';
+    await first.click();
+    await expect(coach.locator('.qslast')).toContainText(new RegExp(`${who} REB`, 'i'));
+    await expect(coach.locator('.slot .shirt.pickable')).toHaveCount(0);
+    // Undo removes the entry; a second rebound and an assist stay
+    await coach.locator('.qslast').getByRole('button', { name: 'Undo' }).click();
+    await expect(coach.locator('.qslast')).toHaveClass(/empty/);
+    await coach.waitForTimeout(500);
+    await stats.getByRole('button', { name: 'REB, rebound' }).click();
+    await first.click();
+    await expect(coach.locator('.qslast')).toContainText(/REB/);
+    await coach.waitForTimeout(500);
+    await stats.getByRole('button', { name: 'AST, assist' }).click();
+    await expect(coach.getByText('Who made the assist?')).toBeVisible();
+    await coach.locator('.slot .shirt').nth(1).click();
+    await expect(coach.locator('.qslast')).toContainText(/AST/);
+    // the game page lists them; the coach edits one after the fact
+    await coach.goto('/games');
+    await coach.getByRole('link', { name: /In progress · vs Hawks/ }).click();
+    await expect(coach.getByRole('heading', { level: 2, name: 'Stats · 2' })).toBeVisible();
+    await coach
+      .getByRole('button', { name: /assist/ })
+      .first()
+      .click();
+    const edit = coach.getByRole('dialog', { name: 'Edit assist' });
+    await edit.getByRole('radiogroup', { name: 'Stat' }).getByRole('radio', { name: 'rebound' }).click();
+    await edit.getByRole('button', { name: 'Save changes' }).click();
+    await expect(edit).toBeHidden();
+    await expect(coach.getByRole('status').filter({ hasText: 'Stat updated' })).toBeVisible();
+    await expect(coach.getByRole('button', { name: /rebound/ })).toHaveCount(2);
+    // the Stats tab shows REB and AST, never STL or PF
+    await coach.goto('/stats');
+    await coach.getByRole('radio', { name: 'Current game' }).click();
+    const head = coach.locator('.stathead');
+    await expect(head).toContainText('REB');
+    await expect(head).toContainText('AST');
+    await expect(head).not.toContainText('STL');
+    await expect(
+      coach.locator('.prow', { hasText: who }).locator('.stat[aria-label^="Rebounds"]'),
+    ).toHaveText('2');
   });
 });
 

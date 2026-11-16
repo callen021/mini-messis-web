@@ -2961,3 +2961,16 @@ a.prow.dir .pname {
 .poscell:active {
   transform: scale(0.94);
 }
+
+/* ---------- stats tracked (D118): chips in a settings row; the stat row in the score sheet ---------- */
+.row.statchips {
+  display: block;
+  padding: 6px 16px 12px;
+}
+.ptrow.stats {
+  grid-template-columns: 52px repeat(auto-fit, minmax(0, 1fr));
+}
+.form .ptrow.stats .btn {
+  height: 44px;
+  font-size: 15px;
+}

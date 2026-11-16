@@ -25,6 +25,7 @@ import {
   useSetJoinEnabled,
   useSetMemberChildren,
   useSetMemberRole,
+  useSetStatKeeper,
   useTeamMembers,
   useTransferOwnership,
 } from '../api';
@@ -62,6 +63,7 @@ function MembersAdmin() {
   const approveLink = useApproveGuardianLink(teamId);
   const setChildren = useSetMemberChildren(teamId);
   const transfer = useTransferOwnership(teamId);
+  const setKeeper = useSetStatKeeper(teamId);
   const [changing, setChanging] = useState<TeamMemberRow | null>(null);
   const setRequireApproval = useSetRequireApproval(teamId);
   const [approving, setApproving] = useState<TeamMemberRow | null>(null);
@@ -137,6 +139,8 @@ function MembersAdmin() {
       actions.push({ label: 'Make assistant coach', value: 'assistant' });
     if (m.role !== 'parent' && !m.is_owner)
       actions.push({ label: 'Make parent (read-only)', value: 'parent' });
+    // a stat keeper (D118) logs scores and stats while a game is live, and nothing else
+    actions.push({ label: m.is_stat_keeper ? 'Remove stat keeper' : 'Make stat keeper', value: 'keeper' });
     if (isOwner && !m.is_owner) actions.push({ label: 'Transfer ownership to them', value: 'transfer' });
     if (!m.is_owner) actions.push({ label: 'Remove from team', value: 'remove', destructive: true });
     const choice = await sheet<string>({ title: m.display_name, message: m.email, actions });
@@ -160,6 +164,13 @@ function MembersAdmin() {
         if (!ok) return;
         await transfer.mutateAsync(m.user_id);
         toast('Ownership transferred');
+      } else if (choice === 'keeper') {
+        await setKeeper.mutateAsync({ memberId: m.member_id, on: !m.is_stat_keeper });
+        toast(
+          m.is_stat_keeper
+            ? `${m.display_name} no longer keeps stats`
+            : `${m.display_name} keeps stats · scores and stats during a live game`,
+        );
       } else {
         await setRole.mutateAsync({ memberId: m.member_id, role: choice as MemberRole });
         toast(`${m.display_name} is now ${ROLE_LABEL[choice as MemberRole].toLowerCase()}`);
@@ -409,6 +420,7 @@ function MembersAdmin() {
           const detail = [
             m.email,
             approved.length ? `child: ${approved.map((c) => c.first_name).join(', ')}` : null,
+            m.is_stat_keeper ? 'stat keeper' : null,
           ]
             .filter(Boolean)
             .join(' · ');
@@ -444,7 +456,8 @@ function MembersAdmin() {
       </Group>
       <Footer>
         Coaches manage members and settings. Assistant coaches edit lineups, games and the roster. Parents see
-        everything but change nothing. A team always keeps at least one coach.
+        everything but change nothing. A stat keeper logs scores and stats while a game is live, and nothing
+        else. A team always keeps at least one coach.
       </Footer>
 
       {changing && (

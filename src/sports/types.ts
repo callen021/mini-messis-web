@@ -92,6 +92,21 @@ export interface StatColumn {
   label: string;
   /** Tooltip / accessible name. */
   title: string;
+  /** Shown only while the team tracks this stat (D118: basketball REB, AST, STL, PF). */
+  tracked?: StatType;
+}
+
+/** Optional per-player stat entries next to the score log (D118); stored as `stat_events.stat_type`. */
+export type StatType = 'rebound' | 'assist' | 'steal' | 'foul';
+
+export interface StatKind {
+  type: StatType;
+  /** Short label on a button: 'REB'. */
+  label: string;
+  /** Long label in the log: 'rebound'. */
+  noun: string;
+  /** The question the court asks once the button is armed: "Who got the rebound?" */
+  question: string;
 }
 
 export type StatKey =
@@ -113,7 +128,10 @@ export type StatKey =
   | 'rbi'
   | 'walks'
   | 'strikeouts'
-  | 'avg';
+  | 'avg'
+  | 'rebounds'
+  | 'steals'
+  | 'fouls';
 
 export interface ScoringRules {
   /** Event kinds in display order; the first is the default (`goal`, `field_goal`, `run`). */
@@ -130,6 +148,8 @@ export interface ScoringRules {
   hot: StatKey;
   /** Four season tiles on the player page. */
   profile: readonly StatColumn[];
+  /** Stat entries the team may track, in button order (D118); none for sports without them. */
+  stats?: readonly StatKind[];
 }
 
 /** Slot assignment for one period of a plan: player ids by slot index ('' = open). */

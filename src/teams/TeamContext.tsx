@@ -23,6 +23,8 @@ export interface TeamContextValue {
   sport: SportKey;
   role: MemberRole;
   isOwner: boolean;
+  /** A stat keeper (D118): logs scores and stats while a game is live, and nothing else. */
+  statKeeper: boolean;
   memberships: ActiveMembership[];
   switchTeam: (teamId: string) => void;
   /** A platform admin is acting as this team's coach without being a member. */
@@ -103,6 +105,7 @@ export function RequireTeam() {
       sport: acting.sport,
       role: 'coach',
       isOwner: true,
+      statKeeper: false,
       memberships: list,
       switchTeam,
       adminActing: true,
@@ -123,6 +126,7 @@ export function RequireTeam() {
     sport: current.team.sport,
     role: current.membership.role,
     isOwner: current.team.owner_id === userId,
+    statKeeper: current.membership.is_stat_keeper,
     memberships: list,
     switchTeam,
     adminActing: false,

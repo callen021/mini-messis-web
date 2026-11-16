@@ -73,6 +73,7 @@ const team: Team = {
   timezone: 'America/Chicago',
   parent_stats: 'own',
   snack_signup: 'off',
+  tracked_stats: [],
   time_mode: 'periods',
   clock_periods: 2,
   period_minutes: null,
@@ -94,6 +95,7 @@ const ctx = (role: TeamContextValue['role']): TeamContextValue => ({
   isOwner: role === 'coach',
   memberships: [],
   switchTeam: () => undefined,
+  statKeeper: false,
   adminActing: false,
 });
 

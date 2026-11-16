@@ -229,6 +229,11 @@ export function useTeamRealtime(teamId: string) {
       )
       .on(
         'postgres_changes',
+        { event: '*', schema: 'public', table: 'stat_events' },
+        invalidate([['game'], ['team', teamId, 'stats']]),
+      )
+      .on(
+        'postgres_changes',
         { event: '*', schema: 'public', table: 'player_allergies' },
         invalidate([['player'], ['team', teamId, 'allergies']]),
       )

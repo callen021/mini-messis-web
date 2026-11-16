@@ -5,7 +5,7 @@ import { type Team } from './api';
 import { invalidateTeamCaches, patchTeamCaches } from './teamCache';
 
 type TeamPatch = Partial<
-  Pick<Team, 'parent_stats' | 'name' | 'require_approval' | 'join_enabled' | 'snack_signup'>
+  Pick<Team, 'parent_stats' | 'name' | 'require_approval' | 'join_enabled' | 'snack_signup' | 'tracked_stats'>
 >;
 
 /**
@@ -38,6 +38,11 @@ export function useRenameTeam(teamId: string) {
 /** Snack signup: off, games, or games and practices (staff, D115). Optimistic. */
 export function useSetSnackSignup(teamId: string) {
   return useTeamPatch(teamId, (snack_signup: Team['snack_signup']) => ({ snack_signup }));
+}
+
+/** The stat entries the team tracks (basketball, staff, D118). Optimistic. */
+export function useSetTrackedStats(teamId: string) {
+  return useTeamPatch(teamId, (tracked_stats: Team['tracked_stats']) => ({ tracked_stats }));
 }
 
 /** "Approve new parents before they join" (staff, D91). Optimistic. */

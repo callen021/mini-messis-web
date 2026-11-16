@@ -205,3 +205,67 @@ describe('ScorePanel', () => {
     );
   });
 });
+
+describe('ScorePanel stats (D118)', () => {
+  beforeEach(() => resetScoreTapGuard());
+
+  it('basketball with tracked stats: a stat button records for the picked player and closes the sheet', async () => {
+    const onAddStat = vi.fn();
+    const onClose = vi.fn();
+    render(
+      <ScorePanel
+        open
+        onClose={onClose}
+        S={SPORTS.basketball}
+        opponent="Hawks"
+        periodCount={4}
+        initialPeriod={2}
+        players={players}
+        names={names}
+        events={[]}
+        onAdd={vi.fn()}
+        onUndo={vi.fn()}
+        trackedStats={['rebound', 'steal']}
+        onAddStat={onAddStat}
+      />,
+    );
+    const dialog = screen.getByRole('dialog');
+    const stats = within(dialog).getByRole('group', { name: 'Add a stat' });
+    expect(
+      within(stats)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['REB', 'STL']);
+    // nobody picked yet: the buttons wait
+    expect(within(stats).getByRole('button', { name: /rebound for/ })).toBeDisabled();
+    await userEvent.click(
+      within(within(dialog).getByRole('radiogroup', { name: 'Scorer' })).getByRole('radio', {
+        name: '#2 Teddy',
+      }),
+    );
+    await userEvent.click(within(stats).getByRole('button', { name: 'steal for Teddy' }));
+    expect(onAddStat).toHaveBeenCalledWith({ player_id: 'p2', period_index: 2, stat_type: 'steal' });
+    expect(onClose).toHaveBeenCalled();
+  });
+
+  it('no stat row without tracked stats, or for a sport without them', () => {
+    render(
+      <ScorePanel
+        open
+        onClose={vi.fn()}
+        S={SPORTS.basketball}
+        opponent="Hawks"
+        periodCount={4}
+        initialPeriod={0}
+        players={players}
+        names={names}
+        events={[]}
+        onAdd={vi.fn()}
+        onUndo={vi.fn()}
+        trackedStats={[]}
+        onAddStat={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole('group', { name: 'Add a stat' })).not.toBeInTheDocument();
+  });
+});

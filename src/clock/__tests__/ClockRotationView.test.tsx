@@ -77,6 +77,7 @@ const team: Team = {
   timezone: 'America/Chicago',
   parent_stats: 'own',
   snack_signup: 'off',
+  tracked_stats: [],
   time_mode: 'clock',
   clock_periods: 2,
   period_minutes: 25,
@@ -111,6 +112,7 @@ function renderView(canEdit = true, highlight = new Set<string>()) {
     isOwner: canEdit,
     memberships: [],
     switchTeam: () => undefined,
+    statKeeper: false,
     adminActing: false,
   };
   render(

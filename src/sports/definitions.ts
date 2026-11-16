@@ -52,6 +52,11 @@ const BASKETBALL_SCORING: ScoringRules = {
     { key: 'field_goals', label: 'FG', title: 'Field goals' },
     { key: 'three_pointers', label: '3PT', title: 'Three-pointers' },
     { key: 'free_throws', label: 'FT', title: 'Free throws' },
+    // the tracked stats (D118) show only while the team tracks them
+    { key: 'rebounds', label: 'REB', title: 'Rebounds', tracked: 'rebound' },
+    { key: 'assists', label: 'AST', title: 'Assists', tracked: 'assist' },
+    { key: 'steals', label: 'STL', title: 'Steals', tracked: 'steal' },
+    { key: 'fouls', label: 'PF', title: 'Fouls', tracked: 'foul' },
     PERIODS,
   ],
   hot: 'points',
@@ -60,6 +65,12 @@ const BASKETBALL_SCORING: ScoringRules = {
     { key: 'field_goals', label: 'Field goals', title: 'Field goals' },
     { key: 'three_pointers', label: 'Threes', title: 'Three-pointers' },
     { key: 'free_throws', label: 'Free throws', title: 'Free throws' },
+  ],
+  stats: [
+    { type: 'rebound', label: 'REB', noun: 'rebound', question: 'Who got the rebound?' },
+    { type: 'assist', label: 'AST', noun: 'assist', question: 'Who made the assist?' },
+    { type: 'steal', label: 'STL', noun: 'steal', question: 'Who got the steal?' },
+    { type: 'foul', label: 'FOUL', noun: 'foul', question: 'Whose foul?' },
   ],
 };
 

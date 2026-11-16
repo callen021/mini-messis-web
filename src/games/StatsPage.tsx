@@ -62,7 +62,7 @@ export function StatsPage() {
 
   const rec = teamRecord(list);
   const unit = S.scoring.unitPlural;
-  const cols = statColumns(S, team.time_mode === 'clock');
+  const cols = statColumns(S, team.time_mode === 'clock', team.tracked_stats);
   const sorted = sortRows(
     stats.data ?? [],
     cols.map((c) => c.key),

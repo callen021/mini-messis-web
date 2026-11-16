@@ -605,6 +605,38 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"stat_events": {
+                  Row: {
+                    "clock_seconds": number | null,"created_at": string,"created_by": string | null,"game_id": string,"id": string,"occurred_at": string,"period_index": number,"player_id": string,"stat_type": Database["public"]['Enums']["stat_type"],"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "clock_seconds"?: number | null,"created_at"?: string,"created_by"?: string | null,"game_id": string,"id"?: string,"occurred_at"?: string,"period_index"?: number,"player_id": string,"stat_type": Database["public"]['Enums']["stat_type"],"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "clock_seconds"?: number | null,"created_at"?: string,"created_by"?: string | null,"game_id"?: string,"id"?: string,"occurred_at"?: string,"period_index"?: number,"player_id"?: string,"stat_type"?: Database["public"]['Enums']["stat_type"],"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "stat_events_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "game_scores"
+      referencedColumns: ["game_id"]
+    },{
+      foreignKeyName: "stat_events_game_id_fkey"
+      columns: ["game_id"]
+isOneToOne: false
+      referencedRelation: "games"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "stat_events_player_id_fkey"
+      columns: ["player_id"]
+isOneToOne: false
+      referencedRelation: "players"
+      referencedColumns: ["id"]
+    }
+                  ]
                 },"stints": {
                   Row: {
                     "clock_end": number | null,"clock_start": number,"closed_by_op": string | null,"continues": boolean,"created_at": string,"created_by": string | null,"game_id": string,"id": string,"opened_by_op": string | null,"period_index": number,"player_id": string,"position_code": string,"position_role": string,"slot_index": number,"updated_at": string,"updated_by": string | null
@@ -639,14 +671,14 @@ isOneToOne: false
                   ]
                 },"team_members": {
                   Row: {
-                    "approved_at": string | null,"approved_by": string | null,"contact_phone": string | null,"created_at": string,"id": string,"note": string | null,"requested_role": Database["public"]['Enums']["member_role"] | null,"role": Database["public"]['Enums']["member_role"],"status": Database["public"]['Enums']["member_status"],"team_id": string,"updated_at": string,"user_id": string
+                    "approved_at": string | null,"approved_by": string | null,"contact_phone": string | null,"created_at": string,"id": string,"is_stat_keeper": boolean,"note": string | null,"requested_role": Database["public"]['Enums']["member_role"] | null,"role": Database["public"]['Enums']["member_role"],"status": Database["public"]['Enums']["member_status"],"team_id": string,"updated_at": string,"user_id": string
                   }
                   ComputedFields: never
                   Insert: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"id"?: string,"note"?: string | null,"requested_role"?: Database["public"]['Enums']["member_role"] | null,"role": Database["public"]['Enums']["member_role"],"status"?: Database["public"]['Enums']["member_status"],"team_id": string,"updated_at"?: string,"user_id": string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"id"?: string,"is_stat_keeper"?: boolean,"note"?: string | null,"requested_role"?: Database["public"]['Enums']["member_role"] | null,"role": Database["public"]['Enums']["member_role"],"status"?: Database["public"]['Enums']["member_status"],"team_id": string,"updated_at"?: string,"user_id": string
                   }
                   Update: {
-                    "approved_at"?: string | null,"approved_by"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"id"?: string,"note"?: string | null,"requested_role"?: Database["public"]['Enums']["member_role"] | null,"role"?: Database["public"]['Enums']["member_role"],"status"?: Database["public"]['Enums']["member_status"],"team_id"?: string,"updated_at"?: string,"user_id"?: string
+                    "approved_at"?: string | null,"approved_by"?: string | null,"contact_phone"?: string | null,"created_at"?: string,"id"?: string,"is_stat_keeper"?: boolean,"note"?: string | null,"requested_role"?: Database["public"]['Enums']["member_role"] | null,"role"?: Database["public"]['Enums']["member_role"],"status"?: Database["public"]['Enums']["member_status"],"team_id"?: string,"updated_at"?: string,"user_id"?: string
                   }
                   Relationships: [
                     {
@@ -659,14 +691,14 @@ isOneToOne: false
                   ]
                 },"teams": {
                   Row: {
-                    "archived_at": string | null,"clock_periods": number,"colors": NonNullable<Json>,"created_at": string,"has_gk": boolean,"id": string,"join_code": string,"join_code_rotated_at": string,"join_enabled": boolean,"last_batter_player_id": string | null,"name": string,"owner_id": string,"parent_stats": Database["public"]['Enums']["parent_stats"],"period_minutes": number | null,"periods_count": number,"require_approval": boolean,"side_size": number,"snack_signup": Database["public"]['Enums']["snack_mode"],"sport": Database["public"]['Enums']["sport"],"time_mode": Database["public"]['Enums']["time_mode"],"timezone": string,"updated_at": string,"updated_by": string | null
+                    "archived_at": string | null,"clock_periods": number,"colors": NonNullable<Json>,"created_at": string,"has_gk": boolean,"id": string,"join_code": string,"join_code_rotated_at": string,"join_enabled": boolean,"last_batter_player_id": string | null,"name": string,"owner_id": string,"parent_stats": Database["public"]['Enums']["parent_stats"],"period_minutes": number | null,"periods_count": number,"require_approval": boolean,"side_size": number,"snack_signup": Database["public"]['Enums']["snack_mode"],"sport": Database["public"]['Enums']["sport"],"time_mode": Database["public"]['Enums']["time_mode"],"timezone": string,"tracked_stats": (Database["public"]['Enums']["stat_type"])[],"updated_at": string,"updated_by": string | null
                   }
                   ComputedFields: never
                   Insert: {
-                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code": string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name": string,"owner_id": string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count": number,"require_approval"?: boolean,"side_size": number,"snack_signup"?: Database["public"]['Enums']["snack_mode"],"sport": Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code": string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name": string,"owner_id": string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count": number,"require_approval"?: boolean,"side_size": number,"snack_signup"?: Database["public"]['Enums']["snack_mode"],"sport": Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"tracked_stats"?: (Database["public"]['Enums']["stat_type"])[],"updated_at"?: string,"updated_by"?: string | null
                   }
                   Update: {
-                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code"?: string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name"?: string,"owner_id"?: string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count"?: number,"require_approval"?: boolean,"side_size"?: number,"snack_signup"?: Database["public"]['Enums']["snack_mode"],"sport"?: Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"updated_at"?: string,"updated_by"?: string | null
+                    "archived_at"?: string | null,"clock_periods"?: number,"colors"?: NonNullable<Json>,"created_at"?: string,"has_gk"?: boolean,"id"?: string,"join_code"?: string,"join_code_rotated_at"?: string,"join_enabled"?: boolean,"last_batter_player_id"?: string | null,"name"?: string,"owner_id"?: string,"parent_stats"?: Database["public"]['Enums']["parent_stats"],"period_minutes"?: number | null,"periods_count"?: number,"require_approval"?: boolean,"side_size"?: number,"snack_signup"?: Database["public"]['Enums']["snack_mode"],"sport"?: Database["public"]['Enums']["sport"],"time_mode"?: Database["public"]['Enums']["time_mode"],"timezone"?: string,"tracked_stats"?: (Database["public"]['Enums']["stat_type"])[],"updated_at"?: string,"updated_by"?: string | null
                   }
                   Relationships: [
                     {
@@ -775,6 +807,9 @@ isOneToOne: false
                            },
 "board_unread":
 { Args: { "p_team_id": string }; Returns: boolean
+                           },
+"can_log_stats":
+{ Args: { "p_game_id": string }; Returns: boolean
                            },
 "can_rsvp_for":
 { Args: { "p_player_id": string }; Returns: boolean
@@ -970,6 +1005,11 @@ isOneToOne: false
               "game_id": string,"them": number,"us": number
             }[]
                            },
+"game_stats":
+{ Args: { "p_game_id": string }; Returns: {
+              "clock_seconds": number,"created_at": string,"created_by": string,"game_id": string,"hidden": boolean,"id": string,"occurred_at": string,"period_index": number,"player_id": string,"stat_type": Database["public"]['Enums']["stat_type"],"updated_at": string,"updated_by": string
+            }[]
+                           },
 "generate_join_code":
 { Args: Record<PropertyKey, never>; Returns: string
                            },
@@ -1000,12 +1040,15 @@ isOneToOne: false
 "is_staff":
 { Args: { "p_team_id": string }; Returns: boolean
                            },
+"is_stat_keeper":
+{ Args: { "p_team_id": string }; Returns: boolean
+                           },
 "lineup_of":
 { Args: { "p_game_id": string,"p_period": number }; Returns: string
                            },
 "list_team_members":
 { Args: { "p_team_id": string }; Returns: {
-              "approved_at": string,"children": Json,"created_at": string,"display_name": string,"email": string,"is_owner": boolean,"joined_at": string,"member_id": string,"requested_role": Database["public"]['Enums']["member_role"],"role": Database["public"]['Enums']["member_role"],"status": Database["public"]['Enums']["member_status"],"unlisted": Json,"user_id": string
+              "approved_at": string,"children": Json,"created_at": string,"display_name": string,"email": string,"is_owner": boolean,"is_stat_keeper": boolean,"joined_at": string,"member_id": string,"requested_role": Database["public"]['Enums']["member_role"],"role": Database["public"]['Enums']["member_role"],"status": Database["public"]['Enums']["member_status"],"unlisted": Json,"user_id": string
             }[]
                            },
 "lookup_invite":
@@ -1043,7 +1086,7 @@ isOneToOne: false
                            },
 "player_season_stats":
 { Args: { "p_game_id"?: string,"p_season_id"?: string,"p_team_id": string }; Returns: {
-              "assists": number,"at_bats": number,"doubles": number,"field_goals": number,"free_throws": number,"games_played": number,"goals": number,"hits": number,"home_runs": number,"name": string,"number": string,"periods_played": number,"plate_appearances": number,"player_id": string,"points": number,"rbi": number,"removed": boolean,"runs": number,"seconds_played": number,"strikeouts": number,"three_pointers": number,"triples": number,"walks": number
+              "assists": number,"at_bats": number,"doubles": number,"field_goals": number,"fouls": number,"free_throws": number,"games_played": number,"goals": number,"hits": number,"home_runs": number,"name": string,"number": string,"periods_played": number,"plate_appearances": number,"player_id": string,"points": number,"rbi": number,"rebounds": number,"removed": boolean,"runs": number,"seconds_played": number,"steals": number,"strikeouts": number,"three_pointers": number,"triples": number,"walks": number
             }[]
                            },
 "record_join_attempt":
@@ -1116,6 +1159,9 @@ isOneToOne: false
 "set_snack":
 { Args: { "p_game_id"?: string,"p_player_id": string,"p_practice_id"?: string }; Returns: undefined
                            },
+"set_stat_keeper":
+{ Args: { "p_member_id": string,"p_on": boolean }; Returns: undefined
+                           },
 "snack_cap":
 { Args: { "p_team_id": string }; Returns: number
                            },
@@ -1184,7 +1230,7 @@ isOneToOne: false
                            }
           }
           Enums: {
-            "allergy_status": "none"|"has","body_side": "left"|"right","field_view": "persp"|"flat","game_status": "upcoming"|"live"|"done","guardian_status": "pending"|"approved","home_away": "home"|"away"|"neutral","member_role": "coach"|"assistant"|"parent","member_status": "pending"|"active"|"removed","pa_result": "none"|"single"|"double"|"triple"|"home_run"|"walk"|"hit_by_pitch"|"strikeout"|"out"|"sacrifice"|"fielders_choice"|"reached_on_error","parent_stats": "own"|"team","position_pref": "preferred"|"can"|"never","practice_status": "scheduled"|"cancelled","rsvp_setter": "parent"|"coach","rsvp_status": "going"|"out"|"none","score_side": "us"|"them","shirt_size": "YXS"|"YS"|"YM"|"YL"|"YXL"|"AS"|"AM"|"AL"|"AXL","skill_metric": "count"|"time_seconds"|"distance"|"made_of_attempted","snack_mode": "off"|"games"|"both","sport": "soccer"|"baseball"|"basketball"|"lacrosse"|"football","theme": "light"|"dark"|"auto","time_mode": "periods"|"clock"
+            "allergy_status": "none"|"has","body_side": "left"|"right","field_view": "persp"|"flat","game_status": "upcoming"|"live"|"done","guardian_status": "pending"|"approved","home_away": "home"|"away"|"neutral","member_role": "coach"|"assistant"|"parent","member_status": "pending"|"active"|"removed","pa_result": "none"|"single"|"double"|"triple"|"home_run"|"walk"|"hit_by_pitch"|"strikeout"|"out"|"sacrifice"|"fielders_choice"|"reached_on_error","parent_stats": "own"|"team","position_pref": "preferred"|"can"|"never","practice_status": "scheduled"|"cancelled","rsvp_setter": "parent"|"coach","rsvp_status": "going"|"out"|"none","score_side": "us"|"them","shirt_size": "YXS"|"YS"|"YM"|"YL"|"YXL"|"AS"|"AM"|"AL"|"AXL","skill_metric": "count"|"time_seconds"|"distance"|"made_of_attempted","snack_mode": "off"|"games"|"both","sport": "soccer"|"baseball"|"basketball"|"lacrosse"|"football","stat_type": "rebound"|"assist"|"steal"|"foul","theme": "light"|"dark"|"auto","time_mode": "periods"|"clock"
           }
           CompositeTypes: {
             [_ in never]: never
@@ -1300,7 +1346,7 @@ export type CompositeTypes<
 export const Constants = {
   "public": {
           Enums: {
-            "allergy_status": ["none", "has"],"body_side": ["left", "right"],"field_view": ["persp", "flat"],"game_status": ["upcoming", "live", "done"],"guardian_status": ["pending", "approved"],"home_away": ["home", "away", "neutral"],"member_role": ["coach", "assistant", "parent"],"member_status": ["pending", "active", "removed"],"pa_result": ["none", "single", "double", "triple", "home_run", "walk", "hit_by_pitch", "strikeout", "out", "sacrifice", "fielders_choice", "reached_on_error"],"parent_stats": ["own", "team"],"position_pref": ["preferred", "can", "never"],"practice_status": ["scheduled", "cancelled"],"rsvp_setter": ["parent", "coach"],"rsvp_status": ["going", "out", "none"],"score_side": ["us", "them"],"shirt_size": ["YXS", "YS", "YM", "YL", "YXL", "AS", "AM", "AL", "AXL"],"skill_metric": ["count", "time_seconds", "distance", "made_of_attempted"],"snack_mode": ["off", "games", "both"],"sport": ["soccer", "baseball", "basketball", "lacrosse", "football"],"theme": ["light", "dark", "auto"],"time_mode": ["periods", "clock"]
+            "allergy_status": ["none", "has"],"body_side": ["left", "right"],"field_view": ["persp", "flat"],"game_status": ["upcoming", "live", "done"],"guardian_status": ["pending", "approved"],"home_away": ["home", "away", "neutral"],"member_role": ["coach", "assistant", "parent"],"member_status": ["pending", "active", "removed"],"pa_result": ["none", "single", "double", "triple", "home_run", "walk", "hit_by_pitch", "strikeout", "out", "sacrifice", "fielders_choice", "reached_on_error"],"parent_stats": ["own", "team"],"position_pref": ["preferred", "can", "never"],"practice_status": ["scheduled", "cancelled"],"rsvp_setter": ["parent", "coach"],"rsvp_status": ["going", "out", "none"],"score_side": ["us", "them"],"shirt_size": ["YXS", "YS", "YM", "YL", "YXL", "AS", "AM", "AL", "AXL"],"skill_metric": ["count", "time_seconds", "distance", "made_of_attempted"],"snack_mode": ["off", "games", "both"],"sport": ["soccer", "baseball", "basketball", "lacrosse", "football"],"stat_type": ["rebound", "assist", "steal", "foul"],"theme": ["light", "dark", "auto"],"time_mode": ["periods", "clock"]
           }
         }
 } as const

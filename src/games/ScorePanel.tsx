@@ -1,9 +1,9 @@
 import { type ReactNode, useState } from 'react';
 import { Button } from '@/components/Button';
 import { FormSheet } from '@/components/Sheet';
-import { type ScoreEventKind, type SportDefinition } from '@/sports/types';
+import { type ScoreEventKind, type SportDefinition, type StatType } from '@/sports/types';
 import { type Player } from '@/teams/api';
-import { type NewScoreEvent, type ScoreEvent } from './api';
+import { type NewScoreEvent, type NewStatEvent, type ScoreEvent } from './api';
 import { type NameLookup } from './names';
 import { PeriodPicker } from './PeriodPicker';
 import { PlayerPicker } from './PlayerPicker';
@@ -32,6 +32,9 @@ export interface ScorePanelProps {
   bench?: readonly string[];
   /** "H1 · 12:34": the period and clock time the goal is stamped with (a ticking leaf). */
   stamp?: ReactNode;
+  /** The stats the team tracks (D118): a row of REB / AST / STL / FOUL for the picked player. */
+  trackedStats?: readonly StatType[];
+  onAddStat?: (ev: NewStatEvent) => void;
 }
 
 /**
@@ -55,6 +58,8 @@ export function ScorePanel({
   onField = [],
   bench,
   stamp,
+  trackedStats = [],
+  onAddStat,
 }: ScorePanelProps) {
   const lastOurs = [...events].reverse().find((e) => e.side === 'us');
   const [period, setPeriod] = useState(initialPeriod);
@@ -112,6 +117,17 @@ export function ScorePanel({
   const first = kinds[0];
   const last = events[events.length - 1];
   const panel = S.scoring.panel;
+  const statKinds = onAddStat ? (S.scoring.stats ?? []).filter((k) => trackedStats.includes(k.type)) : [];
+  const postStat = (type: StatType) => {
+    if (busy || !scorer || !onAddStat || !scoreTapAllowed()) return;
+    setBusy(true);
+    onAddStat({
+      player_id: scorer,
+      period_index: Math.min(period, Math.max(0, periodCount - 1)),
+      stat_type: type,
+    });
+    onClose();
+  };
   const title =
     panel === 'run'
       ? `Run · vs ${opponent}`
@@ -198,6 +214,24 @@ export function ScorePanel({
             </Button>
           </>
         )
+      )}
+      {statKinds.length > 0 && (
+        <div className="ptpanel" role="group" aria-label="Add a stat">
+          <div className="ptrow stats">
+            <span className="ptside">{scorer ? 'STAT' : 'PICK'}</span>
+            {statKinds.map((k) => (
+              <Button
+                key={k.type}
+                variant="tinted"
+                disabled={busy || !scorer}
+                onClick={() => postStat(k.type)}
+                aria-label={`${k.noun} for ${scorer ? names.name(scorer) || 'the player' : 'the picked player'}`}
+              >
+                {k.label}
+              </Button>
+            ))}
+          </div>
+        </div>
       )}
       {last && (
         <Button

@@ -1526,3 +1526,49 @@ lands), keyed by what `group(role)` already returns, so every formation spot map
   play, a dash for never, one tap toggles. Reached from the Team tab's Edit roster toolbar
   (Positions) and the player card shows the same groups as chips (`EligibilitySection`, staff
   only). A parent who types the URL is sent back to the Team tab.
+
+### D118. Basketball stats: tracked entries next to the points, and a stat keeper
+
+The points pattern of D108 (tap +2, then the jersey) now covers rebounds, assists, steals and
+fouls, each an optional entry the team chooses to track.
+
+- `stat_events` (game, player, period, `stat_type` rebound | assist | steal | foul, the clock
+  second stamped like a score in a live clock game) sits next to `score_events`; basketball only,
+  the player must be on the game's team (trigger). One rebound count, no offensive/defensive
+  split. `teams.tracked_stats` (a `stat_type[]`, empty by default) decides which buttons and
+  columns exist: Settings has four chips (REB, AST, STL, FOUL) for staff on a basketball team.
+- On the live court the tracked stats are a second row under Us/Them (`QuickScoreRow`): a tap arms
+  the court ("Who got the rebound?" / "Who made the assist?" / "Who got the steal?" / "Whose
+  foul?"), the next jersey tap records it, the confirmation line reads "Ada REB" with Undo once
+  the insert has settled. The score sheet (period-mode Field, the game page's Add score) carries
+  the same buttons for the picked player, so an entry can be added after the fact too. The game
+  page lists the entries under "Stats · n"; a tap opens `EditStatSheet` (player, period, kind,
+  delete), the same way scores are edited. `player_season_stats` returns rebounds, steals, fouls
+  and counts stat-event assists into `assists`; the Stats tab shows REB / AST / STL / PF only
+  while tracked (`statColumns(S, clockMode, tracked)`). `game_stats(p_game_id)` withholds other
+  children's ids for parents exactly like `game_events` (D56).
+- A **stat keeper** (`team_members.is_stat_keeper`, set by a coach through `set_stat_keeper`,
+  offered on the Members screen for any member) may insert, change and delete scores and stats
+  while a game is live, and nothing else: `can_log_stats(game)` = staff, or a stat keeper while the
+  game is live, is the write policy on `score_events` and `stat_events` (and lets them read the
+  log of that game so Undo can find the entry). The context carries `statKeeper`; the live court
+  shows the quick-score row to a keeper (jersey taps answer "who?" only, never a sub), and the
+  game page shows Add score / Add stat while live but no editing, no lineup, no finish. pgTAP 29.
+
+### D119. Softball; nine or ten fielders
+
+Softball is a sport of its own (`sport` enum value `softball`), reusing the baseball model end to
+end: the diamond artwork and formations (`baseballFormations`), the baseball jersey, the batting
+order on its own Lineup tab, runs as the score (`score_event_points` reads the sport as text so
+the new value needs no second copy of the table), plate appearances as the batting log (the
+validator accepts both sports), the baseball stat columns and AVG, and the baseball skill tests
+(`default_skill_tests` now routes softball to the baseball set, the lists themselves stay in the
+0800 migration under `default_skill_tests_v1`). A new softball team tracks playing time by innings,
+like baseball (D87). The enum value is added in its own migration because Postgres refuses to use
+a new enum value in the transaction that added it. The sport tint is baseball's; the position names
+and the eligibility groups (Pitcher, Catcher, Infield, Outfield) are shared.
+
+Team setup gains a **Fielders** row for baseball and softball: 9 or 10, where 10 adds a fourth
+outfielder. It writes the same `side_size` the stepper does (the stepper stays for the small-sided
+sizes), and the existing shape rules do the rest: at 10 the template moves to the first ten-player
+formation, "4 outfielders", and the coach may still pick "Rover infield" from the card. pgTAP 30.

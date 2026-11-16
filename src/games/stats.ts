@@ -1,4 +1,4 @@
-import { type SportDefinition, type StatColumn, type StatKey } from '@/sports/types';
+import { type SportDefinition, type StatColumn, type StatKey, type StatType } from '@/sports/types';
 import { type ScoreEvent } from './api';
 
 export interface Scored {
@@ -77,6 +77,10 @@ export interface PlayerStatRow {
   strikeouts: number;
   /** Clock mode (D69): seconds on the field, derived from stints. */
   seconds_played: number;
+  /** Basketball stat entries (D118); `assists` counts them too. */
+  rebounds: number;
+  steals: number;
+  fouls: number;
 }
 
 /** Numeric value of a column (AVG and minutes are derived). */
@@ -99,10 +103,18 @@ export function formatStat(row: PlayerStatRow, key: StatKey): string {
 const MINUTES_COLUMN: StatColumn = { key: 'minutes_played', label: 'MIN', title: 'Minutes played' };
 const MINUTES_TILE: StatColumn = { key: 'minutes_played', label: 'Minutes', title: 'Minutes played' };
 
-/** The sport's stat columns; in clock mode (D73) minutes played stand where periods played would. */
-export function statColumns(S: SportDefinition, clockMode: boolean): readonly StatColumn[] {
-  if (!clockMode) return S.scoring.columns;
-  return S.scoring.columns.map((c) => (c.key === 'periods_played' ? MINUTES_COLUMN : c));
+/**
+ * The sport's stat columns; in clock mode (D73) minutes played stand where periods played would,
+ * and a column tied to a tracked stat (D118) shows only while the team tracks it.
+ */
+export function statColumns(
+  S: SportDefinition,
+  clockMode: boolean,
+  tracked: readonly StatType[] = [],
+): readonly StatColumn[] {
+  return S.scoring.columns
+    .filter((c) => !c.tracked || tracked.includes(c.tracked))
+    .map((c) => (clockMode && c.key === 'periods_played' ? MINUTES_COLUMN : c));
 }
 
 /** The four season tiles; in clock mode minutes replace periods. */

@@ -67,6 +67,7 @@ function renderPage(role: 'coach' | 'assistant' = 'coach') {
     isOwner: true,
     memberships: [],
     switchTeam: () => undefined,
+    statKeeper: false,
     adminActing: false,
   };
   render(

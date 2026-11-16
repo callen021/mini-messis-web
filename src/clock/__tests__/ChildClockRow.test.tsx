@@ -47,6 +47,7 @@ const ctx: TeamContextValue = {
   isOwner: false,
   memberships: [],
   switchTeam: () => undefined,
+  statKeeper: false,
   adminActing: false,
 };
 const live = { id: 'g1', opponent: 'Tigers' } as Game;

@@ -88,6 +88,7 @@ function renderPage() {
     isOwner: staff,
     memberships: [],
     switchTeam: () => undefined,
+    statKeeper: false,
     adminActing: false,
   };
   render(

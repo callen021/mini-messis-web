@@ -65,10 +65,15 @@ vi.mock('@/teams/api', async () => {
 });
 vi.mock('@/teams/teamMutations', () => ({ useRenameTeam: () => ({ mutate: vi.fn() }) }));
 let scoreEvents: Record<string, unknown>[] = [];
+const addStat = vi.fn();
+const statEvents: Record<string, unknown>[] = [];
 vi.mock('@/games/api', () => ({
   useScoreEvents: () => ({ data: scoreEvents }),
   useAddScoreEvent: () => ({ mutate: vi.fn() }),
   useDeleteScoreEvent: () => ({ mutate: vi.fn() }),
+  useStatEvents: () => ({ data: statEvents }),
+  useAddStatEvent: () => ({ mutate: addStat, isPending: false }),
+  useDeleteStatEvent: () => ({ mutate: vi.fn() }),
   useCreateGame: () => ({ mutate: vi.fn(), isPending: false }),
   useStartGame: () => ({ mutate: startGame, isPending: false }),
 }));
@@ -145,6 +150,7 @@ const team: Team = {
   timezone: 'America/Chicago',
   parent_stats: 'own',
   snack_signup: 'off',
+  tracked_stats: [],
   time_mode: 'clock',
   clock_periods: 2,
   period_minutes: 25,
@@ -189,6 +195,7 @@ function renderPage() {
     isOwner: staff,
     memberships: [],
     switchTeam: () => undefined,
+    statKeeper: false,
     adminActing: false,
   };
   render(

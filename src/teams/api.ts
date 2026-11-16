@@ -262,6 +262,8 @@ export interface TeamMemberRow {
   joined_at: string | null;
   children: ChildLink[];
   unlisted: string[];
+  /** May log scores and stats while a game is live, and nothing else (D118). */
+  is_stat_keeper: boolean;
 }
 
 /** Members who joined in the last seven days, newest first (D92). */
@@ -348,6 +350,23 @@ export function useSetMemberRole(teamId: string) {
     ),
   );
 }
+/** A coach makes any member a stat keeper, or takes it back (D118). */
+export function useSetStatKeeper(teamId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (a: { memberId: string; on: boolean }) =>
+      unwrap(
+        await supabase
+          .rpc('set_stat_keeper', { p_member_id: a.memberId, p_on: a.on })
+          .then((r) => ({ data: true, error: r.error })),
+      ),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: qk.team(teamId) });
+      void qc.invalidateQueries({ queryKey: ['memberships'] });
+    },
+  });
+}
+
 /** Staff replace a member's set of children on the team; every link in the set is confirmed (D92). */
 export function useSetMemberChildren(teamId: string) {
   return useTeamMutation(teamId, async (a: { memberId: string; playerIds: string[] }) =>

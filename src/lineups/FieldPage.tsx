@@ -11,6 +11,7 @@ import { useToast } from '@/components/Toast';
 import { Segmented } from '@/components/Segmented';
 import {
   useAddScoreEvent,
+  useAddStatEvent,
   useCreateGame,
   useDeleteScoreEvent,
   useScoreEvents,
@@ -54,7 +55,7 @@ export function FieldPage() {
 }
 
 function PeriodFieldPage() {
-  const { teamId, team, sport } = useCurrentTeam();
+  const { teamId, team, sport, statKeeper } = useCurrentTeam();
   const S = SPORTS[sport];
   const isStaff = useIsStaff();
   const isCoach = useIsCoach();
@@ -72,6 +73,9 @@ function PeriodFieldPage() {
   const events = useScoreEvents(plan.gameId ?? undefined);
   const addEvent = useAddScoreEvent(teamId, plan.gameId ?? '');
   const deleteEvent = useDeleteScoreEvent(teamId, plan.gameId ?? '');
+  const addStat = useAddStatEvent(teamId, plan.gameId ?? '');
+  // a stat keeper (D118) adds scores and stats while the game is live, and nothing else
+  const canLog = isStaff || (statKeeper && !!plan.liveGame);
   const createGame = useCreateGame(teamId);
   const startGame = useStartGame(teamId);
   const eligibility = useEligibility(teamId, isStaff);
@@ -128,7 +132,7 @@ function PeriodFieldPage() {
         <small>THEM</small>
       </>
     );
-    if (!isStaff) {
+    if (!canLog) {
       return live ? (
         <span className="score live" aria-label={`Score ${score.us} to ${score.them}`}>
           {inner}
@@ -373,12 +377,23 @@ function PeriodFieldPage() {
               />
             ))}
           </div>
-          {isStaff && plan.liveGame && (
+          {canLog && plan.liveGame && (
             <ScorePanel
               open={scoring !== null}
               onClose={() => setScoring(null)}
               S={S}
               opponent={plan.liveGame.opponent}
+              trackedStats={S.scoring.stats ? team.tracked_stats : []}
+              onAddStat={
+                S.scoring.stats
+                  ? (ev) => {
+                      addStat.mutate(ev, { onError: (e) => toast(errorMessage(e)) });
+                      toast(
+                        `${names.name(ev.player_id) || 'Player'} · ${S.scoring.stats?.find((k) => k.type === ev.stat_type)?.noun ?? 'stat'}${periodSuffix(S.periodName(N), ev.period_index)}`,
+                      );
+                    }
+                  : undefined
+              }
               periodCount={N || 1}
               initialPeriod={scoring ?? 0}
               players={activePlayers}

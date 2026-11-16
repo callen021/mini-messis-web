@@ -59,6 +59,7 @@ const ctx: TeamContextValue = {
   isOwner: true,
   memberships: [],
   switchTeam: () => undefined,
+  statKeeper: false,
   adminActing: false,
 };
 const periods: StoredPeriod[] = [

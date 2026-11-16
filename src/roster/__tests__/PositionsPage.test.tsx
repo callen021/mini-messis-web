@@ -41,6 +41,7 @@ const ctx = (sport: 'soccer' | 'basketball'): TeamContextValue => ({
   isOwner: true,
   memberships: [],
   switchTeam: () => undefined,
+  statKeeper: false,
   adminActing: false,
 });
 const renderPage = (sport: 'soccer' | 'basketball' = 'soccer') =>

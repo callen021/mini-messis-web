@@ -57,6 +57,7 @@ const base: Team = {
   timezone: 'America/Chicago',
   parent_stats: 'own',
   snack_signup: 'off',
+  tracked_stats: [],
   time_mode: 'periods',
   clock_periods: 2,
   period_minutes: null,
@@ -87,6 +88,7 @@ function Harness() {
     isOwner: true,
     memberships: q.data ?? [],
     switchTeam: () => undefined,
+    statKeeper: false,
     adminActing: false,
   };
   return (

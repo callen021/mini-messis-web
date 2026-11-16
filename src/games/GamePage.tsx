@@ -27,8 +27,13 @@ import {
   type HomeAway,
   type PlateAppearance,
   type ScoreEvent,
+  type StatEvent,
   useAddPlateAppearance,
   useAddScoreEvent,
+  useAddStatEvent,
+  useDeleteStatEvent,
+  useStatEvents,
+  useUpdateStatEvent,
   useCoachNotes,
   useDeleteGame,
   useDeletePlateAppearance,
@@ -50,6 +55,8 @@ import { capNote } from '@/clock/clock';
 import { PlayingTimeSection } from '@/clock/PlayingTimeSection';
 import { directionsUrl } from './directions';
 import { EditScoreSheet } from './EditScoreSheet';
+import { EditStatSheet } from './EditStatSheet';
+import { type StatType } from '@/sports/types';
 import { fmtDate, fmtTime, HOME_AWAY_LABEL, todayISO } from './format';
 import { GameBadge } from './GameBadge';
 import { downloadIcs } from './ics';
@@ -79,7 +86,7 @@ export function GamePage() {
 type HomeAwayChoice = HomeAway | 'unset';
 
 function GameDetail({ game }: { game: GameWithScore }) {
-  const { teamId, team, sport } = useCurrentTeam();
+  const { teamId, team, sport, statKeeper } = useCurrentTeam();
   const S = SPORTS[sport];
   const isStaff = useIsStaff();
   const toast = useToast();
@@ -90,6 +97,8 @@ function GameDetail({ game }: { game: GameWithScore }) {
   // a game of a past season is viewable, never editable (D94)
   const pastSeason = !!currentSeason.data && game.season_id !== currentSeason.data.id;
   const canEdit = isStaff && !pastSeason;
+  // a stat keeper (D118) adds scores and stats while the game is live; editing stays with the staff
+  const canLog = canEdit || (statKeeper && game.status === 'live');
 
   const players = usePlayers(teamId);
   const snapshots = useGamePlayers(game.id);
@@ -110,6 +119,12 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const addEvent = useAddScoreEvent(teamId, game.id);
   const updateEvent = useUpdateScoreEvent(teamId, game.id);
   const deleteEvent = useDeleteScoreEvent(teamId, game.id);
+  const hasStats = !!S.scoring.stats;
+  const statEvents = useStatEvents(game.id, hasStats);
+  const addStat = useAddStatEvent(teamId, game.id);
+  const updateStat = useUpdateStatEvent(teamId, game.id);
+  const deleteStat = useDeleteStatEvent(teamId, game.id);
+  const [statEditing, setStatEditing] = useState<StatEvent | null>(null);
   const addPa = useAddPlateAppearance(teamId, game.id);
   const updatePa = useUpdatePlateAppearance(teamId, game.id);
   const deletePa = useDeletePlateAppearance(teamId, game.id);
@@ -149,6 +164,11 @@ function GameDetail({ game }: { game: GameWithScore }) {
   );
   const lastEvent = log[log.length - 1];
   const paList = [...(pas.data ?? [])].sort((a, b) => a.inning - b.inning || a.sequence - b.sequence);
+  const statList = [...(statEvents.data ?? [])].sort(
+    (a, b) => a.period_index - b.period_index || a.occurred_at.localeCompare(b.occurred_at),
+  );
+  const statNoun = (type: StatType) => S.scoring.stats?.find((k) => k.type === type)?.noun ?? 'stat';
+  const statLabel = (type: StatType) => S.scoring.stats?.find((k) => k.type === type)?.label ?? type;
   const currentInning = Math.max(1, ...paList.map((p) => p.inning), ...log.map((e) => e.period_index + 1));
 
   /* ---------- actions ---------- */
@@ -207,6 +227,21 @@ function GameDetail({ game }: { game: GameWithScore }) {
     if (ok) {
       deleteEvent.mutate(ev.id, { onError });
       toast(`${noun[0]?.toUpperCase()}${noun.slice(1)} deleted`);
+    }
+  };
+
+  const deleteStatEditing = async () => {
+    const ev = statEditing;
+    if (!ev) return;
+    setStatEditing(null);
+    const ok = await sheet({
+      title: `Delete ${statNoun(ev.stat_type)}?`,
+      message: `${eventTag(periodName, ev) ? `${eventTag(periodName, ev)} · ` : ''}${names.name(ev.player_id) || 'Unknown'} · ${statLabel(ev.stat_type)}`,
+      actions: [{ label: `Delete ${statNoun(ev.stat_type)}`, value: true, destructive: true }],
+    });
+    if (ok) {
+      deleteStat.mutate(ev.id, { onError });
+      toast('Stat deleted');
     }
   };
 
@@ -323,9 +358,9 @@ function GameDetail({ game }: { game: GameWithScore }) {
           Past season · read-only. A platform admin can switch the current season back.
         </Footer>
       )}
-      {canEdit && (
+      {canLog && (
         <Toolbar className="noprint">
-          {isUpcoming && (
+          {canEdit && isUpcoming && (
             <Button onClick={startFlow} disabled={anotherLive || start.isPending}>
               {anotherLive ? 'Finish the current game first' : 'Start game'}
             </Button>
@@ -333,14 +368,15 @@ function GameDetail({ game }: { game: GameWithScore }) {
           {(isLive || isDone) && (
             <Button variant="tinted" onClick={() => setScoring(true)}>
               Add {S.scoring.panel === 'points' ? 'score' : noun}
+              {hasStats && team.tracked_stats.length ? ' or stat' : ''}
             </Button>
           )}
-          {isLive && isBaseball && (
+          {canEdit && isLive && isBaseball && (
             <Button variant="gray" onClick={addInning} disabled={savePlan.isPending}>
               + Inning
             </Button>
           )}
-          {isLive && (
+          {canEdit && isLive && (
             <Button onClick={() => void finishFlow()} disabled={finish.isPending}>
               Finish game
             </Button>
@@ -560,6 +596,36 @@ function GameDetail({ game }: { game: GameWithScore }) {
         </>
       )}
 
+      {hasStats && !isUpcoming && (team.tracked_stats.length > 0 || statList.length > 0) && (
+        <>
+          <Section>Stats · {statList.length}</Section>
+          <Group>
+            {statList.map((ev) => (
+              <Row
+                key={ev.id}
+                onClick={
+                  canEdit && ev.player_id
+                    ? () => setStatEditing({ ...ev, player_id: ev.player_id as string })
+                    : undefined
+                }
+                label={
+                  <>
+                    {eventTag(periodName, ev) && <PeriodTag>{eventTag(periodName, ev)}</PeriodTag>}
+                    {ev.hidden ? 'Player' : names.name(ev.player_id) || 'Unknown'}
+                  </>
+                }
+                detail={statNoun(ev.stat_type)}
+                value={statLabel(ev.stat_type)}
+                chevron={canEdit && !!ev.player_id}
+              />
+            ))}
+            {statList.length === 0 && (
+              <Row label={`No stats recorded. ${isLive ? 'Tap a stat on the Court tab.' : ''}`.trim()} />
+            )}
+          </Group>
+        </>
+      )}
+
       {isBaseball && !isUpcoming && (
         <>
           <Section>At-bats · {paList.length}</Section>
@@ -676,13 +742,22 @@ function GameDetail({ game }: { game: GameWithScore }) {
         </>
       )}
 
-      {canEdit && (
+      {canLog && (
         <>
           <ScorePanel
             open={scoring}
             onClose={() => setScoring(false)}
             S={S}
             opponent={game.opponent}
+            trackedStats={hasStats ? team.tracked_stats : []}
+            onAddStat={
+              hasStats
+                ? (ev) => {
+                    addStat.mutate(ev, { onError });
+                    toast(`${names.name(ev.player_id) || 'Player'} · ${statNoun(ev.stat_type)}`);
+                  }
+                : undefined
+            }
             periodCount={periodCount}
             initialPeriod={
               clockMode && isLive
@@ -717,22 +792,40 @@ function GameDetail({ game }: { game: GameWithScore }) {
               toast(`Removed · ${describeEvent(S, periodCount, game.opponent, ev, names)}`);
             }}
           />
-          <EditScoreSheet
-            event={editing}
-            onClose={() => setEditing(null)}
-            S={S}
-            opponent={game.opponent}
-            periodCount={periodCount}
-            clockMode={clockMode}
-            players={roster}
-            names={names}
-            onSave={(p) => {
-              if (editing) updateEvent.mutate({ id: editing.id, ...p }, { onError });
-              toast(`${noun[0]?.toUpperCase()}${noun.slice(1)} updated`);
-            }}
-            onDelete={() => void deleteEditing()}
-          />
-          {isBaseball && (
+          {canEdit && (
+            <EditScoreSheet
+              event={editing}
+              onClose={() => setEditing(null)}
+              S={S}
+              opponent={game.opponent}
+              periodCount={periodCount}
+              clockMode={clockMode}
+              players={roster}
+              names={names}
+              onSave={(p) => {
+                if (editing) updateEvent.mutate({ id: editing.id, ...p }, { onError });
+                toast(`${noun[0]?.toUpperCase()}${noun.slice(1)} updated`);
+              }}
+              onDelete={() => void deleteEditing()}
+            />
+          )}
+          {canEdit && hasStats && (
+            <EditStatSheet
+              event={statEditing}
+              onClose={() => setStatEditing(null)}
+              S={S}
+              periodCount={periodCount}
+              players={roster}
+              names={names}
+              tracked={team.tracked_stats}
+              onSave={(p) => {
+                if (statEditing) updateStat.mutate({ id: statEditing.id, ...p }, { onError });
+                toast('Stat updated');
+              }}
+              onDelete={() => void deleteStatEditing()}
+            />
+          )}
+          {canEdit && isBaseball && (
             <PlateAppearanceSheet
               open={paAdding || !!paEditing}
               onClose={() => {

@@ -171,9 +171,10 @@ export function ClockCard({
               time={pid ? slotTimes?.[i] : undefined}
               heldOut={!!pid && parentOut.has(pid)}
               pickable={pickable && !!pid}
-              label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}${pickable && pid ? ', tap to credit the points' : ''}${canEdit && badge !== undefined ? `, ${badge} in line` : ''}`}
-              onClick={canEdit ? () => onTapSlot(i) : undefined}
-              readOnly={!canEdit}
+              label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}${pickable && pid ? ', tap to credit it' : ''}${canEdit && badge !== undefined ? `, ${badge} in line` : ''}`}
+              // a stat keeper (D118) cannot edit the lineup, but in scoring mode a jersey still answers "who?"
+              onClick={canEdit || (pickable && !!pid) ? () => onTapSlot(i) : undefined}
+              readOnly={!canEdit && !pickable}
             />
           );
         }}
@@ -193,7 +194,7 @@ export function ClockCard({
       />
       {/* the hint row has content only mid-change (D112): the card ends under the bench otherwise;
           the live region itself stays mounted so the hint is announced */}
-      {canEdit && (
+      {(canEdit || pickable) && (
         <div className={`taphint${hint ? ' on' : ''}${hint || hintExtra ? '' : ' empty'}`} aria-live="polite">
           {hint && <span>{hint}</span>}
           {hintExtra ?? (

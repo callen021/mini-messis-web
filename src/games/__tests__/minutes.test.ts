@@ -27,6 +27,9 @@ const row = (over: Partial<PlayerStatRow>): PlayerStatRow => ({
   walks: 0,
   strikeouts: 0,
   seconds_played: 0,
+  rebounds: 0,
+  steals: 0,
+  fouls: 0,
   ...over,
 });
 
@@ -39,7 +42,7 @@ describe('minutes in the stats (D73)', () => {
 
   it('clock mode swaps the periods column and tile for minutes; period mode is untouched', () => {
     const S = SPORTS.soccer;
-    expect(statColumns(S, false)).toBe(S.scoring.columns);
+    expect(statColumns(S, false)).toEqual(S.scoring.columns);
     expect(profileTiles(S, false)).toBe(S.scoring.profile);
     expect(statColumns(S, true).map((c) => c.label)).toEqual(['G', 'A', 'MIN']);
     expect(profileTiles(S, true).map((c) => c.label)).toEqual(['Goals', 'Assists', 'Minutes', 'Games']);

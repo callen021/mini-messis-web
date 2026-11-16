@@ -857,3 +857,11 @@
   font-size: 20px;
   line-height: 1;
 }
+/* the tracked stats row under the points (D118): the same buttons, one label */
+.qsrow.qsstats {
+  margin-top: 5px;
+}
+.qsrow.qsstats .qsbtn {
+  font-size: 13px;
+  letter-spacing: 0.3px;
+}

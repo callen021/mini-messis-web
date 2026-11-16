@@ -16,7 +16,8 @@ import { errorMessage } from '@/lib/supabase';
 import { DataSection } from './DataSection';
 import { signOut, unconfirmedLinkCount, useTeamMembers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
-import { useSetParentStats, useSetSnackSignup } from '@/teams/teamMutations';
+import { useSetParentStats, useSetSnackSignup, useSetTrackedStats } from '@/teams/teamMutations';
+import { cn } from '@/lib/cn';
 import { SNACK_MODE_LABEL, type SnackMode } from '@/snacks/snacks';
 
 export function SettingsPage() {
@@ -27,6 +28,7 @@ export function SettingsPage() {
   const toast = useToast();
   const setParentStats = useSetParentStats(team.id);
   const setSnackSignup = useSetSnackSignup(team.id);
+  const setTrackedStats = useSetTrackedStats(team.id);
   const theme = useUIStore((s) => s.theme);
   const setTheme = useUIStore((s) => s.setTheme);
   const fieldView = useUIStore((s) => s.fieldView);
@@ -144,6 +146,46 @@ export function SettingsPage() {
             />
           </Row>
         </RoleGate>
+        {S.scoring.stats && (
+          <RoleGate allow={STAFF_ROLES}>
+            <Row
+              label="Stats tracked"
+              detail={
+                team.tracked_stats.length
+                  ? 'Buttons on the live court and columns on the Stats tab'
+                  : 'Off · points only; turn on the stats you want to keep'
+              }
+            />
+            <div className="row statchips">
+              <div className="achips" role="group" aria-label="Stats tracked">
+                {S.scoring.stats.map((k, _i, all) => {
+                  const on = team.tracked_stats.includes(k.type);
+                  return (
+                    <button
+                      key={k.type}
+                      type="button"
+                      className={cn('achip', on && 'on')}
+                      aria-pressed={on}
+                      aria-label={`${k.noun}s: ${on ? 'tracked' : 'off'}`}
+                      onClick={() =>
+                        setTrackedStats.mutate(
+                          on
+                            ? team.tracked_stats.filter((t) => t !== k.type)
+                            : all
+                                .map((s) => s.type)
+                                .filter((t) => t === k.type || team.tracked_stats.includes(t)),
+                          { onError: (e) => toast(errorMessage(e)) },
+                        )
+                      }
+                    >
+                      {k.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </RoleGate>
+        )}
         <RoleGate allow={STAFF_ROLES}>
           <Row
             label="Snack signup"

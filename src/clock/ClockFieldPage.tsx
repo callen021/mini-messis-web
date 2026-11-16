@@ -8,10 +8,13 @@ import { useActionSheet } from '@/components/Sheet';
 import { useToast } from '@/components/Toast';
 import {
   useAddScoreEvent,
+  useAddStatEvent,
   useCreateGame,
   useDeleteScoreEvent,
+  useDeleteStatEvent,
   useScoreEvents,
   useStartGame,
+  useStatEvents,
 } from '@/games/api';
 import { fmtDate, fmtTime, todayISO } from '@/games/format';
 import { makeNameLookup } from '@/games/names';
@@ -29,7 +32,7 @@ import { toEnginePlayers, useCurrentPlan, useFormations, useMyChildren } from '@
 import { toEnginePeriods } from '@/lineups/convert';
 import { SPORTS, periodCountText, shortPeriod } from '@/sports/definitions';
 import { assignSlot, clearAll, fixPeriods } from '@/sports/lineup';
-import { type Period } from '@/sports/types';
+import { type Period, type StatType } from '@/sports/types';
 import { type Player, usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useRenameTeam } from '@/teams/teamMutations';
@@ -66,7 +69,7 @@ import { useWakeLock } from './useWakeLock';
  * atomic server call on the running clock and all devices see the same state.
  */
 export function ClockFieldPage() {
-  const { teamId, team, sport } = useCurrentTeam();
+  const { teamId, team, sport, statKeeper } = useCurrentTeam();
   const S = SPORTS[sport];
   const N = team.clock_periods;
   const isStaff = useIsStaff();
@@ -90,6 +93,10 @@ export function ClockFieldPage() {
   const events = useScoreEvents(gameId ?? undefined);
   const addEvent = useAddScoreEvent(teamId, gameId ?? '');
   const deleteEvent = useDeleteScoreEvent(teamId, gameId ?? '');
+  // basketball stat entries (D118): tracked ones get buttons next to the points
+  const statEvents = useStatEvents(gameId ?? undefined, !!S.scoring.stats);
+  const addStat = useAddStatEvent(teamId, gameId ?? '');
+  const deleteStat = useDeleteStatEvent(teamId, gameId ?? '');
   const createGame = useCreateGame(teamId);
   const startGame = useStartGame(teamId);
   const confirmStart = useStartCheck(teamId);
@@ -99,9 +106,11 @@ export function ClockFieldPage() {
   const [flashing, flash] = useFlash();
   const [scoring, setScoring] = useState(false);
   const [starting, setStarting] = useState(false);
-  // basketball quick scoring (D108): the points waiting for a scorer, and the last entry's line
+  // basketball quick scoring (D108): the points waiting for a scorer, and the last entry's line;
+  // a tracked stat waits for its player the same way (D118)
   const [pendingPts, setPendingPts] = useState<number | null>(null);
-  const [lastScore, setLastScore] = useState<{ text: string } | null>(null);
+  const [pendingStat, setPendingStat] = useState<StatType | null>(null);
+  const [lastScore, setLastScore] = useState<{ text: string; kind: 'score' | 'stat' } | null>(null);
   // a live change shows at once (D113): the page's own view of the spots and the bench while the
   // server calls run, one after another in tap order; dropped once the last one has refetched
   const [ahead, setAhead] = useState<{ slots: string[]; bench: string[] } | null>(null);
@@ -114,7 +123,10 @@ export function ClockFieldPage() {
   const clock = clockQ.data ?? PAUSED_CLOCK;
   const running = !!live && isRunning(clock);
   const atZero = !!live && clock.clockSeconds === 0 && !isRunning(clock);
-  const quickScoring = sport === 'basketball' && !!live && isStaff;
+  // a stat keeper (D118) logs scores and stats during a live game, and nothing else
+  const canLog = isStaff || (statKeeper && !!live);
+  const quickScoring = sport === 'basketball' && !!live && canLog;
+  const picking = pendingPts !== null || pendingStat !== null;
   // soccer may change shape mid-game while the clock is paused (D108); every sport may at 0:00
   const canChangeFormationLive = !!live && sport === 'soccer' && !running;
   useServerTimeSync(!!live);
@@ -130,7 +142,7 @@ export function ClockFieldPage() {
   };
   // the page never ticks (D95): the clock, the shift times and the period alert tick on their own
   // inside leaf components, so an open sheet is never re-rendered or remounted by the clock
-  useWakeLock(!!live && isStaff);
+  useWakeLock(!!live && canLog);
 
   const allPlayers = useMemo(() => players.data ?? [], [players.data]);
   // a parent's "can't make it" for the planned game (D107): out of the bench and Auto-fill, but a
@@ -259,13 +271,25 @@ export function ClockFieldPage() {
     setPendingPts(null);
     nudgeIfPaused();
     setLastScore({
+      kind: 'score',
       text:
         side === 'them'
           ? `${live.opponent} +${kind.points}`
           : `${scorerId ? nameOf(scorerId) : 'Team'} +${kind.points}`,
     });
   };
+  /** A tracked stat for the tapped jersey (D118): the same tap-then-jersey pattern as the points. */
+  const recordStat = (type: StatType, playerId: string) => {
+    const kind = S.scoring.stats?.find((k) => k.type === type);
+    if (!kind || !live || !scoreTapAllowed()) return;
+    addStat.mutate({ player_id: playerId, period_index: periodIndex, stat_type: type }, { onError });
+    setPendingStat(null);
+    nudgeIfPaused();
+    setLastScore({ kind: 'stat', text: `${nameOf(playerId)} ${kind.label}` });
+  };
   const lastEvent = log[log.length - 1];
+  const statLog = statEvents.data ?? [];
+  const lastStat = statLog[statLog.length - 1];
   // an early start (D109): while paused in the first period with no score, the clock can go back to 0:00
   const canReset = !!live && !running && periodIndex === 0 && clock.clockSeconds > 0 && log.length === 0;
   const resetClock = async () => {
@@ -278,11 +302,22 @@ export function ClockFieldPage() {
     if (ok) act.mutate({ kind: 'reset' }, { onError, onSuccess: () => toast('Clock reset to 0:00') });
   };
   const undoLast = () => {
+    if (lastScore?.kind === 'stat') {
+      if (!lastStat || lastStat.id.startsWith('temp-')) return;
+      deleteStat.mutate(lastStat.id, { onError });
+      setLastScore(null);
+      toast(`Removed · ${lastScore.text}`);
+      return;
+    }
     if (!lastEvent || lastEvent.id.startsWith('temp-')) return;
     deleteEvent.mutate(lastEvent.id, { onError });
     setLastScore(null);
     toast(`Removed · ${describeEvent(S, N, live?.opponent ?? '', lastEvent, names)}`);
   };
+  const lastSettled =
+    lastScore?.kind === 'stat'
+      ? !!lastStat && !lastStat.id.startsWith('temp-')
+      : !!lastEvent && !lastEvent.id.startsWith('temp-');
 
   /* ---------- template edits (no live game) ---------- */
   const commitTemplate = (period: Period, message?: string, undoable = false) => {
@@ -352,6 +387,12 @@ export function ClockFieldPage() {
       else toast('Tap a player on the court, or Team');
       return;
     }
+    if (pendingStat !== null) {
+      if (target.kind === 'field' && target.playerId) recordStat(pendingStat, target.playerId);
+      else toast('Tap a player on the court');
+      return;
+    }
+    if (!isStaff) return;
     const { action: o, queue: rest } = resolveTap(selected, target);
     setSelected(rest);
     if (o.action === 'select' || o.action === 'none') return;
@@ -602,7 +643,7 @@ export function ClockFieldPage() {
         <small>THEM</small>
       </>
     );
-    if (!isStaff) {
+    if (!canLog) {
       return live ? (
         <span className="score live" aria-label={`Score ${score.us} to ${score.them}`}>
           {inner}
@@ -704,14 +745,16 @@ export function ClockFieldPage() {
           hint={
             pendingPts !== null
               ? `Who scored the +${pendingPts}?`
-              : selectionHint(
-                  selected,
-                  nameOf,
-                  formation.positions.map((p) => p.code),
-                )
+              : pendingStat !== null
+                ? (S.scoring.stats?.find((k) => k.type === pendingStat)?.question ?? 'Who?')
+                : selectionHint(
+                    selected,
+                    nameOf,
+                    formation.positions.map((p) => p.code),
+                  )
           }
           hideTitle={title === 'Game'}
-          pickable={pendingPts !== null}
+          pickable={picking}
           help={quickScoring && !fullTime ? `${MOVE_HELP} Tap the points scored.` : MOVE_HELP}
           hintExtra={
             pendingPts !== null ? (
@@ -723,6 +766,10 @@ export function ClockFieldPage() {
                   Cancel
                 </Button>
               </>
+            ) : pendingStat !== null ? (
+              <Button size="sm" variant="gray" onClick={() => setPendingStat(null)}>
+                Cancel
+              </Button>
             ) : undefined
           }
           onOpenSpot={selected[0]?.kind === 'field' && selected[0].playerId ? openSpot : undefined}
@@ -745,20 +792,16 @@ export function ClockFieldPage() {
         <QuickScoreRow
           S={S}
           pending={pendingPts}
-          disabled={addEvent.isPending}
-          last={
-            lastScore
-              ? {
-                  text: lastScore.text,
-                  onUndo: lastEvent && !lastEvent.id.startsWith('temp-') ? undoLast : undefined,
-                }
-              : null
-          }
+          pendingStat={pendingStat}
+          stats={team.tracked_stats}
+          disabled={addEvent.isPending || addStat.isPending}
+          last={lastScore ? { text: lastScore.text, onUndo: lastSettled ? undoLast : undefined } : null}
           onUs={(p) => setPendingPts(pendingPts === p ? null : p)}
           onThem={(p) => recordScore('them', p, null)}
+          onStat={(t) => setPendingStat(pendingStat === t ? null : t)}
         />
       )}
-      {isStaff && live && (
+      {canLog && live && (
         <ScorePanel
           open={scoring}
           onClose={() => setScoring(false)}
@@ -773,6 +816,14 @@ export function ClockFieldPage() {
           stamp={<ClockStamp clock={clock} label={N === 1 ? '' : shortPeriod(S, N, periodIndex)} />}
           names={names}
           events={log}
+          trackedStats={team.tracked_stats}
+          onAddStat={(ev) => {
+            addStat.mutate({ ...ev, period_index: periodIndex }, { onError });
+            nudgeIfPaused();
+            toast(
+              `${names.name(ev.player_id) || 'Player'} · ${S.scoring.stats?.find((k) => k.type === ev.stat_type)?.noun ?? 'stat'}`,
+            );
+          }}
           onAdd={(ev) => {
             addEvent.mutate({ ...ev, period_index: periodIndex }, { onError });
             nudgeIfPaused();

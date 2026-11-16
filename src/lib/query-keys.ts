@@ -21,6 +21,8 @@ export const qk = {
   /** Everything about one game lives under ['game', id] so one invalidation refreshes the detail page. */
   game: (gameId: string) => ['game', gameId] as const,
   scoreEvents: (gameId: string) => ['game', gameId, 'events'] as const,
+  /** Basketball stat entries of a game (D118). */
+  statEvents: (gameId: string) => ['game', gameId, 'stat-events'] as const,
   plateAppearances: (gameId: string) => ['game', gameId, 'plate-appearances'] as const,
   coachNotes: (gameId: string) => ['game', gameId, 'coach-notes'] as const,
   gamePlayers: (gameId: string) => ['game', gameId, 'players'] as const,

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 import { SPORTS } from '@/sports/definitions';
@@ -56,5 +56,59 @@ describe('QuickScoreRow (D108): Us arms a scorer pick, Them records at once', ()
     render(<QuickScoreRow S={S} pending={null} last={null} onUs={vi.fn()} onThem={vi.fn()} />);
     expect(screen.queryByText(/Tap the points/)).not.toBeInTheDocument();
     expect(document.querySelector('.qslast')).toHaveClass('empty');
+  });
+});
+
+describe('QuickScoreRow stats (D118): tracked stats arm a player pick the same way', () => {
+  it('shows only the tracked stats, in order; a tap arms the button; the row hides when nothing is tracked', async () => {
+    const onStat = vi.fn();
+    const { rerender } = render(
+      <QuickScoreRow
+        S={S}
+        pending={null}
+        pendingStat={null}
+        stats={['rebound', 'foul']}
+        last={null}
+        onUs={vi.fn()}
+        onThem={vi.fn()}
+        onStat={onStat}
+      />,
+    );
+    const stats = screen.getByRole('group', { name: 'Stats' });
+    expect(
+      within(stats)
+        .getAllByRole('button')
+        .map((b) => b.textContent),
+    ).toEqual(['REB', 'FOUL']);
+    await userEvent.click(within(stats).getByRole('button', { name: 'REB, rebound' }));
+    expect(onStat).toHaveBeenCalledWith('rebound');
+    rerender(
+      <QuickScoreRow
+        S={S}
+        pending={null}
+        pendingStat="rebound"
+        stats={['rebound', 'foul']}
+        last={null}
+        onUs={vi.fn()}
+        onThem={vi.fn()}
+        onStat={onStat}
+      />,
+    );
+    expect(screen.getByRole('button', { name: 'REB, rebound' })).toHaveAttribute('aria-pressed', 'true');
+    // while a stat waits for its player the points wait too
+    expect(screen.getByRole('button', { name: 'Us +2, field goal' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Them +1, free throw' })).toBeDisabled();
+    rerender(
+      <QuickScoreRow
+        S={S}
+        pending={null}
+        stats={[]}
+        last={null}
+        onUs={vi.fn()}
+        onThem={vi.fn()}
+        onStat={onStat}
+      />,
+    );
+    expect(screen.queryByRole('group', { name: 'Stats' })).not.toBeInTheDocument();
   });
 });

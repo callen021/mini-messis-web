@@ -4,6 +4,7 @@ import { qk } from '@/lib/query-keys';
 import { supabase } from '@/lib/supabase';
 import { type PlayerStatRow } from './stats';
 import { type DbErrorLike, dbError } from '@/lib/errors';
+import { type StatType } from '@/sports/types';
 
 export type Game = Tables<'games'>;
 export type ScoreEvent = Tables<'score_events'>;
@@ -403,6 +404,88 @@ export function useDeleteScoreEvent(teamId: string, gameId: string) {
     async (id) => fail((await supabase.from('score_events').delete().eq('id', id)).error),
     (rows, id) => rows.filter((r) => r.id !== id),
     scoreDependents(teamId, gameId),
+  );
+}
+
+/* ---------- basketball stat entries (D118) ---------- */
+
+export type StatEvent = Tables<'stat_events'>;
+/** An entry as the viewer may see it: `player_id` null and `hidden` true when withheld (D56). */
+export type VisibleStatEvent = Omit<StatEvent, 'player_id'> & { player_id: string | null; hidden?: boolean };
+
+export function useStatEvents(gameId: string | undefined, enabled = true) {
+  return useQuery({
+    queryKey: qk.statEvents(gameId ?? ''),
+    queryFn: async () =>
+      unwrap(await supabase.rpc('game_stats', { p_game_id: gameId as string })) as VisibleStatEvent[],
+    enabled: !!gameId && enabled,
+  });
+}
+
+export interface NewStatEvent {
+  player_id: string;
+  period_index: number;
+  stat_type: StatType;
+  /** Clock mode: the server stamps the period and second during a live clock game when absent. */
+  clock_seconds?: number | null;
+}
+
+const statDependents = (teamId: string, gameId: string): QueryKey[] => [
+  qk.game(gameId),
+  ['team', teamId, 'stats'],
+];
+
+export function useAddStatEvent(teamId: string, gameId: string) {
+  return useListMutation<StatEvent, NewStatEvent>(
+    qk.statEvents(gameId),
+    async (ev) =>
+      fail(
+        (
+          await supabase.from('stat_events').insert({
+            game_id: gameId,
+            player_id: ev.player_id,
+            period_index: ev.period_index,
+            stat_type: ev.stat_type,
+          })
+        ).error,
+      ),
+    (rows, ev) => [
+      ...rows,
+      {
+        id: tempId(),
+        game_id: gameId,
+        player_id: ev.player_id,
+        period_index: ev.period_index,
+        stat_type: ev.stat_type,
+        clock_seconds: ev.clock_seconds ?? null,
+        occurred_at: new Date().toISOString(),
+        created_by: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+        updated_by: null,
+      },
+    ],
+    statDependents(teamId, gameId),
+  );
+}
+
+export type StatEventPatch = Partial<Pick<StatEvent, 'player_id' | 'period_index' | 'stat_type'>>;
+
+export function useUpdateStatEvent(teamId: string, gameId: string) {
+  return useListMutation<StatEvent, { id: string } & StatEventPatch>(
+    qk.statEvents(gameId),
+    async ({ id, ...patch }) => fail((await supabase.from('stat_events').update(patch).eq('id', id)).error),
+    (rows, { id, ...patch }) => rows.map((r) => (r.id === id ? { ...r, ...patch } : r)),
+    statDependents(teamId, gameId),
+  );
+}
+
+export function useDeleteStatEvent(teamId: string, gameId: string) {
+  return useListMutation<StatEvent, string>(
+    qk.statEvents(gameId),
+    async (id) => fail((await supabase.from('stat_events').delete().eq('id', id)).error),
+    (rows, id) => rows.filter((r) => r.id !== id),
+    statDependents(teamId, gameId),
   );
 }
 

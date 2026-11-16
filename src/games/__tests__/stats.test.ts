@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { SPORTS } from '@/sports/definitions';
 import { type ScoreEvent } from '../api';
 import {
   completedGames,
@@ -9,6 +10,7 @@ import {
   type PlayerStatRow,
   signed,
   sortRows,
+  statColumns,
   teamRecord,
 } from '../stats';
 
@@ -36,6 +38,9 @@ const row = (over: Partial<PlayerStatRow>): PlayerStatRow => ({
   walks: 0,
   strikeouts: 0,
   seconds_played: 0,
+  rebounds: 0,
+  steals: 0,
+  fouls: 0,
   ...over,
 });
 
@@ -114,5 +119,17 @@ describe('line score', () => {
     expect(ls.n).toBe(7);
     expect(ls.us).toEqual([2, 0, 0, 0, 0, 0, 2]);
     expect(ls.them).toEqual([0, 1, 0, 0, 0, 0, 0]);
+  });
+});
+
+describe('statColumns with tracked stats (D118)', () => {
+  it('basketball shows REB / AST / STL / PF only while the team tracks them, in column order', () => {
+    const none = statColumns(SPORTS.basketball, false).map((c) => c.label);
+    expect(none).toEqual(['PTS', 'FG', '3PT', 'FT', 'QP']);
+    const some = statColumns(SPORTS.basketball, true, ['foul', 'rebound']).map((c) => c.label);
+    expect(some).toEqual(['PTS', 'FG', '3PT', 'FT', 'REB', 'PF', 'MIN']);
+    // other sports ignore the list
+    expect(statColumns(SPORTS.soccer, false, ['rebound']).map((c) => c.label)).toEqual(['G', 'A', 'QP']);
+    expect(formatStat(row({ rebounds: 7 }), 'rebounds')).toBe('7');
   });
 });
