@@ -50,6 +50,12 @@ export interface SportDefinition {
   unit: string;
   /** Baseball only: has a batting lineup. */
   lineup?: boolean;
+  /**
+   * Position groups for eligibility (D117), in the order the grid shows them, with the coach's
+   * words for them (Goalie, Defense, Midfield, Forward…). Keys are what `group()` returns. A sport
+   * without them (volleyball) has no eligibility screen.
+   */
+  eligibility?: readonly (readonly [string, string])[];
   /** Position groups in display order: [groupKey, displayName]. */
   groups: readonly (readonly [string, string])[];
   defaultColors: Readonly<Record<string, string>>;

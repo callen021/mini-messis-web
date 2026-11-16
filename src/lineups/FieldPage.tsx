@@ -23,6 +23,8 @@ import { NewGameSheet } from '@/games/NewGameSheet';
 import { ScorePanel } from '@/games/ScorePanel';
 import { describeEvent, scoreNoun as scoreNounFor } from '@/games/scoring';
 import { errorMessage } from '@/lib/supabase';
+import { useEligibility } from '@/players/api';
+import { eligibleFn, skippedText } from '@/players/eligibility';
 import { usePlannedGame } from '@/rsvp/api';
 import { heldOutNote } from '@/rsvp/rsvp';
 import { useUIStore } from '@/lib/ui-store';
@@ -72,6 +74,7 @@ function PeriodFieldPage() {
   const deleteEvent = useDeleteScoreEvent(teamId, plan.gameId ?? '');
   const createGame = useCreateGame(teamId);
   const startGame = useStartGame(teamId);
+  const eligibility = useEligibility(teamId, isStaff);
   const [scoring, setScoring] = useState<number | null>(null);
   const [starting, setStarting] = useState<number | null>(null);
   // Parents of a baseball team have no Lineup tab (their child's tab takes the slot, D53):
@@ -213,13 +216,20 @@ function PeriodFieldPage() {
     commit(next, `${nameOf(slots[a] ?? '')} and ${nameOf(slots[b] ?? '')} swap positions`, true);
   };
 
+  // eligible positions (D117): a group marked never keeps the player out of Auto-fill's picks
+  const eligible = eligibleFn(eligibility.data);
+  const withSkipped = (msg: string, skipped: readonly string[]) =>
+    skipped.length ? `${msg} · ${skippedText(skipped)}` : msg;
   const onAutoFill = (i: number, redo: boolean) => {
-    const r = autoFill(periods, i, forms, S, enginePlayers, { redo });
-    if (redo) commit(r.periods, 'Auto-fill redone');
+    const r = autoFill(periods, i, forms, S, enginePlayers, { redo, eligible });
+    if (redo) commit(r.periods, withSkipped('Auto-fill redone', r.skipped));
     else
       commit(
         r.periods,
-        r.filled ? `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled` : 'Nobody left on the bench',
+        withSkipped(
+          r.filled ? `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled` : 'Nobody left on the bench',
+          r.skipped,
+        ),
       );
   };
 
@@ -228,12 +238,15 @@ function PeriodFieldPage() {
       toast('No open jerseys — tap Redo on a card to reshuffle');
       return;
     }
-    const r = autoFillAll(periods, forms, S, enginePlayers);
+    const r = autoFillAll(periods, forms, S, enginePlayers, { eligible });
     commit(
       r.periods,
-      r.filled
-        ? `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled across ${periodCountText(S, N)}`
-        : 'Nobody left on the bench',
+      withSkipped(
+        r.filled
+          ? `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled across ${periodCountText(S, N)}`
+          : 'Nobody left on the bench',
+        r.skipped,
+      ),
     );
   };
 

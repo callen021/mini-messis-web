@@ -219,6 +219,71 @@ test.describe('coach and parent flows', () => {
     await expect(cards.last().locator('.shirt.open')).toHaveCount(0);
   });
 
+  test('eligible positions: Positions from Edit roster, Hal never in goal, Auto-fill honours it and flags a spot nobody can take (D117)', async () => {
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await coach.getByRole('button', { name: 'Edit roster' }).click();
+    await coach.getByRole('button', { name: 'Positions' }).click();
+    await expect(coach).toHaveURL(/\/team\/positions$/);
+    await expect(coach.getByRole('columnheader', { name: 'Goalie' })).toBeVisible();
+    await coach.getByRole('button', { name: 'Hal Goalie: can play' }).click();
+    await expect(coach.getByRole('button', { name: 'Hal Goalie: never' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    // it survives a reload
+    await coach.reload();
+    await expect(coach.getByRole('button', { name: 'Hal Goalie: never' })).toBeVisible();
+    // the player card shows the same chips
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await coach.locator('.group').getByRole('link', { name: /Hal/ }).click();
+    await expect(coach.getByRole('button', { name: 'Goalie: never' })).toHaveAttribute(
+      'aria-pressed',
+      'false',
+    );
+    await expect(coach.getByRole('button', { name: 'Forward: can play' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    // Auto-fill never puts Hal in goal
+    await coach.goto('/field');
+    await coach.locator('.actionbar').getByRole('button', { name: 'Clear' }).click();
+    await coach.getByRole('dialog').getByRole('button', { name: 'Clear positions' }).click();
+    await coach.locator('.actionbar').getByRole('button', { name: 'Auto-fill' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: /jerseys filled/ })).toBeVisible();
+    await expect(coach.getByRole('button', { name: /^GOALIE: Hal/ })).toHaveCount(0);
+    await expect(coach.locator('.qcard .shirt.open')).toHaveCount(0);
+    // nobody may keep goal: the spot stays open and the message says so
+    await coach.goto('/team/positions');
+    for (const name of PLAYERS.filter((n) => n !== 'Hal')) {
+      await coach.getByRole('button', { name: `${name} Goalie: can play` }).click();
+      await expect(coach.getByRole('button', { name: `${name} Goalie: never` })).toBeVisible();
+    }
+    await coach.goto('/field');
+    await coach.locator('.actionbar').getByRole('button', { name: 'Clear' }).click();
+    await coach.getByRole('dialog').getByRole('button', { name: 'Clear positions' }).click();
+    await coach.locator('.actionbar').getByRole('button', { name: 'Auto-fill' }).click();
+    await expect(
+      coach.getByRole('status').filter({ hasText: 'GK, GK, GK, GK left open · nobody eligible' }),
+    ).toBeVisible();
+    await expect(coach.locator('.qcard .shirt.open')).toHaveCount(4);
+    // by hand it is never blocked: the open keeper spot takes a bench player
+    await coach.locator('.qcard').first().locator('.shirt.open').click();
+    await coach.locator('.qcard').first().locator('.bslot .shirt').first().click();
+    await expect(coach.locator('.qcard').first().locator('.shirt.open')).toHaveCount(0);
+    // everyone back to can play, and the plan filled again for the flows that follow
+    await coach.goto('/team/positions');
+    for (const name of PLAYERS) {
+      await coach.getByRole('button', { name: `${name} Goalie: never` }).click();
+      await expect(coach.getByRole('button', { name: `${name} Goalie: can play` })).toBeVisible();
+    }
+    await coach.goto('/field');
+    await coach.locator('.actionbar').getByRole('button', { name: 'Auto-fill' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: /jerseys filled/ })).toBeVisible();
+    await expect(coach.locator('.qcard .shirt.open')).toHaveCount(0);
+  });
+
   test('coach schedules a game from the Schedule tab', async () => {
     await coach.goto('/games');
     await expect(coach.getByRole('heading', { level: 1, name: 'Schedule' })).toBeVisible();
@@ -626,6 +691,16 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByRole('heading', { level: 1, name: 'Schedule' })).toBeVisible();
     await expect(parent.getByText('vs Tigers')).toBeVisible();
     await expect(parent.getByRole('button', { name: 'Add', exact: true })).toHaveCount(0);
+  });
+
+  test('a parent cannot open the Positions grid and sees no Positions chips on the card (D117)', async () => {
+    await parent.goto('/team/positions');
+    await expect(parent).toHaveURL(/\/team$/);
+    await parent.goto('/team');
+    await parent.getByRole('radio', { name: 'Roster' }).click();
+    await parent.locator('.group').getByRole('link', { name: /Ava/ }).click();
+    await expect(parent.getByRole('heading', { level: 1 })).toBeVisible();
+    await expect(parent.getByRole('group', { name: /positions/ })).toHaveCount(0);
   });
 
   test('parent game detail: rows wrap at 375px with no overlap (layout regression, D55)', async () => {

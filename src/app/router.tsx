@@ -172,6 +172,12 @@ export const routes: RouteObject[] = [
                         ),
                       },
                       {
+                        path: '/team/positions',
+                        element: lazyPage(() =>
+                          import('@/roster/PositionsPage').then((m) => ({ default: m.PositionsPage })),
+                        ),
+                      },
+                      {
                         path: '/team/sheet',
                         element: lazyPage(() =>
                           import('@/roster/TeamSheetPage').then((m) => ({ default: m.TeamSheetPage })),

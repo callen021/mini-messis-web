@@ -15,6 +15,15 @@ export interface TimeRank {
 
 export interface FillOptions {
   random?: () => number;
+  /** Eligible positions (D117): false keeps the player out of a spot of that position group. */
+  eligible?: (playerId: string, group: string) => boolean;
+}
+
+export interface FillResult {
+  period: Period;
+  filled: number;
+  /** Position codes of spots left open because nobody available was eligible for them (D117). */
+  skipped: string[];
 }
 
 /**
@@ -28,12 +37,12 @@ export function fillByTime(
   sport: SportDefinition,
   candidates: readonly { id: string }[],
   rank: ReadonlyMap<string, TimeRank>,
-  { random = Math.random }: FillOptions = {},
-): { period: Period; filled: number } {
+  { random = Math.random, eligible }: FillOptions = {},
+): FillResult {
   const slots = [...period.slots];
   const auto = [...period.auto];
   const open = formation.positions.map((_, i) => i).filter((i) => !slots[i]);
-  if (!open.length) return { period, filled: 0 };
+  if (!open.length) return { period, filled: 0, skipped: [] };
   open.sort(
     (a, b) => Number(formation.positions[b]?.role === 'GK') - Number(formation.positions[a]?.role === 'GK'),
   );
@@ -41,12 +50,19 @@ export function fillByTime(
   const secs = (id: string) => rank.get(id)?.seconds ?? 0;
   const groupSecs = (id: string, g: string) => rank.get(id)?.byGroup[g] ?? 0;
   let filled = 0;
+  const skipped: string[] = [];
   for (const i of open) {
     const pos = formation.positions[i];
     if (!pos) continue;
     const g = sport.group(pos.role);
-    const bench = candidates.filter((c) => !slots.includes(c.id));
-    if (!bench.length) break;
+    const left = candidates.filter((c) => !slots.includes(c.id));
+    if (!left.length) break;
+    // a group marked never (D117) keeps the player out; nobody eligible leaves the spot open and flags it
+    const bench = eligible ? left.filter((c) => eligible(c.id, g)) : left;
+    if (!bench.length) {
+      skipped.push(pos.code);
+      continue;
+    }
     bench.sort(
       (a, b) =>
         secs(a.id) - secs(b.id) ||
@@ -62,6 +78,7 @@ export function fillByTime(
   return {
     period: { formation: period.formation, slots, auto: [...new Set(auto)].sort((a, b) => a - b) },
     filled,
+    skipped,
   };
 }
 
@@ -75,9 +92,9 @@ export function suggestStarters(
   available: readonly { id: string }[],
   rank: ReadonlyMap<string, TimeRank>,
   options: FillOptions = {},
-): Period {
+): FillResult {
   const empty: Period = { formation: formation.name, slots: formation.positions.map(() => ''), auto: [] };
-  return fillByTime(empty, formation, sport, available, rank, options).period;
+  return fillByTime(empty, formation, sport, available, rank, options);
 }
 
 /** Minutes this game per player and position group, from the stints (for the halftime suggestion). */

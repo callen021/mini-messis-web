@@ -19,6 +19,8 @@ import { NewGameSheet } from '@/games/NewGameSheet';
 import { ScorePanel } from '@/games/ScorePanel';
 import { describeEvent, scoreNoun as scoreNounFor, scoreTapAllowed } from '@/games/scoring';
 import { errorMessage } from '@/lib/supabase';
+import { useEligibility } from '@/players/api';
+import { eligibleFn, skippedText } from '@/players/eligibility';
 import { usePlannedGame } from '@/rsvp/api';
 import { heldOutNote, outCaption } from '@/rsvp/rsvp';
 import { useUIStore } from '@/lib/ui-store';
@@ -92,6 +94,7 @@ export function ClockFieldPage() {
   const startGame = useStartGame(teamId);
   const confirmStart = useStartCheck(teamId);
   const seasonMinutes = useSeasonMinutes(teamId, isStaff);
+  const eligibility = useEligibility(teamId, isStaff);
   const [selected, setSelected] = useState<Selection>([]);
   const [flashing, flash] = useFlash();
   const [scoring, setScoring] = useState(false);
@@ -477,17 +480,30 @@ export function ClockFieldPage() {
       },
       { onError, onSuccess: () => toast(msg) },
     );
+  // eligible positions (D117): a group marked never keeps the player out of the picks
+  const eligible = eligibleFn(eligibility.data);
+  const withSkipped = (msg: string, skipped: readonly string[]) =>
+    skipped.length ? `${msg} · ${skippedText(skipped)}` : msg;
   const onAutoFill = () => {
     if (!shown) return;
     const p: Period = { formation: formation.name, slots: [...slots], auto: [...shown.auto] };
     const offField = activePlayers.filter((pl) => !slots.includes(pl.id));
     const rank = seasonMinutes.data ?? new Map();
-    const r = fillByTime(p, formation, S, offField, rank);
+    const r = fillByTime(p, formation, S, offField, rank, { eligible });
     if (!r.filled) {
-      toast(offField.length ? 'No open spots' : 'Nobody left on the bench');
+      toast(
+        r.skipped.length
+          ? skippedText(r.skipped)
+          : offField.length
+            ? 'No open spots'
+            : 'Nobody left on the bench',
+      );
       return;
     }
-    const msg = `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled by season minutes`;
+    const msg = withSkipped(
+      `${r.filled} jersey${r.filled > 1 ? 's' : ''} filled by season minutes`,
+      r.skipped,
+    );
     if (live) sendLineup(r.period, msg);
     else commitTemplate(r.period, msg);
   };
@@ -500,7 +516,8 @@ export function ClockFieldPage() {
       })),
       S.group,
     );
-    sendLineup(suggestStarters(formation, S, activePlayers, rank), 'Starters picked by minutes this game');
+    const r = suggestStarters(formation, S, activePlayers, rank, { eligible });
+    sendLineup(r.period, withSkipped('Starters picked by minutes this game', r.skipped));
   };
 
   const onClear = async () => {

@@ -308,3 +308,34 @@ describe('samplePlan', () => {
     expect(plan[0]?.slots).toEqual(['a', 'b', '', '', '', '', '']);
   });
 });
+
+describe('autoFill with eligible positions (D117)', () => {
+  const plan4 = () => Array.from({ length: 4 }, () => emptyPeriod(f33));
+
+  it('never places a player in a group marked never', () => {
+    const eligible = (id: string, g: string) => !(id === 'p1' && g === 'GK');
+    for (let i = 0; i < 20; i++) {
+      const { periods, skipped } = autoFill(plan4(), 0, forms, S, players, { eligible });
+      expect(periods[0]?.slots[6]).not.toBe('p1');
+      expect(skipped).toEqual([]);
+    }
+  });
+
+  it('leaves a spot open and names it when nobody eligible is left', () => {
+    const few = players.slice(0, 3);
+    const { periods, filled, skipped } = autoFill(plan4(), 0, forms, S, few, {
+      random: seq(),
+      eligible: (_, g) => g !== 'GK',
+    });
+    expect(filled).toBe(3);
+    expect(periods[0]?.slots[6]).toBe('');
+    expect(skipped).toEqual(['GK']);
+    const all = autoFillAll(plan4(), forms, S, few, { random: seq(), eligible: (_, g) => g !== 'GK' });
+    expect(all.skipped).toEqual(['GK', 'GK', 'GK', 'GK']);
+  });
+
+  it('without the option everyone is eligible and nothing is skipped', () => {
+    const { skipped } = autoFillAll(plan4(), forms, S, players, { random: seq() });
+    expect(skipped).toEqual([]);
+  });
+});

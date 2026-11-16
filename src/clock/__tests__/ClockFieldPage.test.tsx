@@ -94,6 +94,7 @@ let plannedGame: {
   status: 'upcoming';
 } | null = null;
 const startGame = vi.fn();
+vi.mock('@/players/api', () => ({ useEligibility: () => ({ data: undefined, isPending: false }) }));
 vi.mock('@/rsvp/api', () => ({
   usePlannedGame: () => ({
     game: plannedGame,

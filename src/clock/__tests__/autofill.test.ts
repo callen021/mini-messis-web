@@ -61,7 +61,7 @@ describe('auto-fill by minutes (D71)', () => {
 
   it('suggestStarters re-picks every spot by minutes this game', () => {
     const r = rank({ p1: { seconds: 1500 }, p2: { seconds: 1500 }, p3: { seconds: 1500 } });
-    const out = suggestStarters(f33, S, ids, r, { random: seq() });
+    const out = suggestStarters(f33, S, ids, r, { random: seq() }).period;
     expect(out.slots.filter(Boolean)).toHaveLength(7);
     expect(out.slots).not.toContain('p1');
     expect(out.slots).not.toContain('p2');
@@ -82,5 +82,46 @@ describe('rankFromStints', () => {
     );
     expect(r.get('a')).toEqual({ seconds: 150, byGroup: { GK: 100, ST: 50 } });
     expect(r.get('b')).toEqual({ seconds: 20, byGroup: { DEF: 20 } });
+  });
+});
+
+describe('eligible positions (D117)', () => {
+  it('never places a player in a group marked never, and flags a spot nobody eligible can take', () => {
+    const period: Period = { formation: '3-3', slots: ['', '', '', '', '', '', ''], auto: [] };
+    // p1 has the fewest seconds but never plays in goal
+    const r = rank({
+      p1: { seconds: 0 },
+      p2: { seconds: 10 },
+      p3: { seconds: 20 },
+      p4: { seconds: 30 },
+      p5: { seconds: 40 },
+      p6: { seconds: 50 },
+      p7: { seconds: 60 },
+    });
+    const eligible = (id: string, g: string) => !(id === 'p1' && g === 'GK');
+    const out = fillByTime(period, f33, S, ids.slice(0, 7), r, { random: seq(), eligible });
+    expect(out.filled).toBe(7);
+    expect(out.skipped).toEqual([]);
+    expect(out.period.slots[6]).toBe('p2'); // the keeper spot skips p1
+    expect(out.period.slots).toContain('p1'); // but p1 still plays, elsewhere
+    // nobody may keep goal: the spot stays open and is named
+    const none = fillByTime(period, f33, S, ids.slice(0, 3), r, {
+      random: seq(),
+      eligible: (_, g) => g !== 'GK',
+    });
+    expect(none.filled).toBe(3);
+    expect(none.period.slots[6]).toBe('');
+    expect(none.skipped).toEqual(['GK']);
+  });
+
+  it('suggestStarters honours it too', () => {
+    const out = suggestStarters(f33, S, ids.slice(0, 7), new Map(), {
+      random: seq(),
+      eligible: (id, g) => !(g === 'ST' && ['p1', 'p2', 'p3', 'p4', 'p5'].includes(id)),
+    });
+    // only p6 and p7 may play up front: two strikers filled, the third flagged
+    expect(out.period.slots.slice(0, 3).filter(Boolean).sort()).toEqual(['p6', 'p7']);
+    expect(out.skipped).toHaveLength(1);
+    expect(out.filled).toBe(6);
   });
 });

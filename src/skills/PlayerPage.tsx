@@ -5,6 +5,7 @@ import { useMyChildLinks } from '@/lineups/api';
 import { type PlayerBackState, playerBack } from './playerBack';
 import { AllergiesSection } from '@/players/AllergiesSection';
 import { DetailsSection } from '@/players/DetailsSection';
+import { EligibilitySection } from '@/players/EligibilitySection';
 import { PeopleSection } from '@/players/PeopleSection';
 import { textColor } from '@/sports/colors';
 import { SPORTS } from '@/sports/definitions';
@@ -70,6 +71,14 @@ export function PlayerPage() {
       />
       {canEdit && <DetailsSection playerId={playerId} playerName={player.first_name} canEdit={canEdit} />}
       {canEdit && <AllergiesSection playerId={playerId} teamId={teamId} playerName={player.first_name} />}
+      {isStaff && (
+        <EligibilitySection
+          playerId={playerId}
+          playerName={player.first_name}
+          teamId={teamId}
+          sport={sport}
+        />
+      )}
     </Page>
   );
 }

@@ -4,6 +4,8 @@ import { Footer, Group, Section } from '@/components/List';
 import { Switch } from '@/components/Switch';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
+import { useEligibility } from '@/players/api';
+import { eligibleFn, skippedText } from '@/players/eligibility';
 import { usePlannedGame, useSetRsvp } from '@/rsvp/api';
 import { playerName, toEnginePlayers, useCurrentPlan, useFormations, useSavePlan } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
@@ -45,6 +47,7 @@ export function RotationView({
   const everyoneBack = useEveryoneBack(teamId);
   const planned = usePlannedGame(teamId);
   const setRsvp = useSetRsvp(teamId);
+  const eligibility = useEligibility(teamId, canEdit);
   const parentOut = planned.parentOut;
   const [picking, setPicking] = useState<{ player: Player; periodIndex: number } | null>(null);
 
@@ -105,11 +108,10 @@ export function RotationView({
       toast('No open spots');
       return;
     }
-    const r = autoFillAll(periods, forms, S, enginePlayers);
-    commit(
-      r.periods,
-      r.filled ? `${r.filled} spot${r.filled > 1 ? 's' : ''} filled` : 'Nobody left on the bench',
-    );
+    // eligible positions (D117): a group marked never keeps the player out of Auto-fill's picks
+    const r = autoFillAll(periods, forms, S, enginePlayers, { eligible: eligibleFn(eligibility.data) });
+    const msg = r.filled ? `${r.filled} spot${r.filled > 1 ? 's' : ''} filled` : 'Nobody left on the bench';
+    commit(r.periods, r.skipped.length ? `${msg} · ${skippedText(r.skipped)}` : msg);
   };
 
   const row = (p: Player, isOut: boolean) => (

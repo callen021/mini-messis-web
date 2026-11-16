@@ -1,5 +1,5 @@
 import { type FormEvent, useMemo, useState } from 'react';
-import { Link, useLocation } from 'react-router';
+import { Link, useLocation, useNavigate } from 'react-router';
 import { Badge } from '@/components/Badge';
 import { Button, Toolbar } from '@/components/Button';
 import { Field, TextInput } from '@/components/Form';
@@ -41,6 +41,7 @@ export function RosterView({
   const toast = useToast();
   const sheet = useActionSheet();
   const location = useLocation();
+  const navigate = useNavigate();
   const plan = useCurrentPlan(teamId);
   const directory = useRosterDirectory(teamId);
   const ids = useMemo(() => players.map((p) => p.id), [players]);
@@ -177,6 +178,11 @@ export function RosterView({
           <Button variant={editing ? 'primary' : 'tinted'} onClick={() => setEditing((v) => !v)}>
             {editing ? 'Done' : 'Edit roster'}
           </Button>
+          {editing && S.eligibility && (
+            <Button variant="gray" onClick={() => void navigate('/team/positions')}>
+              Positions
+            </Button>
+          )}
           {!editing && (
             <Button variant="gray" onClick={addAll} disabled={!contactCount}>
               Add all to contacts

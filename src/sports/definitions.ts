@@ -136,6 +136,12 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
       ['GK', 'Goalkeeper'],
     ],
     defaultColors: { ST: DEFAULT_JERSEY, MID: DEFAULT_JERSEY, DEF: DEFAULT_JERSEY, GK: DEFAULT_JERSEY },
+    eligibility: [
+      ['GK', 'Goalie'],
+      ['DEF', 'Defense'],
+      ['MID', 'Midfield'],
+      ['ST', 'Forward'],
+    ],
     defaultFormation: '3-3',
     group: (r) => r,
     label: lookup({ ST: 'STRIKER', MID: 'MIDFIELD', DEF: 'DEFENDER', GK: 'GOALIE' }),
@@ -179,6 +185,12 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
       ['OF', 'Outfielders'],
     ],
     defaultColors: { P: DEFAULT_JERSEY, C: DEFAULT_JERSEY, IF: DEFAULT_JERSEY, OF: DEFAULT_JERSEY },
+    eligibility: [
+      ['P', 'Pitcher'],
+      ['C', 'Catcher'],
+      ['IF', 'Infield'],
+      ['OF', 'Outfield'],
+    ],
     group: (r) =>
       r === 'P' ? 'P' : r === 'C' ? 'C' : ['LF', 'CF', 'RF', 'LCF', 'RCF'].includes(r) ? 'OF' : 'IF',
     label: lookup({
@@ -231,6 +243,11 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
       ['C', 'Center'],
     ],
     defaultColors: { G: DEFAULT_JERSEY, F: DEFAULT_JERSEY, C: DEFAULT_JERSEY },
+    eligibility: [
+      ['G', 'Guard'],
+      ['F', 'Forward'],
+      ['C', 'Center'],
+    ],
     group: (r) => (['PG', 'SG', 'G'].includes(r) ? 'G' : r === 'C' ? 'C' : 'F'),
     label: lookup({
       PG: 'POINT',
@@ -330,6 +347,12 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
       ['GK', 'Goalie'],
     ],
     defaultColors: { ATT: DEFAULT_JERSEY, MID: DEFAULT_JERSEY, DEF: DEFAULT_JERSEY, GK: DEFAULT_JERSEY },
+    eligibility: [
+      ['GK', 'Goalie'],
+      ['DEF', 'Defense'],
+      ['MID', 'Midfield'],
+      ['ATT', 'Attack'],
+    ],
     defaultFormation: '3-3-3',
     group: (r) => r,
     label: lookup({ ATT: 'ATTACK', MID: 'MIDFIELD', DEF: 'DEFENSE', GK: 'GOALIE' }),

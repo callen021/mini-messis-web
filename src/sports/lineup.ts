@@ -178,11 +178,18 @@ export interface AutoFillOptions {
   redo?: boolean;
   /** Random source for tie-breaks (injectable for tests). */
   random?: () => number;
+  /**
+   * Eligible positions (D117): false keeps the player out of a spot of that position group.
+   * Absent, everyone may play anywhere.
+   */
+  eligible?: (playerId: string, group: string) => boolean;
 }
 
 export interface AutoFillResult {
   periods: Period[];
   filled: number;
+  /** Position codes of spots left open because nobody on the bench was eligible for them (D117). */
+  skipped: string[];
 }
 
 export function autoFill(
@@ -191,10 +198,10 @@ export function autoFill(
   forms: readonly Formation[],
   sport: SportDefinition,
   players: readonly EnginePlayer[],
-  { redo = false, random = Math.random }: AutoFillOptions = {},
+  { redo = false, random = Math.random, eligible }: AutoFillOptions = {},
 ): AutoFillResult {
   const src = periods[periodIndex];
-  if (!src) return { periods: [...periods], filled: 0 };
+  if (!src) return { periods: [...periods], filled: 0, skipped: [] };
   const f = formationByName(forms, src.formation);
   const q: Period = { formation: src.formation, slots: [...src.slots], auto: cleanAuto(src.auto, src.slots) };
   if (redo) {
@@ -202,7 +209,7 @@ export function autoFill(
     q.auto = [];
   }
   const open = f.positions.map((_, i) => i).filter((i) => !q.slots[i]);
-  if (!open.length) return { periods: [...periods], filled: 0 };
+  if (!open.length) return { periods: [...periods], filled: 0, skipped: [] };
 
   const working = periods.map((p, i) => (i === periodIndex ? q : p));
   const c = counts(working, players);
@@ -227,13 +234,20 @@ export function autoFill(
   open.sort((a, b) => Number(f.positions[b]?.role === 'GK') - Number(f.positions[a]?.role === 'GK'));
 
   let filled = 0;
+  const skipped: string[] = [];
   const bench0 = activePlayers(players);
   open.forEach((i) => {
     const pos = f.positions[i];
     if (!pos) return;
     const g = sport.group(pos.role);
-    const bench = bench0.filter((p) => !q.slots.includes(p.id));
-    if (!bench.length) return;
+    const left = bench0.filter((p) => !q.slots.includes(p.id));
+    if (!left.length) return;
+    // a group marked never (D117) keeps the player out; nobody eligible leaves the spot open and flags it
+    const bench = eligible ? left.filter((p) => eligible(p.id, g)) : left;
+    if (!bench.length) {
+      skipped.push(pos.code);
+      return;
+    }
     bench.sort(
       (a, b) =>
         (c[a.id] ?? 0) - (c[b.id] ?? 0) ||
@@ -248,7 +262,7 @@ export function autoFill(
     filled++;
   });
   q.auto.sort((a, b) => a - b);
-  return { periods: working, filled };
+  return { periods: working, filled, skipped };
 }
 
 /** Auto-fill every period in order. */
@@ -261,12 +275,14 @@ export function autoFillAll(
 ): AutoFillResult {
   let cur: Period[] = [...periods];
   let filled = 0;
+  const skipped: string[] = [];
   for (let i = 0; i < cur.length; i++) {
     const r = autoFill(cur, i, forms, sport, players, options);
     cur = r.periods;
     filled += r.filled;
+    skipped.push(...r.skipped);
   }
-  return { periods: cur, filled };
+  return { periods: cur, filled, skipped };
 }
 
 /** Number of open slots across a plan. */

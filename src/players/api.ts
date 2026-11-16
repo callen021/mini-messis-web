@@ -3,6 +3,7 @@ import { type Enums, type Tables } from '@/lib/database.types';
 import { normalizePhone } from '@/lib/phone';
 import { supabase } from '@/lib/supabase';
 import { type DbErrorLike, dbError } from '@/lib/errors';
+import { type Eligibility, NO_ELIGIBILITY, type PrefLevel, toEligibility, withLevel } from './eligibility';
 
 /** Private player data (D52) and the shared contact directory (D57). RLS trims what each caller sees. */
 export type PlayerDetails = Tables<'player_details'>;
@@ -33,6 +34,8 @@ export const playerKeys = {
   directory: (teamId: string) => ['team', teamId, 'directory'] as const,
   teamContacts: (teamId: string) => ['team', teamId, 'contacts'] as const,
   teamSheet: (teamId: string) => ['team', teamId, 'sheet'] as const,
+  /** Eligible positions of the whole roster (D117), staff only. */
+  eligibility: (teamId: string) => ['team', teamId, 'eligibility'] as const,
 };
 
 const fail = (error: DbErrorLike | null) => {
@@ -162,6 +165,69 @@ export function useTeamAllergySummary(teamId: string, enabled = true) {
     },
     enabled,
     staleTime: 60_000,
+  });
+}
+
+/* ---------- eligible positions (D117, staff only) ---------- */
+
+/**
+ * The roster's position preferences as one map (a missing entry is "can play"). RLS returns
+ * nothing to a parent, so the hook is only enabled for staff and never shows a parent anything.
+ */
+export function useEligibility(teamId: string, enabled = true) {
+  return useQuery({
+    queryKey: playerKeys.eligibility(teamId),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('player_position_prefs')
+        .select('player_id, group_key, level, players!inner(team_id)')
+        .eq('players.team_id', teamId);
+      fail(error);
+      return toEligibility((data ?? []) as { player_id: string; group_key: string; level: PrefLevel }[]);
+    },
+    enabled,
+    staleTime: 60_000,
+  });
+}
+
+/** One cell of the grid: "can" removes the row, anything else upserts it. Optimistic on the map. */
+export function useSetEligibility(teamId: string) {
+  const qc = useQueryClient();
+  const key = playerKeys.eligibility(teamId);
+  return useMutation({
+    mutationFn: async ({ playerId, group, level }: { playerId: string; group: string; level: PrefLevel }) => {
+      if (level === 'can') {
+        fail(
+          (
+            await supabase
+              .from('player_position_prefs')
+              .delete()
+              .eq('player_id', playerId)
+              .eq('group_key', group)
+          ).error,
+        );
+      } else {
+        fail(
+          (
+            await supabase
+              .from('player_position_prefs')
+              .upsert({ player_id: playerId, group_key: group, level }, { onConflict: 'player_id,group_key' })
+          ).error,
+        );
+      }
+    },
+    onMutate: async ({ playerId, group, level }) => {
+      await qc.cancelQueries({ queryKey: key });
+      const previous = qc.getQueryData<Eligibility>(key);
+      qc.setQueryData(key, withLevel(previous ?? NO_ELIGIBILITY, playerId, group, level));
+      return { previous };
+    },
+    onError: (_e, _v, ctx) => {
+      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
+    },
+    onSettled: () => {
+      void qc.invalidateQueries({ queryKey: key });
+    },
   });
 }
 

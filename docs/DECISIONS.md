@@ -1498,3 +1498,31 @@ any blank field, the other row is deleted; allowed to whoever may edit both rows
 `scripts/contact-duplicates-dry-run.sql` lists every phone/email pair (to be merged) and every
 name-only pair (for the coaches to decide) across all teams; `contact-duplicates-apply.sql`
 merges the phone/email pairs only, after approval. pgTAP 27.
+
+## 2026-11-16 — Eligible positions, basketball stats, softball
+
+### D117. Eligible positions: a grid per team, never for Auto-fill, never a block by hand
+
+Coaches asked for "Nolan never in goal" without losing Auto-fill. Every sport but volleyball now
+has position groups in the coach's words (`SportDefinition.eligibility`: soccer Goalie, Defense,
+Midfield, Forward; basketball Guard, Forward, Center; lacrosse Goalie, Defense, Midfield, Attack;
+baseball and softball Pitcher, Catcher, Infield, Outfield; hockey Goalie, Defense, Forward when it
+lands), keyed by what `group(role)` already returns, so every formation spot maps to one group.
+
+- `player_position_prefs` keeps one of preferred / can / never per player and group; "can" is the
+  default and is stored as no row (a tap back to can deletes the row). Preferred is stored for a
+  later round and not offered yet. RLS: staff of the player's team only (`is_staff` through
+  `team_of_player`); a parent, even the player's own confirmed parent, reads nothing and cannot
+  write. The hook is only enabled for staff as well. pgTAP 28.
+- Both engines take an `eligible(playerId, group)` predicate: `autoFill` / `autoFillAll` (period
+  mode: the Field cards, the Rotation grid) and `fillByTime` / `suggestStarters` (clock mode:
+  Auto-fill by season minutes, Suggest starters at a break). The ranking is unchanged (fewest
+  time first, a turn in each group, random tie-break); a player marked never is simply not a
+  candidate for that spot. When nobody left on the bench may take a spot it stays open and the
+  result names it (`skipped`), and the toast says "GK left open · nobody eligible". Placing a
+  player by hand, tapping a jersey or a bench player, a sub on the clock, is never blocked and
+  never warned about.
+- The grid is `/team/positions` (`PositionsPage`): players down, groups across, a tick for can
+  play, a dash for never, one tap toggles. Reached from the Team tab's Edit roster toolbar
+  (Positions) and the player card shows the same groups as chips (`EligibilitySection`, staff
+  only). A parent who types the URL is sent back to the Team tab.

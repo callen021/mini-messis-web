@@ -30,6 +30,7 @@ vi.mock('../api', () => ({
   useSetAvailable: () => ({ mutate: setAvailableMutate }),
   useEveryoneBack: () => ({ mutate: vi.fn() }),
 }));
+vi.mock('@/players/api', () => ({ useEligibility: () => ({ data: undefined, isPending: false }) }));
 vi.mock('@/rsvp/api', () => ({
   usePlannedGame: () => ({
     game: null,

@@ -2892,3 +2892,72 @@ a.prow.dir .pname {
 .snacknote.warn b {
   color: var(--red);
 }
+
+/* ---------- eligible positions grid (D117) ---------- */
+.posgrid-wrap {
+  overflow-x: auto;
+}
+.posgrid {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 15px;
+}
+.posgrid th,
+.posgrid td {
+  padding: 4px 6px;
+  text-align: center;
+  border-bottom: 1px solid var(--sep);
+}
+.posgrid thead th {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text2);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding-top: 10px;
+  padding-bottom: 8px;
+}
+.posgrid th.pname {
+  text-align: left;
+  font-weight: 600;
+  padding-left: 14px;
+  position: sticky;
+  left: 0;
+  background: var(--panel);
+  z-index: 1;
+  min-width: 96px;
+}
+.posgrid th.pname small {
+  margin-left: 4px;
+  color: var(--text3);
+  font-weight: 500;
+}
+.posgrid tr.out th.pname {
+  color: var(--text3);
+}
+.posgrid tbody tr:last-child th,
+.posgrid tbody tr:last-child td {
+  border-bottom: 0;
+}
+.poscell {
+  width: 44px;
+  height: 40px;
+  border: 0;
+  border-radius: 10px;
+  font: inherit;
+  font-size: 18px;
+  font-weight: 800;
+  background: var(--fill);
+  color: var(--text3);
+}
+.poscell.can {
+  background: color-mix(in srgb, var(--tint) 16%, var(--panel));
+  color: var(--tint);
+}
+.poscell.never {
+  background: var(--fill);
+  color: var(--text3);
+}
+.poscell:active {
+  transform: scale(0.94);
+}
