@@ -1,5 +1,6 @@
 /** Sport keys. Football is defined but disabled in the UI, exactly as the legacy `ENABLED_SPORTS`. */
-export type SportKey = 'soccer' | 'baseball' | 'softball' | 'basketball' | 'lacrosse' | 'football';
+export type SportKey =
+  'soccer' | 'baseball' | 'softball' | 'basketball' | 'lacrosse' | 'volleyball' | 'football';
 
 export const ALL_SPORTS: readonly SportKey[] = [
   'soccer',
@@ -7,6 +8,7 @@ export const ALL_SPORTS: readonly SportKey[] = [
   'softball',
   'basketball',
   'lacrosse',
+  'volleyball',
   'football',
 ];
 export const ENABLED_SPORTS: readonly SportKey[] = [
@@ -15,6 +17,7 @@ export const ENABLED_SPORTS: readonly SportKey[] = [
   'softball',
   'basketball',
   'lacrosse',
+  'volleyball',
 ];
 
 export const isSportKey = (v: unknown): v is SportKey =>
@@ -57,7 +60,7 @@ export interface SportDefinition {
   hasGK: boolean;
   defaultPeriods: number;
   periodOptions: readonly number[];
-  /** "Quarter" / "Half" / "Inning" for a game with `n` periods. */
+  /** "Quarter" / "Half" / "Inning" / "Set" for a game with `n` periods. */
   periodName: (n: number) => string;
   /** "on the field" / "in the field" / "on the court". */
   unit: string;
@@ -144,7 +147,10 @@ export type StatKey =
   | 'avg'
   | 'rebounds'
   | 'steals'
-  | 'fouls';
+  | 'fouls'
+  /** Volleyball (D121): sets with a stint, and points on court (the stint length). */
+  | 'sets_played'
+  | 'points_played';
 
 export interface ScoringRules {
   /** Event kinds in display order; the first is the default (`goal`, `field_goal`, `run`). */

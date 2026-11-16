@@ -39,6 +39,8 @@ export interface JerseyProps {
   pickable?: boolean;
   /** The jersey's place in the tap queue (D113): a numbered badge, 1 first. */
   badge?: number;
+  /** Volleyball (D121): this player serves next — a ball badge. */
+  serving?: boolean;
 }
 
 /**
@@ -63,6 +65,7 @@ export const Jersey = memo(function Jersey({
   heldOut,
   pickable,
   badge,
+  serving,
 }: JerseyProps) {
   const open = !name;
   const tc = textColor(color);
@@ -113,6 +116,11 @@ export const Jersey = memo(function Jersey({
       {heldOut && !open && (
         <span className="outbadge" title="Marked out for this game" aria-hidden="true">
           OUT
+        </span>
+      )}
+      {serving && !open && (
+        <span className="ballbadge" title="Serving" aria-hidden="true">
+          🏐
         </span>
       )}
       {time && <span className="jtime">{time}</span>}

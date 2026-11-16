@@ -23,6 +23,7 @@ import {
   starters,
 } from './clock';
 import { parseClock, stintProblem } from './stintEdit';
+import { pointsLabel } from './volleyball';
 import { useServerNow } from './useNow';
 
 /**
@@ -48,6 +49,9 @@ export function PlayingTimeSection({
 }) {
   const { teamId, team, sport } = useCurrentTeam();
   const N = team.clock_periods;
+  // volleyball (D121): the stint "seconds" are points; the minute editor does not apply
+  const vb = sport === 'volleyball';
+  const played = (seconds: number) => (vb ? pointsLabel(seconds) : formatMinutes(seconds));
   const clockQ = useGameClock(gameId, true, status === 'live');
   const stintsQ = useStints(gameId, true, status === 'live');
   const changesQ = useFormationChanges(gameId);
@@ -78,7 +82,7 @@ export function PlayingTimeSection({
     .sort(
       (a, b) => (b.t?.seconds ?? 0) - (a.t?.seconds ?? 0) || names.name(a.id).localeCompare(names.name(b.id)),
     );
-  const editable = canEdit && status === 'done';
+  const editable = canEdit && status === 'done' && !vb;
 
   return (
     <>
@@ -117,7 +121,7 @@ export function PlayingTimeSection({
             onClick={editable ? () => setEditing(id) : undefined}
             label={names.name(id) || 'Removed player'}
             detail={`${t?.shifts ?? 0} shift${t?.shifts === 1 ? '' : 's'}${t?.onField ? ` · on the field at ${t.code}` : ''}`}
-            value={formatMinutes(t?.seconds ?? 0)}
+            value={played(t?.seconds ?? 0)}
             chevron={editable}
           />
         ))}

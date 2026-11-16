@@ -65,6 +65,8 @@ import { useFlash } from './useFlash';
 import { serverNow } from './serverTime';
 import { useSaveStarters } from './template';
 import { useWakeLock } from './useWakeLock';
+import { VolleyballBar } from './VolleyballBar';
+import { matchDecided, pointsLabel, setTarget, setWon, setsState } from './volleyball';
 
 /**
  * The Field tab for a team that tracks playing time by the clock (D70). One field for the whole
@@ -131,6 +133,10 @@ export function ClockFieldPage() {
   const canLog = canLogGame(live, viewer);
   const keep = useKeepStats(teamId);
   const quickScoring = sport === 'basketball' && !!live && canLog;
+  // volleyball (D121): no clock — the points of the set are its seconds and the sets its periods;
+  // the point bar under the court replaces the clock controls
+  const vb = sport === 'volleyball';
+  const vbScoring = vb && !!live && canLog;
   const picking = pendingPts !== null || pendingStat !== null;
   // soccer may change shape mid-game while the clock is paused (D108); every sport may at 0:00
   const canChangeFormationLive = !!live && sport === 'soccer' && !running;
@@ -143,7 +149,7 @@ export function ClockFieldPage() {
   }
   /** After a sub or a score: if the game is on but the clock is not, say so (never start it). */
   const nudgeIfPaused = () => {
-    if (live && !running && !fullTime) setNudge(true);
+    if (live && !running && !fullTime && !vb) setNudge(true);
   };
   // the page never ticks (D95): the clock, the shift times and the period alert tick on their own
   // inside leaf components, so an open sheet is never re-rendered or remounted by the clock
@@ -205,6 +211,10 @@ export function ClockFieldPage() {
   );
   const scoreNoun = scoreNounFor(S);
   const onError = (e: unknown) => toast(errorMessage(e));
+  // volleyball: sets won so far and the current set's points; the match may be decided before the last set
+  const sets = setsState(log, N, clock.periodIndex);
+  const matchOver = vb && !!live && matchDecided(sets, N, clock.periodIndex);
+  const shownScore = vb ? { us: sets.setUs, them: sets.setThem } : score;
 
   /**
    * A live lineup change (D113): the page shows `next` at once, the server calls run one after
@@ -596,6 +606,23 @@ export function ClockFieldPage() {
       );
   };
 
+  /** Volleyball (D121): end the set by hand; the next starts with the same six at zero. */
+  const endSet = async () => {
+    const last = clock.periodIndex >= N - 1;
+    const ok = await sheet({
+      title: `End set ${periodIndex + 1} at ${sets.setUs}–${sets.setThem}?`,
+      message: last
+        ? 'That is the last set. Finish the match from the game page when the score is in.'
+        : `The same six start set ${periodIndex + 2}; the first serve goes to the other side.`,
+      actions: [{ label: `End set ${periodIndex + 1}`, value: true }],
+    });
+    if (ok)
+      act.mutate(
+        { kind: 'vb_end_set' },
+        { onError, onSuccess: () => toast(last ? 'Match over' : `Set ${periodIndex + 2}`) },
+      );
+  };
+
   const onRename = (name: string) => {
     const next = name || team.name;
     if (next === team.name) return;
@@ -642,15 +669,15 @@ export function ClockFieldPage() {
     const inner = (
       <>
         <small>US</small>
-        <b>{score.us}</b>
+        <b>{shownScore.us}</b>
         <i aria-hidden="true">–</i>
-        <b>{score.them}</b>
+        <b>{shownScore.them}</b>
         <small>THEM</small>
       </>
     );
     if (!canLog) {
       return live ? (
-        <span className="score live" aria-label={`Score ${score.us} to ${score.them}`}>
+        <span className="score live" aria-label={`Score ${shownScore.us} to ${shownScore.them}`}>
           {inner}
         </span>
       ) : null;
@@ -661,7 +688,7 @@ export function ClockFieldPage() {
         className={`score${live ? ' live' : ''}`}
         aria-label={
           live
-            ? `Score ${score.us} to ${score.them}. Add a ${scoreNoun}`
+            ? `Score ${shownScore.us} to ${shownScore.them}. Add a ${scoreNoun}`
             : `Start a game and record ${S.scoring.unitPlural.toLowerCase()}`
         }
         onClick={() => (live ? setScoring(true) : void startFlow())}
@@ -678,12 +705,18 @@ export function ClockFieldPage() {
     planned.game?.opponent ?? null,
   );
   const outText = outCaption(allPlayers, parentOut, planned.byParent);
-  const title = live ? (fullTime ? 'Full time' : shortPeriod(S, N, periodIndex)) : 'Starters';
+  const title = live
+    ? fullTime || matchOver
+      ? vb
+        ? 'Match over'
+        : 'Full time'
+      : shortPeriod(S, N, periodIndex)
+    : 'Starters';
   // who keeps the stats (D120) rides on the title line unless the bar below offers a takeover
   const keeperNote = live && !canKeepStats(live, viewer) ? keeperText(live, userId) : null;
   const sub = live
-    ? `Live vs ${live.opponent}${keeperNote ? ` · ${keeperNote}` : ''}`
-    : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${periodCountText(S, N)} on the clock${isStaff ? ' · tap jerseys to set the starters · tap the score to start a game' : ''}`;
+    ? `Live vs ${live.opponent}${vb && N > 1 ? ` · sets ${sets.us}–${sets.them}` : ''}${keeperNote ? ` · ${keeperNote}` : ''}`
+    : `${team.side_size} ${S.unit}${S.hasGK ? (team.has_gk ? ' incl. goalie' : ', no goalie') : ''} · ${vb ? `best of ${N}` : `${periodCountText(S, N)} on the clock`}${isStaff ? ' · tap jerseys to set the starters · tap the score to start a game' : ''}`;
 
   return (
     <section className="page">
@@ -712,7 +745,7 @@ export function ClockFieldPage() {
       <span className="sr-only" aria-live="polite">
         {saveStarters.isPending || act.isPending ? 'Saving' : ''}
       </span>
-      {live && (
+      {live && !vb && (
         <PeriodOverAlert
           gameId={live.id}
           clock={clock}
@@ -721,7 +754,7 @@ export function ClockFieldPage() {
           label={shortPeriod(S, N, periodIndex)}
         />
       )}
-      {live && nudge && !running && !fullTime && (
+      {live && nudge && !running && !fullTime && !vb && (
         <div className="nudge" role="status">
           <span>Clock is paused</span>
           <Button
@@ -794,15 +827,75 @@ export function ClockFieldPage() {
           onTapBench={(playerId) => tap({ kind: 'bench', playerId })}
           headerExtra={
             <>
-              {live && <ClockDisplay state={clock} periodMinutes={team.period_minutes} fullTime={fullTime} />}
+              {live && !vb && (
+                <ClockDisplay state={clock} periodMinutes={team.period_minutes} fullTime={fullTime} />
+              )}
               {scoreButton()}
             </>
           }
           benchEmptyText={`Everyone is ${S.unit}`}
           parentOut={parentOut}
           outText={outText}
+          timeLabel={vb ? pointsLabel : undefined}
+          servingSlot={vb && live?.vb_serving === 'us' ? 0 : null}
         />
       </div>
+      {vbScoring && live && (
+        <VolleyballBar
+          opponent={live.opponent}
+          us={sets.setUs}
+          them={sets.setThem}
+          serving={live.vb_serving === 'us' || live.vb_serving === 'them' ? live.vb_serving : null}
+          over={matchOver}
+          disabled={act.isPending}
+          canRun={isStaff}
+          onPoint={(side) => {
+            if (!scoreTapAllowed()) return;
+            const us = sets.setUs + (side === 'us' ? 1 : 0);
+            const them = sets.setThem + (side === 'them' ? 1 : 0);
+            const won = setWon(us, them, setTarget(team, periodIndex, N), team.vb_win_by_two);
+            const sideOut = side === 'us' && live.vb_serving === 'them';
+            act.mutate(
+              { kind: 'vb_point', side },
+              {
+                onError,
+                onSuccess: () =>
+                  toast(
+                    won
+                      ? `Set ${periodIndex + 1} ${won === 'us' ? 'won' : 'lost'} ${us}–${them}`
+                      : sideOut
+                        ? `Side-out · ${us}–${them} · rotated`
+                        : `${side === 'us' ? 'Point' : live.opponent} · ${us}–${them}`,
+                  ),
+              },
+            );
+          }}
+          onServe={(side) =>
+            act.mutate(
+              { kind: 'vb_serve', side },
+              { onError, onSuccess: () => toast(side === 'us' ? 'We serve' : `${live.opponent} serve`) },
+            )
+          }
+          onRotate={() => act.mutate({ kind: 'vb_rotate' }, { onError, onSuccess: () => toast('Rotated') })}
+          onEndSet={() => void endSet()}
+          onUndo={() =>
+            act.mutate(
+              { kind: 'vb_undo' },
+              {
+                onError,
+                onSuccess: (kind) =>
+                  toast(
+                    kind === 'point'
+                      ? 'Point undone'
+                      : kind === 'rotate'
+                        ? 'Rotation undone'
+                        : 'Last change undone',
+                  ),
+              },
+            )
+          }
+        />
+      )}
       {quickScoring && !fullTime && (
         <QuickScoreRow
           S={S}
@@ -884,7 +977,25 @@ export function ClockFieldPage() {
       )}
       {isStaff ? (
         <>
-          {live ? (
+          {live && vb ? (
+            <Toolbar sticky className="mt-3 clockbar">
+              {!fullTime && !matchOver && atZero && (
+                <Button
+                  variant="tinted"
+                  disabled={act.isPending}
+                  onClick={periodIndex === 0 ? onAutoFill : onSuggest}
+                >
+                  {periodIndex === 0 ? 'Auto-fill' : 'Suggest starters'}
+                </Button>
+              )}
+              <Button
+                variant={fullTime || matchOver ? 'primary' : 'tinted'}
+                onClick={() => void navigate(`/games/${live.id}`)}
+              >
+                {fullTime || matchOver ? 'Finish on the game page' : 'Finish match'}
+              </Button>
+            </Toolbar>
+          ) : live ? (
             <Toolbar sticky className="mt-3 clockbar">
               {!fullTime && (
                 <Button
@@ -942,7 +1053,9 @@ export function ClockFieldPage() {
       ) : (
         <Footer className="noprint" style={{ marginTop: 14 }}>
           {live
-            ? 'The clock and substitutions update live as the coach makes them. Each jersey shows the current shift; minutes per player are on the Rotation view.'
+            ? vb
+              ? 'Points, rotations and substitutions update live as the coach scores. The ball marks the server; each jersey shows the points of the current shift.'
+              : 'The clock and substitutions update live as the coach makes them. Each jersey shows the current shift; minutes per player are on the Rotation view.'
             : highlight.size
               ? 'Your child’s jersey has a gold star and name. The starters update live while the coach edits them.'
               : 'The starters update live while the coach edits them.'}

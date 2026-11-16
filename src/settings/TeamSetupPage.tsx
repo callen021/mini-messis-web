@@ -30,7 +30,17 @@ type Setup = Pick<
   | 'time_mode'
   | 'clock_periods'
   | 'period_minutes'
+  | 'vb_set_points'
+  | 'vb_deciding_points'
+  | 'vb_win_by_two'
+  | 'vb_rotate_bench'
+  | 'vb_exit_spot'
+  | 'vb_entry_spot'
 >;
+
+/** Volleyball (D121): best of 1, 3 or 5 sets (the clock periods). */
+const SET_OPTIONS = [1, 3, 5] as const;
+const SPOT_NAMES = ['Right back', 'Right front', 'Middle front', 'Left front', 'Left back', 'Middle back'];
 
 /** Period counts a clock-mode game may have (D65, D97): one continuous game up to four quarters, six for innings. */
 const CLOCK_PERIOD_OPTIONS = [1, 2, 3, 4, 6] as const;
@@ -181,6 +191,9 @@ export function TeamSetupPage() {
   const clockPerIdx = Math.max(0, CLOCK_PERIOD_OPTIONS.indexOf(team.clock_periods as 1 | 2 | 3 | 4 | 6));
   // the mode and the clock period count are locked while a game is live (the database refuses too)
   const liveLock = !!live.data;
+  // volleyball (D121): sets instead of the clock rows; the set and rotation rules below them
+  const vb = sport === 'volleyball';
+  const setIdx = Math.max(0, SET_OPTIONS.indexOf(team.clock_periods as 1 | 3 | 5));
   const colors = (team.colors ?? {}) as Record<string, string>;
   const hint =
     sport === 'soccer'
@@ -211,28 +224,30 @@ export function TeamSetupPage() {
             onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
           />
         </Row>
-        <Row
-          label={`Players ${S.unit}`}
-          detail={
-            S.hasGK && team.has_gk
-              ? 'including the goalkeeper'
-              : S.lineup
-                ? 'fielders per inning'
-                : `per ${noun.toLowerCase()}`
-          }
-        >
-          <Stepper
+        {S.sizes.length > 1 && (
+          <Row
             label={`Players ${S.unit}`}
-            value={sizeIdx}
-            min={0}
-            max={S.sizes.length - 1}
-            display={String(team.side_size)}
-            onChange={(i) => {
-              const size = S.sizes[i];
-              if (size !== undefined) patch({ side_size: size }, `${size} ${S.unit}`);
-            }}
-          />
-        </Row>
+            detail={
+              S.hasGK && team.has_gk
+                ? 'including the goalkeeper'
+                : S.lineup
+                  ? 'fielders per inning'
+                  : `per ${noun.toLowerCase()}`
+            }
+          >
+            <Stepper
+              label={`Players ${S.unit}`}
+              value={sizeIdx}
+              min={0}
+              max={S.sizes.length - 1}
+              display={String(team.side_size)}
+              onChange={(i) => {
+                const size = S.sizes[i];
+                if (size !== undefined) patch({ side_size: size }, `${size} ${S.unit}`);
+              }}
+            />
+          </Row>
+        )}
         {S.lineup && (
           // baseball and softball (D119): nine fielders, or ten with a fourth outfielder
           <Row
@@ -269,34 +284,149 @@ export function TeamSetupPage() {
             <Switch label="Goalkeeper" checked={team.has_gk} onChange={(on) => patch({ has_gk: on })} />
           </Row>
         )}
-        <Row
-          label="Track playing time by"
-          detail={
-            liveLock
-              ? 'Finish the game in progress to change this'
-              : clock
-                ? 'A game clock with substitutions; minutes played come from the clock'
-                : `Lineups per ${noun.toLowerCase()}; playing time is counted in ${periodsNoun(S, N)}`
-          }
-        >
-          <Segmented<'periods' | 'clock'>
+        {!vb && (
+          <Row
             label="Track playing time by"
-            value={team.time_mode}
-            onChange={(v) => {
-              if (liveLock || v === team.time_mode) return;
-              patch(
-                { time_mode: v },
-                v === 'clock' ? 'Playing time by the clock' : 'Playing time by periods',
-              );
-            }}
-            style={{ width: 150, opacity: liveLock ? 0.5 : undefined }}
-            options={[
-              { value: 'periods', label: 'Periods' },
-              { value: 'clock', label: 'Clock' },
-            ]}
-          />
-        </Row>
-        {clock ? (
+            detail={
+              liveLock
+                ? 'Finish the game in progress to change this'
+                : clock
+                  ? 'A game clock with substitutions; minutes played come from the clock'
+                  : `Lineups per ${noun.toLowerCase()}; playing time is counted in ${periodsNoun(S, N)}`
+            }
+          >
+            <Segmented<'periods' | 'clock'>
+              label="Track playing time by"
+              value={team.time_mode}
+              onChange={(v) => {
+                if (liveLock || v === team.time_mode) return;
+                patch(
+                  { time_mode: v },
+                  v === 'clock' ? 'Playing time by the clock' : 'Playing time by periods',
+                );
+              }}
+              style={{ width: 150, opacity: liveLock ? 0.5 : undefined }}
+              options={[
+                { value: 'periods', label: 'Periods' },
+                { value: 'clock', label: 'Clock' },
+              ]}
+            />
+          </Row>
+        )}
+        {vb ? (
+          <>
+            <Row
+              label="Sets"
+              detail={
+                liveLock
+                  ? 'Locked while a match is live'
+                  : `Best of ${N} · playing time is counted in points and sets`
+              }
+            >
+              <Stepper
+                label="Sets"
+                value={setIdx}
+                min={0}
+                max={SET_OPTIONS.length - 1}
+                display={String(N)}
+                disabled={liveLock}
+                onChange={(i) => {
+                  const n = SET_OPTIONS[i];
+                  if (n !== undefined) patch({ clock_periods: n }, `Best of ${n}`);
+                }}
+              />
+            </Row>
+            <Row label="Points to win a set" detail="Win by two unless switched off below">
+              <input
+                key={team.vb_set_points}
+                className="inline"
+                type="number"
+                inputMode="numeric"
+                aria-label="Points to win a set"
+                min={5}
+                max={50}
+                defaultValue={team.vb_set_points}
+                style={{ width: 64, textAlign: 'right' }}
+                onBlur={(e) => {
+                  const n = Math.min(50, Math.max(5, Math.round(Number(e.target.value)) || 0));
+                  if (n >= 5 && n !== team.vb_set_points) patch({ vb_set_points: n }, `Sets to ${n}`);
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+              />
+            </Row>
+            <Row
+              label="Deciding set to"
+              detail={N > 1 ? `The last set of a best of ${N}` : 'Not used with one set'}
+            >
+              <input
+                key={team.vb_deciding_points}
+                className="inline"
+                type="number"
+                inputMode="numeric"
+                aria-label="Deciding set points"
+                min={5}
+                max={50}
+                defaultValue={team.vb_deciding_points}
+                style={{ width: 64, textAlign: 'right' }}
+                onBlur={(e) => {
+                  const n = Math.min(50, Math.max(5, Math.round(Number(e.target.value)) || 0));
+                  if (n >= 5 && n !== team.vb_deciding_points)
+                    patch({ vb_deciding_points: n }, `Deciding set to ${n}`);
+                }}
+                onKeyDown={(e) => e.key === 'Enter' && (e.target as HTMLInputElement).blur()}
+              />
+            </Row>
+            <Row label="Win by two" detail="A set goes on past the target until a side leads by two">
+              <Switch
+                label="Win by two"
+                checked={team.vb_win_by_two}
+                onChange={(on) =>
+                  patch({ vb_win_by_two: on }, on ? 'Win by two' : 'First to the target wins')
+                }
+              />
+            </Row>
+            <Row
+              label="Rotate through bench"
+              detail={
+                team.vb_rotate_bench
+                  ? `On a side-out the player at ${SPOT_NAMES[team.vb_exit_spot - 1]} (spot ${team.vb_exit_spot}) goes to the end of the bench and Up Next enters at ${SPOT_NAMES[team.vb_entry_spot - 1]} (spot ${team.vb_entry_spot})`
+                  : 'The six on court rotate; substitutions are by hand'
+              }
+            >
+              <Switch
+                label="Rotate through bench"
+                checked={team.vb_rotate_bench}
+                onChange={(on) =>
+                  patch({ vb_rotate_bench: on }, on ? 'Rotating through the bench' : 'Bench rotation off')
+                }
+              />
+            </Row>
+            {team.vb_rotate_bench && (
+              <>
+                <Row label="Exit spot" detail="Who leaves on a side-out">
+                  <Stepper
+                    label="Exit spot"
+                    value={team.vb_exit_spot - 1}
+                    min={0}
+                    max={5}
+                    display={String(team.vb_exit_spot)}
+                    onChange={(i) => patch({ vb_exit_spot: i + 1 }, `Exit at spot ${i + 1}`)}
+                  />
+                </Row>
+                <Row label="Entry spot" detail="Where Up Next comes in">
+                  <Stepper
+                    label="Entry spot"
+                    value={team.vb_entry_spot - 1}
+                    min={0}
+                    max={5}
+                    display={String(team.vb_entry_spot)}
+                    onChange={(i) => patch({ vb_entry_spot: i + 1 }, `Enter at spot ${i + 1}`)}
+                  />
+                </Row>
+              </>
+            )}
+          </>
+        ) : clock ? (
           <>
             <Row
               label={N === 1 ? 'Periods' : periodPlural(S, N, true)}

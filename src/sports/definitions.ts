@@ -1,6 +1,7 @@
 import {
   baseballFormations,
   basketballFormations,
+  volleyballFormations,
   footballFormations,
   lacrosseFormations,
   soccerFormations,
@@ -71,6 +72,25 @@ const BASKETBALL_SCORING: ScoringRules = {
     { type: 'assist', label: 'AST', noun: 'assist', question: 'Who made the assist?' },
     { type: 'steal', label: 'STL', noun: 'steal', question: 'Who got the steal?' },
     { type: 'foul', label: 'FOUL', noun: 'foul', question: 'Whose foul?' },
+  ],
+};
+
+/** Volleyball (D121): a point a rally, us or them; playing time is points and sets played. */
+const VOLLEYBALL_SCORING: ScoringRules = {
+  events: [{ type: 'point', label: 'Point', noun: 'point', points: 1 }],
+  panel: 'goal',
+  assists: false,
+  unitPlural: 'Sets',
+  columns: [
+    { key: 'games_played', label: 'GP', title: 'Games played' },
+    { key: 'sets_played', label: 'SETS', title: 'Sets played' },
+    { key: 'points_played', label: 'PTS', title: 'Points played' },
+  ],
+  hot: 'points_played',
+  profile: [
+    { key: 'points_played', label: 'Points on', title: 'Points played' },
+    { key: 'sets_played', label: 'Sets', title: 'Sets played' },
+    { key: 'games_played', label: 'Games', title: 'Games played' },
   ],
 };
 
@@ -386,6 +406,38 @@ export const SPORTS: Readonly<Record<SportKey, SportDefinition>> = {
       'Wade',
     ],
   },
+  // six on court in rotation spots 1–6, no clock, sets as the periods (D121)
+  volleyball: {
+    key: 'volleyball',
+    name: 'Volleyball',
+    emoji: '🏐',
+    field: 'Court',
+    sizes: [6],
+    defaultSize: 6,
+    hasGK: false,
+    defaultPeriods: 3,
+    periodOptions: [1, 3, 5],
+    periodName: () => 'Set',
+    unit: 'on the court',
+    groups: [
+      ['F', 'Front row'],
+      ['B', 'Back row'],
+    ],
+    defaultColors: { F: DEFAULT_JERSEY, B: DEFAULT_JERSEY },
+    group: (r) => (['RF', 'MF', 'LF'].includes(r) ? 'F' : 'B'),
+    label: lookup({
+      RB: 'RIGHT BACK',
+      RF: 'RIGHT FRONT',
+      MF: 'MIDDLE FRONT',
+      LF: 'LEFT FRONT',
+      LB: 'LEFT BACK',
+      MB: 'MIDDLE BACK',
+    }),
+    scoring: VOLLEYBALL_SCORING,
+    formations: () => volleyballFormations(),
+    jersey: 'basketball',
+    sample: ['Ava', 'Bea', 'Cleo', 'Dot', 'Elle', 'Fay', 'Gia', 'Hope', 'Isla', 'Joy'],
+  },
   lacrosse: {
     key: 'lacrosse',
     name: 'Lacrosse',
@@ -451,7 +503,7 @@ export function formationByName(forms: readonly Formation[], name: string): Form
   return found;
 }
 
-/** "quarters" / "halves" / "innings" / "games" (one period): the plural, lower-case unless `cap` (D63). */
+/** "quarters" / "halves" / "innings" / "sets" / "games" (one period): the plural, lower-case unless `cap` (D63). */
 export function periodPlural(sport: SportDefinition, periodCount: number, cap = false): string {
   const name = sport.periodName(periodCount);
   const plural = name === 'Half' ? 'Halves' : `${name}s`;
@@ -472,14 +524,14 @@ export function periodsNoun(sport: SportDefinition, periodCount: number): string
 export function shortPeriod(sport: SportDefinition, periodCount: number, index: number): string {
   const name = sport.periodName(periodCount);
   if (name === 'Game') return 'Game';
-  return name === 'Inning' ? `Inning ${index + 1}` : `${name[0] ?? ''}${index + 1}`;
+  return name === 'Inning' || name === 'Set' ? `${name} ${index + 1}` : `${name[0] ?? ''}${index + 1}`;
 }
 
 /** "1" / "Q1" / "Game" — the tiny label above a rotation chip. */
 export function chipLabel(sport: SportDefinition, periodCount: number, index: number): string {
   const name = sport.periodName(periodCount);
   if (name === 'Game') return 'Game';
-  return name === 'Inning' ? String(index + 1) : `${name[0] ?? ''}${index + 1}`;
+  return name === 'Inning' || name === 'Set' ? String(index + 1) : `${name[0] ?? ''}${index + 1}`;
 }
 
 /** The event kind for a stored `event_type`, falling back to the sport's first kind. */

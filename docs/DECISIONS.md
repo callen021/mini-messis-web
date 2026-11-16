@@ -1586,3 +1586,41 @@ score button, the quick-score and stat rows and Add score / Add stat show for th
 only, coaches included; everyone else reads the score. A `KeeperBar` under the title ("You keep
 the stats" / "Pat keeps the stats") carries Keep stats for whoever may take over. The context
 carries `userId` for the comparison. Finishing a game is still the staff's. pgTAP 29.
+
+### D121. Volleyball
+
+Volleyball is a sport of its own (`sport` enum value `volleyball`, added in its own migration like
+softball). Six on the court in rotation spots 1–6 as one formation, "Rotation" (slot i = spot
+i + 1: RB, RF, MF, LF, LB, MB; the front row is near the net, which stands on the far line of a
+court drawn by `scripts/gen-volleyball.mjs`). No eligibility groups, no goalie, the basketball
+jersey. There is no clock: a volleyball team is a **clock-mode team whose clock never runs**, the
+"second" of a stint is the point of the set and the sets are the clock periods (`clock_periods` 1,
+3 or 5, the Sets row in Team setup). That way the stints, the bench queue, the tap queue, the
+subs and Undo are the ones every clock sport has, and playing time falls out as **points played**
+(the stint length, `seconds_played`) and **sets played** (`player_season_stats.stint_periods`, the
+periods with a stint). `start_game` does not start the clock for volleyball.
+
+Scoring is point by point (`vb_point(game, side)`): the score event is a `point` op in
+`clock_ops`, so one Undo takes the point back together with its serve change and any rotation it
+caused. We rotate only on a side-out (our point while they served), never on their point, never on
+our own serve, never before the set's first serve is known (`games.vb_serving`, set by a tap on Us
+or Them in the bar, `vb_set_serve`). With **Rotate through bench** on (default) and someone waiting,
+the player at the exit spot (default 2, right front) does not rotate: they go to the end of the
+bench line, the other five rotate one spot clockwise, and Up Next enters at the entry spot
+(default 1, as the server); an entry spot elsewhere sends whoever rotated into it to the spot the
+rotation left empty. `vb_rotate` does the same by hand. A set ends on its own at the target with
+win by two (`vb_set_points` 25, `vb_deciding_points` 15 for the last possible set, `vb_win_by_two`;
+all editable per team) or by hand (`vb_end_set`); the set end is the usual `end_period` op (not
+undoable), the same six start the next set at zero, and the first serve alternates
+(`games.vb_first_serve`). The match is decided at more than half the sets; the bar then closes and
+the coach finishes from the game page. A game's score is **sets won** (`game_scores_for` counts
+the sets that have ended), the game page's line shows the points per set with the sets as the
+total.
+
+The active stat keeper (D120) scores and undoes their own points and rotations (`vb_undo`); a
+coach or assistant may also rotate by hand, end a set, substitute and undo anything (`clock_undo`
+and `vb_undo` share `clock_undo_inner`). The live court (ClockFieldPage with a `vb` switch) shows
+"Set n" with the set's points in the score chip and the sets tally in the title line, the ball on
+the server's jersey, points under each jersey, and the point bar (serve, +1 Us / +1 Them, Rotate,
+Undo, End set) where basketball has its quick-score row. Playing time lists read in points.
+pgTAP 31.

@@ -203,6 +203,47 @@ const DEFAULTS_BY_SPORT: Readonly<Record<Exclude<SportKey, 'softball'>, readonly
       { draft: true },
     ),
   ],
+  // volleyball (D121): the SQL twin lives in the volleyball migration
+  volleyball: [
+    T(
+      'serves',
+      'Serving',
+      'Ten serves from the end line. Count serves that land in the court.',
+      'made_of_attempted',
+      {
+        attempts: 10,
+        draft: true,
+      },
+    ),
+    T(
+      'passing',
+      'Passing',
+      'Ten tossed balls to forearm-pass back to a target. Count passes that reach the target.',
+      'made_of_attempted',
+      { attempts: 10, draft: true },
+    ),
+    T(
+      'setting',
+      'Setting',
+      'Count consecutive overhead sets to yourself above head height before the ball drops.',
+      'count',
+      { draft: true },
+    ),
+    T(
+      'wallvolley',
+      'Wall volleys',
+      'Count consecutive controlled volleys against a wall above a marked line.',
+      'count',
+      { draft: true },
+    ),
+    T(
+      'sprint',
+      'Sprint speed',
+      'Run 20 yards from a standing start. Two tries, same start signal and timing method each session.',
+      'time_seconds',
+      { draft: true },
+    ),
+  ],
   football: [],
 };
 

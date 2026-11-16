@@ -52,6 +52,10 @@ export interface ClockCardProps {
   parentOut?: ReadonlySet<string>;
   /** Trailing bench note: the players marked out, coach flag or parent reply (D107). */
   outText?: string;
+  /** Volleyball (D121): the stint "seconds" are points, so the label under a jersey reads "4 pts". */
+  timeLabel?: (seconds: number) => string;
+  /** Volleyball (D121): the spot whose player serves next, marked with a ball. */
+  servingSlot?: number | null;
   /** The one-period "Game" title stays for screen readers only, so the chips never overlap it (D108). */
   hideTitle?: boolean;
   /** Scoring mode (D108): the on-court jerseys answer "who scored?". */
@@ -98,6 +102,8 @@ export function ClockCard({
   pickable,
   hintExtra,
   help = MOVE_HELP,
+  timeLabel = formatClock,
+  servingSlot = null,
 }: ClockCardProps) {
   const byId = new Map(players.map((p) => [p.id, p]));
   // the only thing on the page that re-renders every second (D95)
@@ -109,8 +115,8 @@ export function ClockCard({
   // nothing under a bench jersey (D99): the queue is the information
   const benchEntries: BenchEntry[] = useMemo(() => bench.map((player) => ({ player })), [bench]);
   const slotTimes = useMemo(
-    () => (times ? slots.map((id) => (id ? formatClock(times.get(id)?.shiftSeconds ?? 0) : '')) : undefined),
-    [times, slots],
+    () => (times ? slots.map((id) => (id ? timeLabel(times.get(id)?.shiftSeconds ?? 0) : '')) : undefined),
+    [times, slots, timeLabel],
   );
   const openCount = slots.filter((s) => !s).length;
   const benchColor = colors[S.groups[0]?.[0] ?? ''] ?? '#888';
@@ -171,7 +177,8 @@ export function ClockCard({
               time={pid ? slotTimes?.[i] : undefined}
               heldOut={!!pid && parentOut.has(pid)}
               pickable={pickable && !!pid}
-              label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}${pickable && pid ? ', tap to credit it' : ''}${canEdit && badge !== undefined ? `, ${badge} in line` : ''}`}
+              serving={servingSlot === i && !!pid}
+              label={`${S.label(pos.role)}: ${player ? playerName(player) : 'open'}${servingSlot === i && pid ? ', serving' : ''}${slotTimes?.[i] && pid ? `, ${slotTimes[i]} this shift` : ''}${pid && parentOut.has(pid) ? ', marked out for this game' : ''}${pickable && pid ? ', tap to credit it' : ''}${canEdit && badge !== undefined ? `, ${badge} in line` : ''}`}
               // a stat keeper (D118) cannot edit the lineup, but in scoring mode a jersey still answers "who?"
               onClick={canEdit || (pickable && !!pid) ? () => onTapSlot(i) : undefined}
               readOnly={!canEdit && !pickable}

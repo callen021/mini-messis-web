@@ -148,6 +148,25 @@
   }
 }
 
+/* volleyball (D121): a teal of its own */
+:root[data-sport='volleyball'] {
+  --tint: #1f8a8a;
+  --tint-soft: rgba(31, 138, 138, 0.13);
+}
+:root[data-theme='dark'][data-sport='volleyball'] {
+  --tint: #4fd1c5;
+  --tint-soft: rgba(79, 209, 197, 0.16);
+  --on-tint: #03302c;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='auto'][data-sport='volleyball'],
+  :root:not([data-theme])[data-sport='volleyball'] {
+    --tint: #4fd1c5;
+    --tint-soft: rgba(79, 209, 197, 0.16);
+    --on-tint: #03302c;
+  }
+}
+
 /* softball (D119) wears the baseball tint */
 :root[data-sport='softball'] {
   --tint: #b4532a;

@@ -81,12 +81,17 @@ export interface PlayerStatRow {
   rebounds: number;
   steals: number;
   fouls: number;
+  /** Periods with a stint (D121): sets played for volleyball. */
+  stint_periods: number;
 }
 
 /** Numeric value of a column (AVG and minutes are derived). */
 export function statValue(row: PlayerStatRow, key: StatKey): number {
   if (key === 'avg') return row.at_bats ? row.hits / row.at_bats : 0;
   if (key === 'minutes_played') return (row.seconds_played ?? 0) / 60;
+  // volleyball (D121): the "seconds" of a stint are the points of the set
+  if (key === 'points_played') return row.seconds_played ?? 0;
+  if (key === 'sets_played') return row.stint_periods ?? 0;
   return row[key] ?? 0;
 }
 
@@ -97,6 +102,8 @@ export function formatStat(row: PlayerStatRow, key: StatKey): string {
     return (row.hits / row.at_bats).toFixed(3).replace(/^0/, '');
   }
   if (key === 'minutes_played') return String(Math.floor((row.seconds_played ?? 0) / 60));
+  if (key === 'points_played') return String(row.seconds_played ?? 0);
+  if (key === 'sets_played') return String(row.stint_periods ?? 0);
   return String(row[key] ?? 0);
 }
 

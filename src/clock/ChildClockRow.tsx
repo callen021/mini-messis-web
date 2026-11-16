@@ -7,6 +7,7 @@ import { type Player } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useGameClock, useStints } from './api';
 import { PAUSED_CLOCK, formatClock, formatMinutes, isRunning, playerTimes } from './clock';
+import { pointsLabel } from './volleyball';
 import { useServerNow } from './useNow';
 
 /**
@@ -27,6 +28,10 @@ export function ChildClockRow({
   formationFor: (name: string) => Formation;
 }) {
   const { sport } = useCurrentTeam();
+  // volleyball (D121): points on court, not minutes
+  const vb = sport === 'volleyball';
+  const played = (seconds: number) => (vb ? pointsLabel(seconds) : formatMinutes(seconds));
+  const span = (seconds: number) => (vb ? pointsLabel(seconds) : formatClock(seconds));
   const S = SPORTS[sport];
   const clockQ = useGameClock(live?.id, !!live, !!live);
   const stintsQ = useStints(live?.id, !!live, !!live);
@@ -49,11 +54,11 @@ export function ChildClockRow({
               ? 'On the bench'
               : 'On the bench · not on yet'
         }
-        detail={`${formatMinutes(t.seconds)} played · ${t.shifts} shift${t.shifts === 1 ? '' : 's'}${
+        detail={`${played(t.seconds)} played · ${t.shifts} shift${t.shifts === 1 ? '' : 's'}${
           t.onField
-            ? ` · this shift ${formatClock(t.shiftSeconds)}`
+            ? ` · this shift ${span(t.shiftSeconds)}`
             : t.seconds
-              ? ` · resting ${formatClock(t.restSeconds)}`
+              ? ` · resting ${span(t.restSeconds)}`
               : ''
         }`}
       />

@@ -2,7 +2,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { cleanup, act as reactAct, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ActionSheetProvider } from '@/components/Sheet';
 import { ToastProvider } from '@/components/Toast';
 import type * as Guards from '@/auth/guards';
@@ -11,6 +11,7 @@ import type * as TeamsApi from '@/teams/api';
 import type * as UseNow from '../useNow';
 import { type StoredPeriod } from '@/lineups/convert';
 import { SPORTS, formationByName } from '@/sports/definitions';
+import { type SportKey } from '@/sports/types';
 import { type Player, type Team } from '@/teams/api';
 import { TeamProviderForTests, type TeamContextValue } from '@/teams/TeamContext';
 import { todayISO } from '@/games/format';
@@ -18,8 +19,11 @@ import { ClockFieldPage } from '../ClockFieldPage';
 import { type ClockState, type Stint } from '../clock';
 
 const S = SPORTS.soccer;
-const forms = S.formations({ size: 7, gk: true });
-const f33 = formationByName(forms, '3-3');
+const SOCCER_FORMS = S.formations({ size: 7, gk: true });
+const f33 = formationByName(SOCCER_FORMS, '3-3');
+// the volleyball describe (D121) swaps the sport, its one formation and the team's set count
+let sportKey: SportKey = 'soccer';
+let forms = SOCCER_FORMS;
 
 const saveStarters = vi.fn();
 const act = vi.fn();
@@ -40,6 +44,7 @@ let liveGame: {
   status?: 'live';
   keeper_user_id?: string | null;
   keeper_name?: string | null;
+  vb_serving?: 'us' | 'them' | null;
 } | null = null;
 /** The viewer's keeper standing (D120): a granted stat keeper, and which user they are. */
 let viewer = { statKeeper: false, userId: 'u-coach' };
@@ -161,6 +166,12 @@ const team: Team = {
   parent_stats: 'own',
   snack_signup: 'off',
   tracked_stats: [],
+  vb_set_points: 25,
+  vb_deciding_points: 15,
+  vb_win_by_two: true,
+  vb_rotate_bench: true,
+  vb_exit_spot: 2,
+  vb_entry_spot: 1,
   time_mode: 'clock',
   clock_periods: 2,
   period_minutes: 25,
@@ -199,8 +210,11 @@ const STARTERS = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6', 'p7'];
 function renderPage() {
   const ctx: TeamContextValue = {
     teamId: 't1',
-    team,
-    sport: 'soccer',
+    team:
+      sportKey === 'volleyball'
+        ? { ...team, sport: 'volleyball', clock_periods: 3, side_size: 6, has_gk: false }
+        : team,
+    sport: sportKey,
     role: staff ? 'coach' : 'parent',
     isOwner: staff,
     memberships: [],
@@ -854,5 +868,122 @@ describe('ClockFieldPage · one active stat keeper (D120)', () => {
     renderPage();
     expect(screen.queryByText(/keeps the stats/)).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Keep stats' })).not.toBeInTheDocument();
+  });
+});
+
+describe('ClockFieldPage · volleyball (D121)', () => {
+  const ROTATION = SPORTS.volleyball.formations({ size: 6, gk: false })[0];
+  const SIX = ['p1', 'p2', 'p3', 'p4', 'p5', 'p6'];
+  const vbLive = {
+    id: 'g1',
+    opponent: 'Diggers',
+    status: 'live' as const,
+    keeper_user_id: 'u-coach',
+    keeper_name: 'Coach Cam',
+    vb_serving: 'them' as const,
+  };
+  const vbPeriod = (i: number): StoredPeriod => ({
+    lineupId: `l${i}`,
+    formation: 'Rotation',
+    slots: i === 0 ? SIX : ['', '', '', '', '', ''],
+    auto: [],
+    bench: ['p7', 'p8', 'p9'],
+    codes: ROTATION?.positions.map((p) => p.code) ?? [],
+    roles: ROTATION?.positions.map((p) => p.role) ?? [],
+  });
+  beforeEach(() => {
+    act.mockReset();
+    keepStats.mockReset();
+    sportKey = 'volleyball';
+    forms = SPORTS.volleyball.formations({ size: 6, gk: false });
+    staff = true;
+    viewer = { statKeeper: false, userId: 'u-coach' };
+    plannedGame = null;
+    liveGame = { ...vbLive };
+    periods = [vbPeriod(0), vbPeriod(1), vbPeriod(2)];
+    stints = SIX.map((id, i) =>
+      stint({
+        player_id: id,
+        slot_index: i,
+        position_role: ROTATION?.positions[i]?.role ?? '',
+        position_code: ROTATION?.positions[i]?.code ?? '',
+      }),
+    );
+    // three points into set 1: the "seconds" are points
+    clock = { periodIndex: 0, clockSeconds: 3, runningSince: null, periodLengths: [] };
+    scoreEvents = [];
+  });
+  afterEach(() => {
+    sportKey = 'soccer';
+    forms = SOCCER_FORMS;
+  });
+
+  it('the live court has the point bar and no clock: Set 1, points under the jerseys, a point for us calls vb_point', async () => {
+    renderPage();
+    expect(screen.getByRole('heading', { level: 2, name: 'Set 1' })).toBeInTheDocument();
+    expect(screen.getByText(/Live vs Diggers · sets 0–0/)).toBeInTheDocument();
+    expect(screen.getByRole('group', { name: 'Volleyball scoring' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Start clock|Resume|Pause/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /^End Set/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /^RIGHT BACK: Nolan, 3 pts this shift/ })).toBeInTheDocument();
+    // they serve: no ball on our server yet
+    expect(screen.queryByRole('button', { name: /^RIGHT BACK: Nolan, serving/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Them serve, serving' })).toHaveAttribute(
+      'aria-pressed',
+      'true',
+    );
+    await userEvent.click(screen.getByRole('button', { name: 'Point for us, 1 to 0' }));
+    expect(act).toHaveBeenCalledWith({ kind: 'vb_point', side: 'us' }, expect.anything());
+    await userEvent.click(screen.getByRole('button', { name: 'Rotate' }));
+    expect(act).toHaveBeenCalledWith({ kind: 'vb_rotate' }, expect.anything());
+    await userEvent.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(act).toHaveBeenCalledWith({ kind: 'vb_undo' }, expect.anything());
+  });
+
+  it('when we serve the ball sits on spot 1; End set asks first', async () => {
+    liveGame = { ...vbLive, vb_serving: 'us' };
+    renderPage();
+    expect(screen.getByRole('button', { name: /^RIGHT BACK: Nolan, serving/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Us serve, serving' })).toHaveAttribute('aria-pressed', 'true');
+    await userEvent.click(screen.getByRole('button', { name: 'End set' }));
+    const sheet = await screen.findByRole('dialog', { name: 'End set 1 at 0–0?' });
+    await userEvent.click(within(sheet).getByRole('button', { name: 'End set 1' }));
+    expect(act).toHaveBeenCalledWith({ kind: 'vb_end_set' }, expect.anything());
+  });
+
+  it('a stat keeper who holds the stats scores and undoes, but neither rotates by hand nor ends the set', () => {
+    staff = false;
+    viewer = { statKeeper: true, userId: 'u-parent' };
+    liveGame = { ...vbLive, keeper_user_id: 'u-parent', keeper_name: 'Parent Pat' };
+    renderPage();
+    expect(screen.getByRole('button', { name: 'Point for us, 1 to 0' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Rotate' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'End set' })).not.toBeInTheDocument();
+  });
+
+  it('a decided match (two sets of three) closes the bar and offers the game page', () => {
+    clock = { periodIndex: 2, clockSeconds: 0, runningSince: null, periodLengths: [25, 25] };
+    const pt = (side: 'us' | 'them', set: number) => ({
+      id: Math.random().toString(36),
+      game_id: 'g1',
+      side,
+      period_index: set,
+      event_type: 'point',
+      points: 1,
+      scorer_player_id: null,
+      assist_player_id: null,
+    });
+    scoreEvents = [
+      ...Array.from({ length: 25 }, () => pt('us', 0)),
+      ...Array.from({ length: 20 }, () => pt('them', 0)),
+      ...Array.from({ length: 25 }, () => pt('us', 1)),
+      ...Array.from({ length: 23 }, () => pt('them', 1)),
+    ];
+    renderPage();
+    expect(screen.getByRole('heading', { level: 2, name: 'Match over' })).toBeInTheDocument();
+    expect(screen.getByText(/sets 2–0/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Point for us, 1 to 0' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Finish on the game page' })).toBeInTheDocument();
   });
 });

@@ -88,12 +88,16 @@ export const POST_SVG = `<svg viewBox="0 0 100 112"><ellipse cx="50" cy="109" rx
 export const HOOP_FAR = `<svg viewBox="0 0 100 120"><ellipse cx="50" cy="117" rx="18" ry="3" fill="url(#gsh)"/><rect x="47" y="46" width="6" height="74" fill="#23428f"/><rect x="38" y="104" width="24" height="16" rx="3" fill="#1d3a80"/><rect x="18" y="2" width="64" height="42" rx="2" fill="rgba(240,243,248,.88)" stroke="#fff" stroke-width="2.4"/><rect x="38" y="16" width="24" height="18" fill="none" stroke="#d04b3a" stroke-width="2"/><ellipse cx="50" cy="45" rx="12" ry="3.6" fill="none" stroke="#ff7a1f" stroke-width="2.8"/><path d="M38 45L42 64M44 46L46 64M50 47V64M56 46L54 64M62 45L58 64M40 55H60M42 60H58" stroke="#fff" stroke-width="1" stroke-opacity=".85" fill="none"/></svg>`;
 export const HOOP_NEAR = `<svg viewBox="0 0 100 120"><ellipse cx="50" cy="117" rx="18" ry="3" fill="url(#gsh)"/><path d="M38 45L42 64M44 46L46 64M50 47V64M56 46L54 64M62 45L58 64M40 55H60M42 60H58" stroke="#fff" stroke-width="1" stroke-opacity=".85" fill="none"/><rect x="18" y="2" width="64" height="42" rx="2" fill="#b9c1cc" stroke="#d6dce4" stroke-width="2.4"/><path d="M26 10V36M50 10V36M74 10V36M26 23H74" stroke="#9aa3ae" stroke-width="2"/><rect x="47" y="30" width="6" height="90" fill="#23428f"/><rect x="38" y="104" width="24" height="16" rx="3" fill="#1d3a80"/></svg>`;
 
+/** The volleyball net (D121): two posts and the mesh, the full width of the court, standing on the far line. */
+export const NET = `<svg viewBox="0 0 400 44"><ellipse cx="200" cy="42" rx="190" ry="2.5" fill="url(#gsh)"/><rect x="18" y="8" width="364" height="24" fill="rgba(255,255,255,.14)" stroke="#fff" stroke-opacity=".55" stroke-width=".8"/><path d="M18 14H382M18 20H382M18 26H382" stroke="#fff" stroke-opacity=".45" stroke-width=".7"/><path d="M48 8V32M78 8V32M108 8V32M138 8V32M168 8V32M198 8V32M228 8V32M258 8V32M288 8V32M318 8V32M348 8V32" stroke="#fff" stroke-opacity=".4" stroke-width=".7"/><rect x="18" y="6" width="364" height="3" fill="#fff"/><rect x="12" y="2" width="6" height="40" rx="1.5" fill="#8f98a6"/><rect x="382" y="2" width="6" height="40" rx="1.5" fill="#8f98a6"/></svg>`;
+
 export const STANDING_SVG = {
   'goal-far': GOAL_FAR,
   'goal-near': GOAL_NEAR,
   post: POST_SVG,
   'hoop-far': HOOP_FAR,
   'hoop-near': HOOP_NEAR,
+  net: NET,
 } as const;
 
 /** Shared pattern/gradient defs; render once per page (legacy hidden <svg>). */

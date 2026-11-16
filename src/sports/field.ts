@@ -64,6 +64,17 @@ export const FIELDS: Readonly<
     persp: { src: 'fields/lacrosse-persp.webp', w: 1200, h: 1300, H: PERSP_PITCH },
     flat: { src: 'fields/lacrosse-flat.webp', w: 1000, h: 1180, H: FLAT_PITCH },
   },
+  // Volleyball is our half of the court (D121): y 0 is the net, y 100 our end line. The artwork is
+  // vector, drawn by scripts/gen-volleyball.mjs from these same homographies.
+  volleyball: {
+    persp: {
+      src: 'fields/volleyball-persp.svg',
+      w: 1200,
+      h: 1060,
+      H: [8.6, -1.55172414, 170, 0, 4.70603448, 230, 0, -0.00258621, 1],
+    },
+    flat: { src: 'fields/volleyball-flat.svg', w: 1000, h: 1000, H: [9.2, 0, 40, 0, 8.6, 110, 0, 0, 1] },
+  },
 };
 
 /** Football has no artwork yet; it reuses the soccer pitch (the sport is disabled anyway). */
@@ -147,6 +158,7 @@ export const PERSP_JERSEY_SCALE: Readonly<Record<SportKey, number>> = {
   baseball: 1,
   softball: 1,
   basketball: 1,
+  volleyball: 1,
   football: 0.8,
 };
 
@@ -206,7 +218,7 @@ export function widestRow(formation: Pick<Formation, 'positions'>, tol = 5): num
 }
 
 /** Goals, hoops and posts drawn as standing SVG overlays: [kind, x, y, width % of field]. */
-export type StandingKind = 'goal-far' | 'goal-near' | 'post' | 'hoop-far' | 'hoop-near';
+export type StandingKind = 'goal-far' | 'goal-near' | 'post' | 'hoop-far' | 'hoop-near' | 'net';
 export type Standing = readonly [StandingKind, number, number, number];
 
 export const STANDING: Readonly<Record<SportKey, readonly Standing[]>> = {
@@ -223,4 +235,6 @@ export const STANDING: Readonly<Record<SportKey, readonly Standing[]>> = {
   basketball: [['hoop-far', 50, -6, 15]],
   baseball: [],
   softball: [],
+  // the net stands on the far line, across the whole court (D121)
+  volleyball: [['net', 50, 0, 104]],
 };

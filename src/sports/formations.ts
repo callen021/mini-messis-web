@@ -571,3 +571,24 @@ export function lacrosseFormations(size: number, gk: boolean): Formation[] {
     return { name, positions, w };
   });
 }
+
+/* ---------- volleyball (D121) ---------- */
+
+// Our half of the court, net at the far end: the six rotation spots, slot i = spot i + 1. Spot 1 is
+// right back (the server), 2 right front, 3 middle front, 4 left front, 5 left back, 6 middle back.
+const VB = (code: string, x: number, y: number): Position => ({ role: code, code, x, y });
+export const VOLLEYBALL_ROTATION: Formation = {
+  name: 'Rotation',
+  positions: [
+    VB('RB', 82, 74),
+    VB('RF', 82, 26),
+    VB('MF', 50, 24),
+    VB('LF', 18, 26),
+    VB('LB', 18, 74),
+    VB('MB', 50, 76),
+  ],
+  w: 22,
+};
+export function volleyballFormations(): Formation[] {
+  return [VOLLEYBALL_ROTATION];
+}

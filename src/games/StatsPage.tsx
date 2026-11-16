@@ -205,7 +205,11 @@ export function StatsPage() {
           </Group>
           <Footer>
             Stats come from saved games only.{' '}
-            {team.time_mode === 'clock' ? 'MIN is minutes on the field from the game clock. ' : ''}
+            {sport === 'volleyball'
+              ? 'PTS is points played on the court; SETS is sets with time on the court. '
+              : team.time_mode === 'clock'
+                ? 'MIN is minutes on the field from the game clock. '
+                : ''}
             {S.scoring.panel === 'run'
               ? 'AVG is hits divided by at-bats; walks, hit by pitch and sacrifices are not at-bats. '
               : ''}

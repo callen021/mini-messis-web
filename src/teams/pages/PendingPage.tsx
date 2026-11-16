@@ -23,7 +23,8 @@ export function PendingPage() {
   const pending = usePendingRequests(user?.id);
   const teamName = (location.state as { teamName?: string } | null)?.teamName;
 
-  // Realtime on my own membership rows (RLS lets me see them), with a slow poll as a fallback.
+  // Realtime on my own membership rows (RLS lets me see them), with a poll as a fallback: a
+  // dropped realtime event (the server rate-limits bursts) still gets the parent in within seconds.
   useEffect(() => {
     if (!user) return;
     const channel = supabase
@@ -40,7 +41,7 @@ export function PendingPage() {
     const poll = window.setInterval(() => {
       void qc.invalidateQueries({ queryKey: ['memberships'] });
       void qc.invalidateQueries({ queryKey: ['pending-requests'] });
-    }, 30_000);
+    }, 10_000);
     return () => {
       void supabase.removeChannel(channel);
       window.clearInterval(poll);

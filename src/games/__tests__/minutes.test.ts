@@ -30,6 +30,7 @@ const row = (over: Partial<PlayerStatRow>): PlayerStatRow => ({
   rebounds: 0,
   steals: 0,
   fouls: 0,
+  stint_periods: 0,
   ...over,
 });
 

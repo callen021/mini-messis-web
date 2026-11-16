@@ -865,3 +865,41 @@
   font-size: 13px;
   letter-spacing: 0.3px;
 }
+
+/* volleyball (D121): the ball on the server's jersey, and the point bar under the court */
+.shirt .ballbadge {
+  position: absolute;
+  top: -8%;
+  left: -4%;
+  font-size: clamp(10px, 16cqw, 15px);
+  line-height: 1;
+  filter: drop-shadow(0 1px 1px rgba(0, 0, 0, 0.4));
+}
+.vbbar .qsrow .qsbtn.big {
+  height: 40px;
+  font-size: 16px;
+}
+.vbbar .vbsets {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text2);
+  white-space: nowrap;
+}
+.vbbar .serve {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 36px;
+  padding: 0 4px;
+  border: 0;
+  border-radius: 10px;
+  background: var(--fill2, rgba(120, 120, 128, 0.12));
+  color: var(--text2);
+  font-size: 12px;
+  font-weight: 800;
+  letter-spacing: 0.3px;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+.vbbar .serve.on {
+  color: var(--tint);
+}

@@ -24,6 +24,7 @@ import {
   minutesBalance,
   playerTimes,
 } from './clock';
+import { pointsLabel } from './volleyball';
 import { useServerNow } from './useNow';
 
 /**
@@ -41,6 +42,9 @@ export function ClockRotationView({
   highlight: ReadonlySet<string>;
 }) {
   const { teamId, team, sport } = useCurrentTeam();
+  // volleyball (D121): points on court, not minutes
+  const played = (seconds: number) =>
+    sport === 'volleyball' ? pointsLabel(seconds) : formatMinutes(seconds);
   const S = SPORTS[sport];
   const N = team.clock_periods;
   const toast = useToast();
@@ -127,13 +131,13 @@ export function ClockRotationView({
           <div
             className="minutes"
             role="img"
-            aria-label={`${p.first_name}: ${formatMinutes(secs)}, ${t?.shifts ?? 0} shift${t?.shifts === 1 ? '' : 's'}${t?.onField ? `, on the field at ${t.code}` : ''}`}
+            aria-label={`${p.first_name}: ${played(secs)}, ${t?.shifts ?? 0} shift${t?.shifts === 1 ? '' : 's'}${t?.onField ? `, on the field at ${t.code}` : ''}`}
           >
             <div className="minbar">
               <i style={{ width: `${Math.round((100 * secs) / max)}%` }} />
             </div>
             <span className="mintext">
-              <b>{formatMinutes(secs)}</b> · {t?.shifts ?? 0} shift{t?.shifts === 1 ? '' : 's'}
+              <b>{played(secs)}</b> · {t?.shifts ?? 0} shift{t?.shifts === 1 ? '' : 's'}
               {t?.onField ? ` · on at ${t.code}` : ''}
             </span>
           </div>

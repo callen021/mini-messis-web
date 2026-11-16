@@ -1699,6 +1699,109 @@ test.describe('coach and parent flows', () => {
     await coach.goto('/field');
     await expect(coach.locator('.qcard').first().locator('.slot .shirt')).toHaveCount(9);
   });
+
+  test('volleyball: six in rotation spots, they serve, our side-out point rotates through the bench with the ball on the new server, Undo puts it back; sets in Team setup (D121)', async () => {
+    await coach.setViewportSize({ width: 390, height: 844 });
+    await coach.goto('/create-team');
+    await coach.getByLabel('Team name').fill(`Spikers ${run}`);
+    await coach.getByRole('button', { name: /^Volleyball/ }).click();
+    await expect(coach.getByText(/Defaults for volleyball: 6 on the court, 3 sets/)).toBeVisible();
+    await coach.getByRole('button', { name: 'Create team' }).click();
+    await expect(coach).toHaveURL(/\/field$/);
+    const nav = coach.getByRole('navigation', { name: 'Main' });
+    await expect(nav.getByRole('link', { name: 'Court' })).toBeVisible();
+    await expect(coach.locator('.stage.volleyball img.pitch').first()).toHaveAttribute(
+      'src',
+      /volleyball-persp/,
+    );
+    await expect(coach.locator('.standing')).toHaveCount(1);
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await coach.getByRole('button', { name: 'Edit roster' }).click();
+    for (const [i, name] of ['Ava', 'Bea', 'Cleo', 'Dot', 'Elle', 'Fay', 'Gia'].entries()) {
+      await coach.getByRole('button', { name: 'Add player' }).first().click();
+      const sheet = coach.getByRole('dialog', { name: 'Add player' });
+      await sheet.getByLabel('First name').fill(name);
+      await sheet.getByLabel('Jersey number (optional)').fill(String(i + 1));
+      await sheet.getByRole('button', { name: 'Add player' }).click();
+      await expect(sheet).toBeHidden();
+    }
+    // no Positions screen for volleyball
+    await expect(coach.getByRole('button', { name: 'Positions' })).toHaveCount(0);
+    await coach.getByRole('button', { name: 'Done' }).click();
+    // starters by hand: Ava–Fay in spots 1–6, Gia on the bench
+    await coach.goto('/field');
+    await expect(coach.getByRole('heading', { level: 2, name: 'Starters' })).toBeVisible();
+    await expect(coach.locator('.slot .shirt')).toHaveCount(6);
+    for (const [i, name] of ['Ava', 'Bea', 'Cleo', 'Dot', 'Elle', 'Fay'].entries()) {
+      await coach.locator('.slot .shirt').nth(i).click();
+      await coach.getByRole('button', { name: new RegExp(`^Bench: ${name}`) }).click();
+      await expect(coach.locator('.slot .shirt').nth(i)).toContainText(name);
+    }
+    await expect(coach.getByRole('button', { name: /^Bench: Gia/ })).toBeVisible();
+    // start: no clock runs, the point bar is there, nobody serves yet
+    await coach.getByRole('button', { name: /Start a game and record sets/ }).click();
+    await coach
+      .getByRole('dialog', { name: 'Start a game' })
+      .getByRole('button', { name: 'New game' })
+      .click();
+    const form = coach.getByRole('dialog', { name: 'Start a game to record the score' });
+    await form.getByLabel('Opponent').fill('Diggers');
+    await form.getByRole('button', { name: 'Start game' }).click();
+    await expect(form).toBeHidden();
+    await expect(coach.getByRole('heading', { level: 2, name: 'Set 1' })).toBeVisible();
+    await expect(coach.locator('.gclock')).toHaveCount(0);
+    const bar = coach.getByRole('group', { name: 'Volleyball scoring' });
+    await expect(bar).toBeVisible();
+    await expect(coach.locator('.ballbadge')).toHaveCount(0);
+    // they serve; their point never rotates us
+    await bar.getByRole('button', { name: 'Them serve' }).click();
+    await expect(bar.getByRole('button', { name: 'Them serve, serving' })).toBeVisible();
+    await bar.getByRole('button', { name: /^Point for Diggers/ }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Diggers · 0–1' })).toBeVisible();
+    await expect(coach.getByLabel(/^Score 0 to 1/)).toBeVisible();
+    await expect(coach.locator('.slot .shirt').first()).toContainText('Ava');
+    // our point on their serve: a side-out. Bea (spot 2) goes to the bench, Gia comes in as the server
+    // (the 400 ms double-tap guard on score buttons, as in the basketball flow)
+    await coach.waitForTimeout(500);
+    await bar.getByRole('button', { name: /^Point for us/ }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Side-out · 1–1 · rotated' })).toBeVisible();
+    await expect(coach.locator('.slot .shirt').first()).toContainText('Gia');
+    await expect(coach.locator('.slot .shirt').nth(1)).toContainText('Cleo');
+    await expect(coach.locator('.slot .shirt').nth(5)).toContainText('Ava');
+    await expect(coach.locator('.ballbadge')).toHaveCount(1);
+    await expect(coach.getByRole('button', { name: /^RIGHT BACK: Gia, serving/ })).toBeVisible();
+    await expect(coach.getByRole('button', { name: /^Bench: Bea/ })).toBeVisible();
+    await expect(bar.getByRole('button', { name: 'Us serve, serving' })).toBeVisible();
+    // Undo takes the point, the rotation and the serve back
+    await bar.getByRole('button', { name: 'Undo' }).click();
+    await expect(coach.getByRole('status').filter({ hasText: 'Point undone' })).toBeVisible();
+    await expect(coach.locator('.slot .shirt').first()).toContainText('Ava');
+    await expect(coach.getByRole('button', { name: /^Bench: Gia/ })).toBeVisible();
+    await expect(coach.getByLabel(/^Score 0 to 1/)).toBeVisible();
+    await expect(coach.locator('.ballbadge')).toHaveCount(0);
+    // the court fits a phone screen without scrolling, like basketball (D108)
+    const fits = await coach
+      .locator('main')
+      .evaluate((main) => ({ scroll: main.scrollHeight, inner: main.clientHeight }));
+    expect(fits.scroll, `page scrolls: ${fits.scroll} > ${fits.inner}`).toBeLessThanOrEqual(fits.inner + 1);
+    await test.info().attach('volleyball-live-390', {
+      body: await coach.screenshot(),
+      contentType: 'image/png',
+    });
+    // the game page: playing time in points
+    await coach.goto('/games');
+    await coach.getByRole('button', { name: /In progress · vs Diggers/ }).click();
+    await expect(coach.getByText('Playing time · live')).toBeVisible();
+    await expect(coach.getByText(/1 pt$/).first()).toBeVisible();
+    // Team setup: sets and the bench rotation rules
+    await coach.goto('/settings/team');
+    await expect(coach.getByRole('group', { name: 'Sets' })).toBeVisible();
+    await expect(coach.getByRole('switch', { name: 'Rotate through bench' })).toBeChecked();
+    await expect(coach.getByRole('group', { name: 'Exit spot' })).toBeVisible();
+    await expect(coach.getByRole('radiogroup', { name: 'Track playing time by' })).toHaveCount(0);
+    await coach.setViewportSize({ width: 1280, height: 900 });
+  });
 });
 
 /** Pairs of header chips whose boxes overlap, or chips outside the card: empty when the bar is clean (D108). */

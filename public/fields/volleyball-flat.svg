@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1000 1000" width="1000" height="1000">
+<defs><linearGradient id="oob" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#14405a"/><stop offset="1" stop-color="#10344a"/></linearGradient>
+<radialGradient id="lit" cx=".5" cy=".4" r=".8"><stop stop-color="#fff" stop-opacity=".10"/><stop offset="1" stop-color="#000" stop-opacity=".10"/></radialGradient></defs>
+<rect width="1000" height="1000" fill="url(#oob)"/>
+<polygon points="-266.7,52.7 1266.7,52.7 1266.7,1256.7 -266.7,1256.7" fill="#2f7f5f"/>
+<polygon points="40,110 960,110 960,970 40,970" fill="#d9893a"/>
+<polygon points="40,110 960,110 960,396.7 40,396.7" fill="#c97a2f" fill-opacity=".55"/>
+<polygon points="-266.7,52.7 1266.7,52.7 1266.7,1256.7 -266.7,1256.7" fill="url(#lit)"/>
+<g><polygon points="40,110 960,110 960,970 40,970" fill="none" stroke="#ffffff" stroke-width="5.1" stroke-linejoin="round"/><polyline points="40,396.7 960,396.7" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#ffffff" stroke-width="5.1"/><polyline points="40,396.7 -138.9,396.7" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#ffffff" stroke-width="5.1" stroke-dasharray="15.3 20.4"/><polyline points="960,396.7 1138.9,396.7" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#ffffff" stroke-width="5.1" stroke-dasharray="15.3 20.4"/><polyline points="40,110 960,110" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#ffffff" stroke-width="7.2"/><polyline points="40,974.8 40,993.9" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#ffffff" stroke-width="5.1"/><polyline points="960,974.8 960,993.9" fill="none" stroke-linecap="round" stroke-linejoin="round" stroke="#ffffff" stroke-width="5.1"/></g>
+</svg>

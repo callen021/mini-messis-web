@@ -112,6 +112,7 @@ function GameDetail({ game }: { game: GameWithScore }) {
   const lineups = useLineups(teamId, game.id);
   const live = useLiveGame(teamId);
   const isBaseball = S.scoring.panel === 'run';
+  const isVolleyball = sport === 'volleyball';
   const pas = usePlateAppearances(game.id, isBaseball);
   const notes = useCoachNotes(game.id, isStaff);
   const places = useTeamPlaces(teamId, isStaff);
@@ -549,11 +550,20 @@ function GameDetail({ game }: { game: GameWithScore }) {
 
       <SnackSection event={{ kind: 'game', id: game.id }} slot={game} open={isUpcoming} />
 
-      {!isUpcoming && S.scoring.panel !== 'goal' && log.length > 0 && periodCount > 1 && (
+      {!isUpcoming && (S.scoring.panel !== 'goal' || isVolleyball) && log.length > 0 && periodCount > 1 && (
         <>
           <Section>{isBaseball ? 'Line score' : `By ${periodName.toLowerCase()}`}</Section>
           <Group>
-            <LineScore S={S} events={log} periodCount={periodCount} opponent={game.opponent} />
+            <LineScore
+              S={S}
+              events={log}
+              periodCount={periodCount}
+              opponent={game.opponent}
+              // volleyball (D121): sets won count the sets that have ended
+              endedSets={
+                isVolleyball ? (isLive ? (gameClock.data?.periodIndex ?? 0) : periodCount) : undefined
+              }
+            />
           </Group>
         </>
       )}

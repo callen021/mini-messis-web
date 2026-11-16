@@ -132,7 +132,13 @@ type ClockCall =
     }
   /** An early start (D109): the clock and the first period's minutes go back to 0:00. */
   | { kind: 'reset' }
-  | { kind: 'undo' };
+  | { kind: 'undo' }
+  /** Volleyball (D121): a point for a side, who serves, a rotation by hand, the end of a set, and the keeper's undo. */
+  | { kind: 'vb_point'; side: 'us' | 'them' }
+  | { kind: 'vb_serve'; side: 'us' | 'them' }
+  | { kind: 'vb_rotate' }
+  | { kind: 'vb_end_set' }
+  | { kind: 'vb_undo' };
 
 /** One mutation for every clock action: each is a single atomic server function (D66, D67). */
 export function useClockAction(teamId: string, gameId: string) {
@@ -192,6 +198,23 @@ export function useClockAction(teamId: string, gameId: string) {
         case 'reset':
           fail((await supabase.rpc('clock_reset', g)).error);
           return null;
+        case 'vb_point':
+          fail((await supabase.rpc('vb_point', { ...g, p_side: call.side })).error);
+          return null;
+        case 'vb_serve':
+          fail((await supabase.rpc('vb_set_serve', { ...g, p_side: call.side })).error);
+          return null;
+        case 'vb_rotate':
+          fail((await supabase.rpc('vb_rotate', g)).error);
+          return null;
+        case 'vb_end_set':
+          fail((await supabase.rpc('vb_end_set', g)).error);
+          return null;
+        case 'vb_undo': {
+          const res = await supabase.rpc('vb_undo', g);
+          fail(res.error);
+          return res.data ?? null;
+        }
         case 'undo': {
           const res = await supabase.rpc('clock_undo', g);
           fail(res.error);
