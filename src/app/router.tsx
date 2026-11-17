@@ -276,6 +276,12 @@ export const routes: RouteObject[] = [
                         ),
                       },
                       {
+                        path: '/library/play/:game',
+                        element: lazyPage(() =>
+                          import('@/library/GamePage').then((m) => ({ default: m.GamePage })),
+                        ),
+                      },
+                      {
                         path: '/library/:slug',
                         element: lazyPage(() =>
                           import('@/library/LibraryItemPage').then((m) => ({ default: m.LibraryItemPage })),

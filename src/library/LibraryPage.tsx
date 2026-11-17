@@ -4,6 +4,7 @@ import { Page } from '@/components/Page';
 import { errorMessage } from '@/lib/supabase';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useLibraryItems } from './api';
+import { gamesFor } from './games';
 import { ageText, CATEGORY_ORDER, categoryLabel } from './types';
 
 /** Settings → Practice library: the sport's items as cards, grouped by category. */
@@ -11,6 +12,7 @@ export function LibraryPage() {
   const { sport } = useCurrentTeam();
   const items = useLibraryItems(sport);
   const rows = items.data ?? [];
+  const games = gamesFor(sport);
   const categories = [
     ...CATEGORY_ORDER.filter((c) => rows.some((r) => r.category === c)),
     ...[...new Set(rows.map((r) => r.category))].filter((c) => !CATEGORY_ORDER.some((k) => k === c)),
@@ -33,7 +35,7 @@ export function LibraryPage() {
           </div>
         </Group>
       )}
-      {items.data && rows.length === 0 && (
+      {items.data && rows.length === 0 && games.length === 0 && (
         <Group>
           <div className="empty">Nothing here yet for this sport.</div>
         </Group>
@@ -61,6 +63,28 @@ export function LibraryPage() {
           </ul>
         </div>
       ))}
+      {games.length > 0 && (
+        <div>
+          <Section>Games</Section>
+          <ul className="libcards">
+            {games.map((g) => (
+              <li key={g.slug}>
+                <Link to={`/library/play/${g.slug}`} className="libcard">
+                  <span className="lbl">
+                    <b>{g.title}</b>
+                    <small>
+                      <span className="pill">Game</span>
+                      {ageText(g.ageMin, g.ageMax)}
+                    </small>
+                    <small>{g.blurb}</small>
+                  </span>
+                  <span className="chev" aria-hidden="true" />
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
     </Page>
   );
 }

@@ -431,3 +431,58 @@
   padding: 0 6px;
   white-space: nowrap;
 }
+
+/* a library game, full screen over the app (D124) */
+.gamepage {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: flex;
+  flex-direction: column;
+  background: #070d1a;
+  padding-bottom: env(safe-area-inset-bottom);
+}
+.gamebar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 44px;
+  padding: env(safe-area-inset-top) 12px 0 4px;
+  background: #0b1426;
+  color: #fff;
+}
+.gamebar .back {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  min-height: 44px;
+  padding: 0 8px;
+  color: #9fd0ff;
+  font-size: 16px;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.gamebar h1 {
+  flex: 1;
+  min-width: 0;
+  margin: 0;
+  font-size: 15px;
+  font-weight: 600;
+  text-align: right;
+  color: rgba(255, 255, 255, 0.7);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.gameframe {
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  border: 0;
+  display: block;
+  background: #070d1a;
+}
+.libcard small + small {
+  margin-top: 4px;
+}

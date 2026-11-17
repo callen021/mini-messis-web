@@ -1702,3 +1702,23 @@ with the local stack's key and refuses any non-local address; CI shows the place
 
 Tests: `src/library/__tests__/library.test.tsx`, pgTAP 33, one Playwright flow at 375px in both
 themes.
+
+### D124. Library games: Coach's Call as a framed page
+
+The practice library has a **Games** section under the drill categories. The first game is the
+user's single-file "Coach's Call" (soccer skill games, ages 6–9), added to see how it plays on a
+phone. It is kept exactly as supplied in `public/games/coachs-call.html` (218 kB, 66 kB gzipped)
+and shown by `/library/play/:game` in an iframe that covers the whole screen, tab bar included: a
+slim bar with "‹ Practice library" on top, the game below, the bottom safe area padded by the app
+because `env()` insets are zero inside a frame. The screen wake lock is held while it is open.
+
+The list of games is code (`src/library/games.ts`), not a `library_items` row: the file ships with
+the build, so a database row would only be a second place to keep in step, and this way there is
+no migration. A game shares only the origin with the app; Coach's Call keeps its own progress in
+`localStorage` under `coachscall_v1` (per device, not per account or team) and makes no network
+calls except the two Google Fonts it links (it falls back to system fonts offline).
+
+Service worker: `**/games/**` is left out of the precache, `navigateFallbackDenylist` keeps the
+app shell from being served in the frame, and a `StaleWhileRevalidate` runtime cache
+(`library-games`) makes a game available offline after its first open. Initial JS is unchanged.
+Soccer teams only, every role. Playwright covers opening the game and coming back.

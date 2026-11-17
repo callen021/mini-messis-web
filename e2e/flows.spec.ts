@@ -739,6 +739,20 @@ test.describe('coach and parent flows', () => {
     await coach.setViewportSize({ width: 412, height: 915 });
   });
 
+  test('library games: the Games section opens Coach’s Call full screen in a frame, and the bar leads back (D124)', async () => {
+    await coach.goto('/library');
+    const card = coach.getByRole('link', { name: /Coach’s Call/ });
+    await expect(card).toContainText('Game');
+    await card.click();
+    await expect(coach).toHaveURL(/\/library\/play\/coachs-call$/);
+    const game = coach.frameLocator('iframe.gameframe');
+    await expect(game.getByText('Hear the coach. Make the play.')).toBeVisible({ timeout: 15_000 });
+    await expect(game.locator('.tile').first()).toBeVisible();
+    await coach.getByRole('link', { name: 'Practice library' }).click();
+    await expect(coach.getByRole('heading', { level: 1, name: 'Practice library' })).toBeVisible();
+    await expect(coach.getByRole('navigation', { name: 'Main' })).toBeVisible();
+  });
+
   test('team board: announcement, unread dot, banner, comment (D58)', async () => {
     await coach.goto('/board');
     await expect(coach.getByRole('heading', { level: 1, name: 'Team board' })).toBeVisible();

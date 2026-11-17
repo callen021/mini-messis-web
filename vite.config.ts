@@ -36,8 +36,16 @@ export default defineConfig({
       workbox: {
         globPatterns: ['**/*.{js,css,html,png,svg,woff2}'],
         // Field artwork is large and per sport; cache it on first use rather than precaching it all.
-        globIgnores: ['**/fields/**'],
+        // Library games are whole pages of their own (D124): fetched when opened, never precached,
+        // and never answered with the app shell.
+        globIgnores: ['**/fields/**', '**/games/**'],
+        navigateFallbackDenylist: [/\/games\//],
         runtimeCaching: [
+          {
+            urlPattern: ({ url }) => url.pathname.includes('/games/'),
+            handler: 'StaleWhileRevalidate',
+            options: { cacheName: 'library-games', expiration: { maxEntries: 8 } },
+          },
           {
             urlPattern: ({ url }) => url.pathname.includes('/fields/'),
             handler: 'CacheFirst',
