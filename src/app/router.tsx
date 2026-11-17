@@ -270,6 +270,18 @@ export const routes: RouteObject[] = [
                         ),
                       },
                       {
+                        path: '/library',
+                        element: lazyPage(() =>
+                          import('@/library/LibraryPage').then((m) => ({ default: m.LibraryPage })),
+                        ),
+                      },
+                      {
+                        path: '/library/:slug',
+                        element: lazyPage(() =>
+                          import('@/library/LibraryItemPage').then((m) => ({ default: m.LibraryItemPage })),
+                        ),
+                      },
+                      {
                         path: '/profile',
                         element: lazyPage(() =>
                           import('@/settings/ProfilePage').then((m) => ({ default: m.ProfilePage })),

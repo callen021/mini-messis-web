@@ -239,6 +239,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"library_items": {
+                  Row: {
+                    "age_max": number | null,"age_min": number | null,"category": string,"content": NonNullable<Json>,"created_at": string,"id": string,"is_published": boolean,"slug": string,"sort_order": number,"sport": Database["public"]['Enums']["sport"],"title": string,"updated_at": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "age_max"?: number | null,"age_min"?: number | null,"category": string,"content"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"is_published"?: boolean,"slug": string,"sort_order"?: number,"sport": Database["public"]['Enums']["sport"],"title": string,"updated_at"?: string
+                  }
+                  Update: {
+                    "age_max"?: number | null,"age_min"?: number | null,"category"?: string,"content"?: NonNullable<Json>,"created_at"?: string,"id"?: string,"is_published"?: boolean,"slug"?: string,"sort_order"?: number,"sport"?: Database["public"]['Enums']["sport"],"title"?: string,"updated_at"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"lines": {
                   Row: {
                     "created_at": string,"id": string,"kind": string,"name": string,"player_ids": (string)[],"slot": number,"team_id": string,"updated_at": string,"updated_by": string | null
@@ -686,6 +700,32 @@ isOneToOne: false
       columns: ["player_id"]
 isOneToOne: false
       referencedRelation: "players"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"team_library_overrides": {
+                  Row: {
+                    "item_id": string,"params": NonNullable<Json>,"team_id": string,"updated_at": string,"updated_by": string | null
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "item_id": string,"params"?: NonNullable<Json>,"team_id": string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Update: {
+                    "item_id"?: string,"params"?: NonNullable<Json>,"team_id"?: string,"updated_at"?: string,"updated_by"?: string | null
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "team_library_overrides_item_id_fkey"
+      columns: ["item_id"]
+isOneToOne: false
+      referencedRelation: "library_items"
+      referencedColumns: ["id"]
+    },{
+      foreignKeyName: "team_library_overrides_team_id_fkey"
+      columns: ["team_id"]
+isOneToOne: false
+      referencedRelation: "teams"
       referencedColumns: ["id"]
     }
                   ]

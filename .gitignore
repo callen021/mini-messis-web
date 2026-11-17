@@ -160,3 +160,6 @@ lighthouse/
 # cold-start profiling (scripts/coldstart.mjs)
 dist-perf
 perf/
+
+# Practice library source sheets and image crops (D123): never committed, uploaded to Storage
+practice-library/

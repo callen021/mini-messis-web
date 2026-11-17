@@ -664,6 +664,81 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByText(/Best 12/)).toBeVisible();
   });
 
+  test('practice library: Settings row, First Touch with Learn and Coach Setup at 375px in both themes; the coach adjusts the setup, the parent reads it, Reset to default (D123)', async () => {
+    await coach.setViewportSize({ width: 375, height: 812 });
+    await coach.goto('/settings');
+    await coach.getByRole('link', { name: /Practice library/ }).click();
+    await expect(coach.getByRole('heading', { level: 1, name: 'Practice library' })).toBeVisible();
+    const card = coach.getByRole('link', { name: /First Touch/ });
+    await expect(card).toContainText('Fundamentals');
+    await expect(card).toContainText('Ages 6–10');
+    await card.click();
+    await expect(coach.getByRole('heading', { level: 1, name: 'First Touch' })).toBeVisible();
+    await expect(coach.getByRole('radio', { name: 'Learn' })).toBeChecked();
+    await expect(coach.getByText('First touch into space, move with it!')).toBeVisible();
+    await expect(coach.locator('.stepcard')).toHaveCount(4);
+    // the dots move the step row; the page itself never scrolls sideways
+    await coach.getByRole('button', { name: 'Step 3: Move With It' }).click();
+    await expect(coach.getByRole('button', { name: 'Step 3: Move With It' })).toHaveAttribute(
+      'aria-current',
+      'step',
+    );
+    // the third card is the one on screen (left edge inside the 375px row; the tap may have scrolled the page down)
+    await expect
+      .poll(async () => (await coach.getByRole('heading', { name: /Move With It/ }).boundingBox())?.x ?? -1)
+      .toBeGreaterThan(0);
+    expect((await coach.getByRole('heading', { name: /Move With It/ }).boundingBox())?.x).toBeLessThan(200);
+    const fits = (page: Page) =>
+      page.locator('.app-main').evaluate((el) => el.scrollWidth <= el.clientWidth && window.scrollX === 0);
+    for (const scheme of ['light', 'dark'] as const) {
+      await coach.emulateMedia({ colorScheme: scheme });
+      await expect(fits(coach), `Learn fits 375px (${scheme})`).resolves.toBe(true);
+      await expect(coach.getByRole('navigation', { name: 'Main' })).toBeInViewport();
+    }
+    await expect(coach.getByText('Only using the strong foot.')).toBeAttached();
+    await expect(coach.getByText(/It's the first step in all the other plays/)).toBeAttached();
+
+    await coach.getByRole('radio', { name: 'Coach Setup' }).click();
+    await expect(coach.getByTestId('drill-cone')).toHaveCount(4);
+    await expect(
+      coach.getByRole('img', { name: /4 cones in a line, 3–5 yd \(9–15 ft\) apart/ }),
+    ).toBeVisible();
+    await coach.getByRole('button', { name: 'Increase Cones' }).click();
+    await expect(coach.getByTestId('drill-cone')).toHaveCount(5);
+    await coach.getByRole('button', { name: 'Increase Spacing' }).click();
+    await coach.getByRole('button', { name: 'Increase Spacing' }).click();
+    await coach.getByRole('button', { name: 'Increase Duration' }).click();
+    await expect(coach.getByRole('img', { name: /5 cones in a line, 6 yd \(18 ft\) apart/ })).toBeVisible();
+    for (const scheme of ['light', 'dark'] as const) {
+      await coach.emulateMedia({ colorScheme: scheme });
+      await expect(fits(coach), `Coach Setup fits 375px (${scheme})`).resolves.toBe(true);
+    }
+    await coach.emulateMedia({ colorScheme: null });
+    await expect(coach.getByText('Repeat using both feet.')).toBeAttached();
+    await expect(coach.getByText('One ball per pair')).toBeAttached();
+    // saved for the team: a reload keeps it, and the parent reads it with no controls
+    await coach.reload();
+    await expect(coach.getByTestId('drill-cone')).toHaveCount(5);
+    await expect(coach.getByRole('group', { name: 'Duration' })).toContainText('5 min');
+
+    await parent.goto('/settings');
+    await parent.getByRole('link', { name: /Practice library/ }).click();
+    await parent.getByRole('link', { name: /First Touch/ }).click();
+    await expect(parent.locator('.stepcard')).toHaveCount(4);
+    await parent.getByRole('radio', { name: 'Coach Setup' }).click();
+    await expect(parent.getByTestId('drill-cone')).toHaveCount(5);
+    await expect(parent.locator('.setupnums')).toContainText('6 yd (18 ft)');
+    await expect(parent.getByRole('button', { name: /Increase|Decrease|Reset/ })).toHaveCount(0);
+
+    await coach.getByRole('button', { name: 'Reset to default' }).click();
+    await expect(coach.getByTestId('drill-cone')).toHaveCount(4);
+    await expect(coach.getByRole('group', { name: 'Duration' })).toContainText('Not set');
+    await expect(coach.getByRole('button', { name: 'Reset to default' })).toHaveCount(0);
+    await parent.reload();
+    await expect(parent.getByTestId('drill-cone')).toHaveCount(4);
+    await coach.setViewportSize({ width: 412, height: 915 });
+  });
+
   test('team board: announcement, unread dot, banner, comment (D58)', async () => {
     await coach.goto('/board');
     await expect(coach.getByRole('heading', { level: 1, name: 'Team board' })).toBeVisible();

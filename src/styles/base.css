@@ -2,6 +2,7 @@
 @import './tokens.css';
 @import './components.css';
 @import './field.css';
+@import './library.css';
 @import './print.css';
 
 /* Expose the design tokens to Tailwind utilities (bg-panel, text-text2, border-sep, …).

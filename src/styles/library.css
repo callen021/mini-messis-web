@@ -1,0 +1,433 @@
+/* ---------- practice library (D123) ----------
+   Phone first: 16px side margins like the grouped lists, body text 16–17px, nothing wider than
+   the screen except the step row, which scrolls on its own. Colors come from the tokens, so both
+   themes follow; the grass of the drill diagram is the same in light and dark, like the pitch. */
+
+/* list of item cards */
+.libcards {
+  list-style: none;
+  margin: 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.libcard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  color: inherit;
+  text-decoration: none;
+}
+.libcard:active {
+  background: var(--fill);
+}
+.libcard .lbl {
+  flex: 1;
+  min-width: 0;
+}
+.libcard b {
+  display: block;
+  font-size: 19px;
+  font-weight: 600;
+}
+.libcard small {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 14px;
+  color: var(--text2);
+}
+.libcard .chev {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text3);
+  border-bottom: 2px solid var(--text3);
+  transform: rotate(-45deg);
+  margin-right: 2px;
+  flex: none;
+}
+
+/* item page */
+.libitem .seg.wide {
+  margin-bottom: 14px;
+}
+.libtagline {
+  margin: 0 16px 10px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: var(--tint);
+}
+.libnote {
+  margin: 0 16px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  font-size: 17px;
+  line-height: 1.4;
+}
+.libnote b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  color: var(--text2);
+  margin-bottom: 2px;
+}
+.libnote p {
+  margin: 0;
+}
+.libnote.big {
+  background: var(--tint-soft);
+  box-shadow: none;
+}
+
+/* swipeable step cards */
+.steps {
+  margin-top: 16px;
+}
+.steprow {
+  list-style: none;
+  margin: 0;
+  padding: 0 16px 4px;
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x mandatory;
+  scroll-padding: 0 16px;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.steprow::-webkit-scrollbar {
+  display: none;
+}
+.steprow:focus-visible {
+  outline: 2px solid var(--tint);
+  outline-offset: -2px;
+}
+.stepcard {
+  flex: 0 0 86%;
+  min-width: 0;
+  scroll-snap-align: center;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  display: flex;
+  flex-direction: column;
+}
+.stepimg {
+  width: 100%;
+  background: var(--fill);
+  position: relative;
+}
+.stepimg img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+.stepimg.none {
+  display: grid;
+  place-items: center;
+  background: var(--tint-soft);
+  color: var(--tint);
+  font-size: 72px;
+  font-weight: 700;
+}
+.steptext {
+  padding: 12px 16px 16px;
+}
+.steptext h2 {
+  margin: 0 0 6px;
+  font-size: 20px;
+  font-weight: 700;
+  line-height: 1.2;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stepnum {
+  flex: none;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--tint);
+  color: var(--on-tint);
+  font-size: 16px;
+  font-weight: 700;
+}
+.steptext p {
+  margin: 0;
+  font-size: 17px;
+  line-height: 1.4;
+}
+.stepdots {
+  display: flex;
+  justify-content: center;
+  gap: 2px;
+  margin-top: 4px;
+}
+.stepdots button {
+  width: 28px;
+  height: 28px;
+  border: 0;
+  padding: 0;
+  background: transparent;
+  display: grid;
+  place-items: center;
+}
+.stepdots button::before {
+  content: '';
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text3);
+  transition: 0.15s;
+}
+.stepdots button.on::before {
+  background: var(--tint);
+  transform: scale(1.25);
+}
+
+/* bulleted and numbered text lists on a card */
+.libcues,
+.libsteps,
+.libcompare {
+  list-style: none;
+  margin: 0 16px;
+  padding: 4px 16px;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  font-size: 17px;
+  line-height: 1.4;
+}
+.libcues li,
+.libsteps li {
+  position: relative;
+  padding: 9px 0 9px 30px;
+}
+.libcues li + li,
+.libsteps li + li,
+.libcompare li + li {
+  border-top: 0.5px solid var(--sep);
+}
+.libcues li::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 18px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--tint);
+}
+.libsteps {
+  counter-reset: libstep;
+}
+.libsteps li {
+  counter-increment: libstep;
+  padding-left: 36px;
+}
+.libsteps li::before {
+  content: counter(libstep);
+  position: absolute;
+  left: 0;
+  top: 9px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--tint-soft);
+  color: var(--tint);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+/* wrong vs right */
+.libcompare li {
+  padding: 10px 0;
+  display: grid;
+  gap: 8px;
+}
+.libcompare p {
+  margin: 0;
+  display: flex;
+  gap: 10px;
+  align-items: flex-start;
+}
+.libcompare b {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+}
+.libcompare .mark {
+  flex: none;
+  width: 24px;
+  height: 24px;
+  margin-top: 2px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #fff;
+}
+.libcompare .wrong .mark {
+  background: var(--red);
+}
+.libcompare .wrong b {
+  color: var(--red);
+}
+.libcompare .right .mark {
+  background: var(--green);
+}
+.libcompare .right b {
+  color: var(--green);
+}
+/* the light theme's system green is too pale for small text on white */
+:root:not([data-theme='dark']) .libcompare .right b {
+  color: #1c7c3a;
+}
+:root:not([data-theme='dark']) .libcompare .wrong b {
+  color: #c81e14;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-theme='auto'] .libcompare .right b,
+  :root:not([data-theme]) .libcompare .right b {
+    color: var(--green);
+  }
+  :root[data-theme='auto'] .libcompare .wrong b,
+  :root:not([data-theme]) .libcompare .wrong b {
+    color: var(--red);
+  }
+}
+
+/* coach setup: the diagram, its key, the numbers */
+.drill {
+  margin: 0 16px;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.drillsvg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.dmeasure path {
+  stroke: #fff;
+  stroke-width: 1.5;
+}
+.dmeasure text {
+  fill: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+.darrow path {
+  stroke: #fff;
+  stroke-width: 2.2;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.darrow polygon {
+  fill: #fff;
+}
+.darrow.pass path {
+  stroke-dasharray: 5 5;
+}
+.darrow.touch path {
+  stroke: #ffd60a;
+  stroke-width: 3;
+}
+.darrow.touch polygon {
+  fill: #ffd60a;
+}
+.dcone ellipse {
+  fill: rgba(0, 0, 0, 0.25);
+}
+.dcone path {
+  fill: #ff7a1a;
+  stroke: #b34a00;
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+.dplayer circle {
+  stroke: #fff;
+  stroke-width: 2;
+}
+.dplayer.passer circle {
+  fill: #1f4fbf;
+}
+.dplayer.receiver circle {
+  fill: #e22400;
+}
+.dplayer .dletter {
+  fill: #fff;
+  font-size: 13px;
+  font-weight: 700;
+}
+.dplayer .dname {
+  fill: #fff;
+  font-size: 12px;
+  font-weight: 600;
+}
+.drillkey {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 14px;
+  align-items: center;
+  padding: 10px 14px;
+  font-size: 14px;
+  color: var(--text2);
+}
+.drillkey span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+/* the key sits on the panel, not the grass: its samples take the text color */
+.drillkey .darrow path {
+  stroke: var(--text);
+  stroke-width: 2;
+}
+.drillkey .darrow polygon {
+  fill: var(--text);
+}
+.drillkey .darrow.touch path {
+  stroke: #c79a00;
+  stroke-width: 3;
+}
+.drillkey .darrow.touch polygon {
+  fill: #c79a00;
+}
+.drillkey .scale {
+  margin-left: auto;
+  font-size: 13px;
+}
+.setupnums {
+  margin-top: 14px;
+}
+.setupnums .stepper b {
+  min-width: 64px;
+  padding: 0 6px;
+  white-space: nowrap;
+}

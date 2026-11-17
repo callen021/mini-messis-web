@@ -18,6 +18,7 @@ import { signOut, unconfirmedLinkCount, useTeamMembers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useSetParentStats, useSetSnackSignup, useSetTrackedStats } from '@/teams/teamMutations';
 import { cn } from '@/lib/cn';
+import { LIBRARY_SPORTS } from '@/library/types';
 import { SNACK_MODE_LABEL, type SnackMode } from '@/snacks/snacks';
 
 export function SettingsPage() {
@@ -93,6 +94,14 @@ export function SettingsPage() {
         <RoleGate allow={STAFF_ROLES}>
           <Row to="/settings/skills" label="Skills tests" detail={skillsSummary} chevron />
         </RoleGate>
+        {LIBRARY_SPORTS.includes(team.sport) && (
+          <Row
+            to="/library"
+            label="Practice library"
+            detail="Fundamentals, tactics, and position-specific drills"
+            chevron
+          />
+        )}
         <RoleGate allow={['coach']}>
           <Row
             to="/settings/season"

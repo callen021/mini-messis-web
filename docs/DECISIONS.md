@@ -1647,3 +1647,58 @@ continues), players displaced from the line's spots who are not in the line go t
 bench line, and a spot left empty by a move stays open and is returned as a code so the toast
 flags it ("Second on · LW left open"). A forward line change never touches the pair or the goalie;
 a pair change never touches the forwards. The tap queue still works for single subs. pgTAP 32.
+
+### D123. Practice library prototype: one item, First Touch
+
+**Entry and pages.** Settings → "Practice library" sits directly below Skills tests, for soccer
+teams only (`LIBRARY_SPORTS`) and for every role. `/library` lists the sport's published items as
+cards grouped by category; `/library/:slug` is the detail page: title, category and ages, then one
+tab per content section (Learn, Coach Setup), chosen with `?tab=`. The page holds the screen wake
+lock (`useWakeLock`) while open. All members see both tabs for now; parent permissions are still
+to be decided. No planner, custom drills, video or other items yet; Skills tests are untouched.
+
+**Data.** `library_items` (slug, sport, category `fundamentals | tactics | position`, title, ages,
+sort order, published flag, `content jsonb`) holds the built-in content, seeded by the migration
+so it reaches the hosted database with `db:push`. Every signed-in user reads published rows; there
+is no write policy and the write grants are revoked. `content` has one object per tab: `learn`
+(tagline, focus, steps, cues, wrong/right pairs, big picture) and `setup` (params, diagram, run
+steps, equipment). The page shows a tab for each section present, so a Tactics item or a later
+`video` section is a data change. `src/library/types.ts` parses the JSON defensively and skips an
+element kind it does not know.
+
+**Team overrides.** `team_library_overrides (team_id, item_id, params jsonb)`: members read,
+coaches and assistant coaches write (RLS via `is_active_member` / `is_staff`), and the
+`check_library_override` trigger refuses a key the item does not mark `adjustable`, a non-integer,
+a value outside `min`–`max` or off its `step`, and an item of another sport. The built-in row is
+never written; "Reset to default" deletes the override row. The steppers save on each tap
+(optimistic, serial per item); a stored value the item no longer allows is ignored on read.
+
+**Setup numbers.** Cones 4 (3–5); spacing default "3–5 yd (9–15 ft)", a team picks one whole
+number of yards from 2 to 8, shown with feet; players "2+" (not adjustable); duration empty by
+default, 5–30 minutes in steps of 5, with one step below 5 meaning "Not set".
+
+**Diagram.** Drawn by the app as SVG from `setup.diagram.elements` (`cones`, `player`, `arrow`
+with kind `pass | touch | dribble`, `measure`); no image, no editor. Coordinates are **cone gaps**,
+not yards: a point is `[x, y]`, an anchor id (`"c0"`, `"passer"`) or `[anchor, dx, dy]`; `"$key"`
+reads a setup number; an arrow with `"repeat": "c"` is drawn once per gap between the cones. The
+picture is therefore a schematic that always fits a phone ("Not to scale" in the key): the cone
+count changes the drawing, the spacing changes the label. A to-scale drawing was dropped because
+five cones at 8 yards would shrink the offsets under the size of the marks. The grass stripes and
+colors echo the pitch, but `FieldStage` is not reused: it places formation slots on a full-pitch
+image through a homography, which does not fit a 12-yard cone line. Players are lettered circles
+(P, R), not jerseys, so they read at 26px.
+
+**Images.** Step pictures live in the public `practice-library` storage bucket (created by the
+migration, 1 MB limit, WebP/JPEG/PNG, no write policy). A step stores
+`image: { path, width, height }`, so swapping a picture is a one-row update; the frame takes the
+picture's own shape, clamped between 3:4 and 16:9, so the planned portrait images need no code
+change. A missing or failed image shows the step number. The temporary pictures are cropped from
+the user's sheet by `scripts/crop-practice-images.mjs` (the Playwright browser does the WebP
+encoding) at their native size, about 365×284 and 25 kB each. The whole `practice-library/`
+folder (source sheet and crops) is gitignored: on the hosted project the four files are dragged
+into the bucket under `first-touch/`; locally `scripts/upload-practice-images.mjs` uploads them
+with the local stack's key and refuses any non-local address; CI shows the placeholder. A local
+`db reset` empties the bucket, so run the upload script again after one.
+
+Tests: `src/library/__tests__/library.test.tsx`, pgTAP 33, one Playwright flow at 375px in both
+themes.
