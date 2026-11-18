@@ -288,6 +288,12 @@ export const routes: RouteObject[] = [
                         ),
                       },
                       {
+                        path: '/training/:playerId',
+                        element: lazyPage(() =>
+                          import('@/training/TrainingPage').then((m) => ({ default: m.TrainingPage })),
+                        ),
+                      },
+                      {
                         path: '/profile',
                         element: lazyPage(() =>
                           import('@/settings/ProfilePage').then((m) => ({ default: m.ProfilePage })),

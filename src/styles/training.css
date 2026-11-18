@@ -1,0 +1,196 @@
+/* At-home Training (D128): drill cards on the parent's Training page */
+
+.linkbtn {
+  border: 0;
+  background: none;
+  padding: 0;
+  font: inherit;
+  color: var(--tint);
+  cursor: pointer;
+}
+.linkbtn:disabled {
+  opacity: 0.5;
+}
+
+.drillcards {
+  list-style: none;
+  margin: 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.drillcard {
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+}
+.drillhead {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  min-height: 60px;
+  padding: 12px 16px;
+  border: 0;
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.drillhead:active {
+  background: var(--fill);
+}
+.drillhead .lbl {
+  flex: 1;
+  min-width: 0;
+}
+.drillhead .lbl b {
+  display: block;
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.drillhead .homemeta {
+  margin: 4px 0 0;
+}
+.drillhead .chev {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text3);
+  border-bottom: 2px solid var(--text3);
+  transform: rotate(-45deg);
+  margin-right: 2px;
+  flex: none;
+  transition: transform 0.15s;
+}
+.drillcard.open .drillhead .chev {
+  transform: rotate(45deg);
+}
+.donemark {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background: var(--green);
+  color: #fff;
+  font-weight: 700;
+}
+
+.drillbody {
+  padding: 0 16px 16px;
+  display: grid;
+  gap: 12px;
+}
+.drillbody p {
+  margin: 0;
+}
+.drillintro {
+  color: var(--text2);
+  font-size: 15px;
+  line-height: 1.4;
+}
+.drillmode {
+  font-size: 17px;
+  line-height: 1.4;
+}
+.drilllevels {
+  display: grid;
+  gap: 8px;
+}
+.drilllevels button {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 2px solid transparent;
+  border-radius: 10px;
+  background: var(--fill);
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  line-height: 1.35;
+  cursor: pointer;
+}
+.drilllevels button.on {
+  border-color: var(--tint);
+  background: var(--tint-soft);
+}
+.drilllevels b {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tint);
+  white-space: nowrap;
+}
+.drillnote {
+  font-size: 15px;
+  line-height: 1.4;
+  color: var(--text2);
+}
+.drillnote b {
+  font-weight: 600;
+  color: var(--text);
+}
+.drillgo {
+  width: 100%;
+}
+.drilldone {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: var(--tint-soft);
+  font-size: 15px;
+}
+
+.doanother {
+  margin: 14px 16px 0;
+  text-align: center;
+  font-size: 17px;
+}
+
+/* all three done: a small, short celebration */
+.trainparty {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 0 16px 10px;
+  padding: 12px 16px;
+  border-radius: 12px;
+  background: var(--tint-soft);
+  font-size: 16px;
+  line-height: 1.3;
+}
+.trainparty .burst {
+  font-size: 28px;
+  animation: trainpop 0.7s ease-out 1;
+}
+@keyframes trainpop {
+  0% {
+    transform: scale(0.2) rotate(-90deg);
+    opacity: 0;
+  }
+  60% {
+    transform: scale(1.35) rotate(15deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trainparty .burst {
+    animation: none;
+  }
+  .drillhead .chev {
+    transition: none;
+  }
+}

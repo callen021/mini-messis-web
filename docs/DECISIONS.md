@@ -1774,3 +1774,20 @@ for word; the sheet itself stays out of the repo.
 - **"Repetition, then accuracy"** (drill 10) is stored as a repetition drill whose third level is
   marked accuracy; the label is shown as the sheet words it.
 - **Cone Dribbling** carries `stopwatch: true` for the built-in stopwatch that follows.
+
+### D128. Training page: Daily Drills, and how a Done is recorded
+
+A parent's Training page for one child (`/training/:playerId`), soccer only.
+
+- **Today's three** come from the sheet's five-day rotation, picked by the calendar with nothing
+  stored: days since Monday 5 January 2026, modulo five. Every child sees the same drills on the
+  same date. "Do another" lists all ten; a Done there is recorded the same way.
+- **A Done** is one row in `home_drill_completions`: child, drill, date, level, mode. One per
+  drill per day. All three levels are open; the card starts from the level and mode used last.
+- **The date is the server's**: today in the team's timezone (`team_today`), so a drill cannot be
+  backdated from a device.
+- **Who**: only a parent with a confirmed link, on the team, to a child on the roster
+  (`can_train`) records; coaches and assistant coaches read (`can_see_training`); other parents
+  see nothing. A parent may take back a Done they recorded, the same day only. Nobody edits.
+- **Screen**: one drill open at a time; the screen stays awake while one is. A short "All three
+  done!" note is the celebration.

@@ -4,11 +4,11 @@ import { type HomeSection, levelLabel } from './types';
 /** "Footwork · Repetition · 3 min", each part only when the drill gives it. */
 export function HomeMeta({ home }: { home: HomeSection }) {
   return (
-    <p className="homemeta">
+    <span className="homemeta">
       {home.skill && <span className="pill">{home.skill}</span>}
       <span>{home.typeLabel}</span>
       {home.minutes !== null && <span>· {home.minutes} min</span>}
-    </p>
+    </span>
   );
 }
 

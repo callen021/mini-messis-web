@@ -463,6 +463,54 @@ export type Database = {
           },
         ]
       }
+      home_drill_completions: {
+        Row: {
+          created_at: string
+          done_on: string
+          id: string
+          item_id: string
+          level: number
+          mode: Database["public"]["Enums"]["drill_mode"]
+          player_id: string
+          recorded_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          done_on?: string
+          id?: string
+          item_id: string
+          level: number
+          mode: Database["public"]["Enums"]["drill_mode"]
+          player_id: string
+          recorded_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          done_on?: string
+          id?: string
+          item_id?: string
+          level?: number
+          mode?: Database["public"]["Enums"]["drill_mode"]
+          player_id?: string
+          recorded_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_drill_completions_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "library_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_drill_completions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       join_attempts: {
         Row: {
           attempted_at: string
@@ -1843,6 +1891,9 @@ export type Database = {
       board_mark_read: { Args: { p_team_id: string }; Returns: undefined }
       board_unread: { Args: { p_team_id: string }; Returns: boolean }
       can_log_stats: { Args: { p_game_id: string }; Returns: boolean }
+      can_see_training: { Args: { p_player_id: string }; Returns: boolean }
+      can_train: { Args: { p_player_id: string }; Returns: boolean }
+      team_today: { Args: { p_team_id: string }; Returns: string }
       can_rsvp_for: { Args: { p_player_id: string }; Returns: boolean }
       can_see_contact: {
         Args: { p_player_id: string; p_shared: boolean }
@@ -2550,6 +2601,7 @@ export type Database = {
     }
     Enums: {
       allergy_status: "none" | "has"
+      drill_mode: "parent" | "solo"
       body_side: "left" | "right"
       field_view: "persp" | "flat"
       game_status: "upcoming" | "live" | "done"
@@ -2728,6 +2780,7 @@ export const Constants = {
   public: {
     Enums: {
       allergy_status: ["none", "has"],
+      drill_mode: ["parent", "solo"],
       body_side: ["left", "right"],
       field_view: ["persp", "flat"],
       game_status: ["upcoming", "live", "done"],
