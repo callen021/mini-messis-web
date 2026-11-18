@@ -37,6 +37,7 @@ import { SPORTS, chipLabel } from '@/sports/definitions';
 import { positionName } from '@/sports/positions';
 import { type Player, usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
+import { StreakIndicators } from '@/training/StreakIndicator';
 import { nextEvent } from './next';
 
 /** Ticks every half minute so countdowns stay honest while the tab is open. */
@@ -51,10 +52,11 @@ function useNow(stepMs = 30_000): Date {
 
 /** Parent landing tab (D53): my child, the next event, their positions, season, skills and details. */
 export function HomePage() {
-  const { teamId } = useCurrentTeam();
+  const { teamId, sport } = useCurrentTeam();
   const isStaff = useIsStaff();
   const players = usePlayers(teamId);
   const children = useMyChildren();
+  const links = useMyChildLinks();
   const [picked, setPicked] = useState<string | null>(null);
 
   const mine = useMemo(() => {
@@ -83,8 +85,12 @@ export function HomePage() {
     );
   }
 
+  // at-home Training (D131): soccer only, and only for a child whose link a coach confirmed
+  const training = sport === 'soccer' ? mine.filter((p) => links.data?.get(p.id) === 'approved') : [];
+
   return (
     <Page
+      action={training.length > 0 ? <StreakIndicators kids={training} named={mine.length > 1} /> : undefined}
       title={mine.length > 1 ? 'My players' : child.first_name}
       documentTitle={child.first_name}
       sub={

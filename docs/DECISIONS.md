@@ -1829,3 +1829,15 @@ The streak belongs to the child and is counted in days, at most one a day.
 - **Milestones** at 5, 10, 25, 50 and 100 days, each celebrated once per child: the parent sees a
   note and "Nice!" records it. Coaches see the streak and no celebration.
 - No rest passes, currency, rankings or leaderboards.
+
+### D131. The streak indicator on the parent dashboard
+
+Upper right, beside the title of the parent's home page: a small flame, the child's current
+streak and a "Daily Drills" label. Tapping it opens that child's Training page. No new bottom tab
+and no large button; the rest of the dashboard is unchanged.
+
+- One indicator per confirmed child. When the dashboard is about more than one child, each
+  carries the child's first name.
+- Shown for soccer teams only, and only for a child whose link a coach confirmed; an unconfirmed
+  parent sees no indicator and cannot open Training (the database refuses too).
+- A streak of zero shows a grey flame.
