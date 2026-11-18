@@ -46,8 +46,13 @@ export interface LearnSection {
   focus: string;
   steps: LearnStep[];
   cues: string[];
+  /** Small captioned close-ups ("Plant Foot", "Beside the Ball"); most items have none. */
+  tips: { title: string; text: string; image: StepImage | null }[];
   compare: { wrong: string; right: string }[];
   bigPicture: string;
+  /** A ticked list between the big picture's opening line and its closing one; usually empty. */
+  bigPicturePoints: string[];
+  bigPictureClose: string;
 }
 
 export type ParamType = 'count' | 'distance' | 'duration' | 'text';
@@ -123,7 +128,13 @@ function parseLearn(v: unknown): LearnSection | null {
       .filter(isObj)
       .map((c) => ({ wrong: str(c.wrong), right: str(c.right) }))
       .filter((c) => c.wrong || c.right),
+    tips: list(v.tips)
+      .filter(isObj)
+      .map((t) => ({ title: str(t.title), text: str(t.text), image: parseImage(t.image) }))
+      .filter((t) => t.title || t.text),
     bigPicture: str(v.big_picture),
+    bigPicturePoints: strings(v.big_picture_points),
+    bigPictureClose: str(v.big_picture_close),
   };
 }
 

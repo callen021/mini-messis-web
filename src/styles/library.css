@@ -273,6 +273,68 @@
   font-weight: 700;
 }
 
+/* technique tips: small captioned close-ups, side by side (D126) */
+.libtips {
+  list-style: none;
+  margin: 0 16px;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: 8px;
+}
+.libtips li {
+  min-width: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  padding-bottom: 8px;
+  text-align: center;
+  font-size: 13px;
+  line-height: 1.25;
+  color: var(--text2);
+}
+.libtips img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 3 / 4;
+  height: auto;
+  object-fit: cover;
+  background: var(--fill);
+  margin-bottom: 6px;
+}
+.libtips b {
+  display: block;
+  padding: 0 4px;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+}
+.libtips span {
+  display: block;
+  padding: 0 4px;
+}
+/* the ticked list of the big picture */
+.libticks {
+  list-style: none;
+  margin: 6px 0;
+  padding: 0;
+}
+.libticks li {
+  position: relative;
+  padding: 3px 0 3px 28px;
+}
+.libticks li::before {
+  content: '✓';
+  position: absolute;
+  left: 4px;
+  font-weight: 700;
+  color: var(--tint);
+}
+.libnote .close {
+  font-weight: 600;
+}
+
 /* wrong vs right */
 .libcompare li {
   padding: 10px 0;

@@ -218,6 +218,34 @@ describe('LearnTab', () => {
     expect(screen.getByText('Head down the whole time.')).toBeInTheDocument();
     expect(screen.getByText('Look up after the touch.')).toBeInTheDocument();
     expect(screen.getByText('A good first touch gives you time.')).toBeInTheDocument();
+    expect(screen.queryByText('Technique tips')).toBeNull();
+  });
+  it('shows technique tips and a ticked big picture when the item has them (D126)', () => {
+    const striking = must(
+      parseContent({
+        learn: {
+          tips: [
+            {
+              title: 'Contact',
+              text: 'With Your Laces',
+              image: { path: 's/tip-2.webp', width: 146, height: 190 },
+            },
+            { title: 'Plant Foot', text: 'Beside the Ball' },
+          ],
+          big_picture: 'A great shot comes from:',
+          big_picture_points: ['A good approach.', 'Clean contact.'],
+          big_picture_close: 'Put it all together to shoot with confidence!',
+        },
+      }).learn,
+    );
+    render(<LearnTab learn={striking} />);
+    const tip = must(screen.getByText('Contact').closest('li'));
+    expect(within(tip).getByText('With Your Laces')).toBeInTheDocument();
+    expect(tip.querySelector('img')).toHaveAttribute('src', 'https://img.test/s/tip-2.webp');
+    expect(must(screen.getByText('Plant Foot').closest('li')).querySelector('img')).toBeNull();
+    expect(screen.getByText('A great shot comes from:')).toBeInTheDocument();
+    expect(screen.getByText('Clean contact.').tagName).toBe('LI');
+    expect(screen.getByText('Put it all together to shoot with confidence!')).toBeInTheDocument();
   });
 });
 

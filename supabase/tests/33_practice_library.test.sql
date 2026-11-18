@@ -63,17 +63,17 @@ select is((select public from storage.buckets where id = 'practice-library'), tr
 select pg_temp.login('d5000000-0000-0000-0000-000000000003');
 select is((select count(*)::int from public.library_items where slug = 'first-touch'), 1, 'a parent reads the item');
 select is((select count(*)::int from public.library_items where slug = 'pl-test-draft'), 0, 'an unpublished item is hidden');
-select is((select count(*)::int from public.library_items where slug in ('passing-the-ball', 'win-it-and-keep-it')), 0, 'the new items wait unpublished (D125)');
+select is((select count(*)::int from public.library_items where slug in ('passing-the-ball', 'win-it-and-keep-it', 'striking-the-ball')), 0, 'the new items wait unpublished (D125)');
 select throws_ok($$update public.library_items set title = 'Hacked' where slug = 'first-touch'$$, '42501', null, 'nobody edits built-in content from the app');
 select throws_ok($$insert into public.team_library_overrides (team_id, item_id, params) values ((select v from ctx where k = 'team'), (select v from ctx where k = 'item'), '{"cones": 5}')$$, '42501', null, 'a parent cannot adjust the setup');
 select pg_temp.logout();
 
 -- ---------- a platform admin previews drafts, and still writes nothing (D125) ----------
 select pg_temp.login('d5000000-0000-0000-0000-000000000006');
-select is((select count(*)::int from public.library_items where slug in ('pl-test-draft', 'passing-the-ball', 'win-it-and-keep-it')), 3, 'a platform admin reads unpublished items');
+select is((select count(*)::int from public.library_items where slug in ('pl-test-draft', 'passing-the-ball', 'win-it-and-keep-it', 'striking-the-ball')), 4, 'a platform admin reads unpublished items');
 select throws_ok($$update public.library_items set is_published = true where slug = 'pl-test-draft'$$, '42501', null, 'but does not publish from the app');
 select pg_temp.logout();
-select is((select count(*)::int from public.library_items i, jsonb_array_elements(i.content #> '{learn,steps}') s where i.slug in ('passing-the-ball', 'win-it-and-keep-it') and s #>> '{image,path}' like i.slug || '/step-%.webp'), 9, 'their nine steps name images under the item''s own folder');
+select is((select count(*)::int from public.library_items i, jsonb_array_elements(i.content #> '{learn,steps}') s where i.slug in ('passing-the-ball', 'win-it-and-keep-it', 'striking-the-ball') and s #>> '{image,path}' like i.slug || '/step-%.webp'), 16, 'their sixteen steps name images under the item''s own folder');
 
 -- ---------- the coach adjusts the setup for the team ----------
 select pg_temp.login('d5000000-0000-0000-0000-000000000001');

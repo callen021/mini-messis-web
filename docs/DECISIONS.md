@@ -1746,3 +1746,14 @@ none.
 
 Crops for all items come from `scripts/crop-practice-images.mjs`; each item's files go in the
 bucket under its slug (`passing-the-ball/step-1.webp` …).
+
+### D126. Library: Striking the Ball; technique tips and a ticked big picture
+
+**Striking the Ball** uses the seven-step "Shoot with Power & Accuracy!" sheet (the earlier
+five-step sheet is not used). The text is the smaller sheet the user chose; the pictures are
+cropped from the larger copy of the same seven steps. Inserted unpublished like D125.
+
+Two optional Learn blocks, both data: `tips` (small captioned close-ups shown side by side under
+the coaching cues) and `big_picture_points` with `big_picture_close` (a ticked list between the
+big picture's opening and closing lines). The sheet has no cone setup, so its setup section has
+no diagram and only the empty duration; "How to run it" is the sheet's Try It.

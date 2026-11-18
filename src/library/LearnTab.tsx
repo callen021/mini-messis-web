@@ -1,4 +1,5 @@
 import { Section } from '@/components/List';
+import { libraryImageUrl } from './api';
 import { StepCarousel } from './StepCarousel';
 import { type LearnSection } from './types';
 
@@ -20,6 +21,29 @@ export function LearnTab({ learn }: { learn: LearnSection }) {
           <ul className="libcues">
             {learn.cues.map((c) => (
               <li key={c}>{c}</li>
+            ))}
+          </ul>
+        </>
+      )}
+      {learn.tips.length > 0 && (
+        <>
+          <Section>Technique tips</Section>
+          <ul className="libtips">
+            {learn.tips.map((t) => (
+              <li key={t.title}>
+                {t.image && (
+                  <img
+                    src={libraryImageUrl(t.image.path)}
+                    width={t.image.width ?? undefined}
+                    height={t.image.height ?? undefined}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                  />
+                )}
+                <b>{t.title}</b>
+                {t.text && <span>{t.text}</span>}
+              </li>
             ))}
           </ul>
         </>
@@ -53,11 +77,19 @@ export function LearnTab({ learn }: { learn: LearnSection }) {
           </ul>
         </>
       )}
-      {learn.bigPicture && (
+      {(learn.bigPicture || learn.bigPicturePoints.length > 0) && (
         <>
           <Section>The big picture</Section>
           <div className="libnote big">
-            <p>{learn.bigPicture}</p>
+            {learn.bigPicture && <p>{learn.bigPicture}</p>}
+            {learn.bigPicturePoints.length > 0 && (
+              <ul className="libticks">
+                {learn.bigPicturePoints.map((p) => (
+                  <li key={p}>{p}</li>
+                ))}
+              </ul>
+            )}
+            {learn.bigPictureClose && <p className="close">{learn.bigPictureClose}</p>}
           </div>
         </>
       )}
