@@ -1841,3 +1841,20 @@ and no large button; the rest of the dashboard is unchanged.
 - Shown for soccer teams only, and only for a child whose link a coach confirmed; an unconfirmed
   parent sees no indicator and cannot open Training (the database refuses too).
 - A streak of zero shows a grey flame.
+
+### D132. Skill tests at home: Home and Coach results, labelled and kept apart
+
+The Training page has a second tab, Skill Tests. It uses the team's existing skill tests (the
+shown ones); there is no second set.
+
+- **Source and conditions.** Every `skill_results` row has a `source` (Coach, the default and
+  every older row, or Home) and optional free-text `conditions`. The source never changes.
+- **A parent** records a Home result for their own confirmed child, and edits or deletes only the
+  Home results they recorded. **Coaches** keep full control of Coach results and can see Home
+  results, but cannot edit or delete them. Row security enforces both.
+- **Together but never combined.** The tab lists both sources in one history, each row labelled,
+  with a separate best and latest per source. On the coach's Skills screens the only visible
+  change is the source label in a test's history; their bests, trends and sparklines are computed
+  from Coach results only, so a Home result never moves a coach's number.
+- A Home result must be on one of the team's shown tests and cannot be dated in the future.
+- Copying a team (`duplicate_team`) keeps each result's source and conditions.

@@ -13,6 +13,7 @@ import { useCurrentTeam } from '@/teams/TeamContext';
 import { useAddSkillResults, useSkillResults, useSkillTests, useUpdateSkillResult } from './api';
 import {
   bestOf,
+  coachResults,
   fmtResult,
   mainSide,
   shortTestName,
@@ -47,7 +48,7 @@ export function SkillsMatrix({ players }: { players: readonly Player[] }) {
   const active = players.filter((p) => p.is_available);
   const byKey = useMemo(() => {
     const m = new Map<string, SkillResult[]>();
-    for (const r of sortResults(results.data ?? [])) {
+    for (const r of sortResults(coachResults(results.data ?? []))) {
       const k = `${r.player_id}:${r.skill_test_id}`;
       const list = m.get(k) ?? [];
       list.push(r);

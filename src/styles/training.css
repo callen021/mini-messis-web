@@ -406,3 +406,130 @@
   font-weight: 400;
   color: var(--text2);
 }
+
+/* Home / Coach source labels on skill results (D132) */
+.chip.src {
+  flex: none;
+  font-size: 10px;
+  padding: 2px 6px;
+}
+.chip.src.home {
+  background: rgba(0, 122, 255, 0.14);
+  color: var(--blue);
+}
+.chip.src.coach {
+  background: var(--fill);
+  color: var(--text2);
+}
+
+/* Skill Tests on the Training page */
+.training .seg.wide {
+  margin-top: 12px;
+}
+.testcards {
+  list-style: none;
+  margin: 14px 16px 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+.testcard {
+  display: grid;
+  gap: 10px;
+  padding: 14px 16px;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+}
+.testcard h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+}
+.testcard .how {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.4;
+  color: var(--text2);
+}
+.srcbests {
+  margin: 0;
+  display: grid;
+  gap: 6px;
+}
+.srcbests > div {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 15px;
+}
+.srcbests dt {
+  width: 52px;
+  flex: none;
+}
+.srcbests dd {
+  margin: 0;
+  font-variant-numeric: tabular-nums;
+}
+.srcrows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--sep);
+}
+.srcrows li > * {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 44px;
+  padding: 4px 0;
+  border: 0;
+  border-bottom: 1px solid var(--sep);
+  background: none;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+}
+.srcrows li:last-child > * {
+  border-bottom: 0;
+}
+.srcrows button {
+  cursor: pointer;
+}
+.srcrows .d {
+  width: 56px;
+  flex: none;
+  font-size: 13px;
+  color: var(--text2);
+}
+.srcrows .v {
+  width: 64px;
+  flex: none;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+.srcrows .n {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 13px;
+  color: var(--text2);
+}
+.srcrows .chev {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text3);
+  border-bottom: 2px solid var(--text3);
+  transform: rotate(-45deg);
+  flex: none;
+  margin-right: 2px;
+}
+.testactions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}

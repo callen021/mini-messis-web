@@ -1,15 +1,19 @@
-import { useParams } from 'react-router';
+import { useParams, useSearchParams } from 'react-router';
 import { LoadingScreen } from '@/auth/guards';
 import { Group, Row } from '@/components/List';
 import { Page } from '@/components/Page';
+import { Segmented } from '@/components/Segmented';
 import { useMyChildLinks } from '@/lineups/api';
 import { usePractices } from '@/games/practices';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { DailyDrills } from './DailyDrills';
+import { SkillTestsTab } from './SkillTestsTab';
 import { addDays, teamToday } from './rotation';
 import { StreakCard } from './StreakCard';
 import { WentSection } from './WentSection';
+
+type Tab = 'drills' | 'tests';
 
 const BACK = { to: '/home', label: 'Home', pop: true } as const;
 
@@ -23,6 +27,8 @@ export function TrainingPage() {
   const players = usePlayers(teamId);
   const links = useMyChildLinks();
   const practices = usePractices(teamId);
+  const [search, setSearch] = useSearchParams();
+  const tab: Tab = search.get('tab') === 'tests' ? 'tests' : 'drills';
 
   if (players.isPending || links.isPending) return <LoadingScreen label="Loading training…" />;
 
@@ -53,14 +59,30 @@ export function TrainingPage() {
       className="training"
     >
       <StreakCard playerId={child.id} playerName={child.first_name} />
-      <DailyDrills playerId={child.id} playerName={child.first_name} sport={sport} today={today} />
-      <WentSection
-        title="Team practice this week"
-        practices={recent}
-        kids={[child]}
-        timezone={team.timezone}
-        today={today}
+      <Segmented<Tab>
+        wide
+        label="Training"
+        value={tab}
+        onChange={(t) => setSearch(t === 'drills' ? {} : { tab: t }, { replace: true })}
+        options={[
+          { value: 'drills', label: 'Daily Drills' },
+          { value: 'tests', label: 'Skill Tests' },
+        ]}
       />
+      {tab === 'drills' ? (
+        <>
+          <DailyDrills playerId={child.id} playerName={child.first_name} sport={sport} today={today} />
+          <WentSection
+            title="Team practice this week"
+            practices={recent}
+            kids={[child]}
+            timezone={team.timezone}
+            today={today}
+          />
+        </>
+      ) : (
+        <SkillTestsTab teamId={teamId} playerId={child.id} playerName={child.first_name} today={today} />
+      )}
     </Page>
   );
 }

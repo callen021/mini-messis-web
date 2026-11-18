@@ -2,7 +2,7 @@
 -- the date is the server's; coaches and assistant coaches read; other parents see nothing.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(79);
+select plan(104);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -246,6 +246,66 @@ select throws_ok($$select public.celebrate_training_milestone('e6000000-0000-000
 select throws_ok($$update public.player_training set longest_streak = 100 where player_id = 'e6000000-0000-0000-0000-00000000000a'$$, '42501', null, 'the stored streak is not written directly');
 select pg_temp.logout();
 select is((select longest_streak::text || '/' || milestones::text from public.player_training where player_id = 'e6000000-0000-0000-0000-00000000000a'), '5/{5}', 'the longest streak and the celebrated milestone are stored');
+
+-- ---------- skill tests at home (D132) ----------
+-- each team has the default soccer tests; the coach has hidden one of them
+update public.skill_tests set is_active = false where team_id = (select v from ctx where k = 'team') and key = 'sprint';
+-- parent 4 gets a second link, to child A, to stand for "another parent of the same child"
+insert into public.player_guardians (player_id, user_id, status) values ('e6000000-0000-0000-0000-00000000000a', 'd6000000-0000-0000-0000-000000000004', 'approved');
+
+select pg_temp.login('d6000000-0000-0000-0000-000000000001');
+select lives_ok($$insert into public.skill_results (player_id, skill_test_id, value) values ('e6000000-0000-0000-0000-00000000000a', (select id from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'juggling'), 12)$$, 'the coach records a result as before');
+select is((select source::text from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a'), 'coach', 'and it is a Coach result');
+select throws_ok($$insert into public.skill_results (player_id, skill_test_id, value, source) values ('e6000000-0000-0000-0000-00000000000a', (select id from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'juggling'), 99, 'home')$$, '42501', null, 'a coach cannot record a Home result');
+select pg_temp.logout();
+
+select pg_temp.login('d6000000-0000-0000-0000-000000000003');
+select lives_ok($$insert into public.skill_results (player_id, skill_test_id, value, source, conditions, tested_on) values ('e6000000-0000-0000-0000-00000000000a', (select id from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'juggling'), 30, 'home', '  backyard, size 3 ball ', public.team_today((select v from ctx where k = 'team')) - 1)$$, 'a parent records a Home result for their child');
+select is((select source::text || '/' || conditions || '/' || (recorded_by = 'd6000000-0000-0000-0000-000000000003')::text from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and value = 30), 'home/backyard, size 3 ball/true', 'stored as Home, with its conditions and who recorded it');
+select throws_ok($$insert into public.skill_results (player_id, skill_test_id, value) values ('e6000000-0000-0000-0000-00000000000a', (select id from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'juggling'), 31)$$, '42501', null, 'a parent cannot record a Coach result');
+select throws_ok($$insert into public.skill_results (player_id, skill_test_id, value, source) values ('e6000000-0000-0000-0000-00000000000b', (select id from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'juggling'), 31, 'home')$$, '42501', null, 'nor a result for another child');
+select throws_ok($$insert into public.skill_results (player_id, skill_test_id, value, source) values ('e6000000-0000-0000-0000-00000000000a', (select id from public.skill_tests where team_id = (select v from ctx where k = 'other') and key = 'juggling'), 31, 'home')$$, '23514', null, 'nor on another team''s test');
+select throws_ok($$insert into public.skill_results (player_id, skill_test_id, value, source) values ('e6000000-0000-0000-0000-00000000000a', (select id from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'sprint'), 31, 'home')$$, '23514', null, 'nor on a test the coach has hidden');
+select throws_ok($$insert into public.skill_results (player_id, skill_test_id, value, source, tested_on) values ('e6000000-0000-0000-0000-00000000000a', (select id from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'juggling'), 31, 'home', public.team_today((select v from ctx where k = 'team')) + 1)$$, '23514', null, 'nor dated in the future');
+select is((select count(*)::int from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a'), 2, 'the parent sees Home and Coach results together');
+select lives_ok($$update public.skill_results set value = 33, conditions = 'driveway' where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home'$$, 'a parent edits their own Home result');
+select is((select value::text || '/' || conditions from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home'), '33/driveway', 'and the change is kept');
+update public.skill_results set value = 1 where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'coach';
+select is((select value::int from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'coach'), 12, 'a parent cannot edit a Coach result');
+update public.skill_results set source = 'coach' where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home';
+select is((select count(*)::int from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home'), 1, 'a Home result cannot be turned into a Coach result');
+delete from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'coach';
+select is((select count(*)::int from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a'), 2, 'a parent cannot delete a Coach result');
+select pg_temp.logout();
+
+select pg_temp.login('d6000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home'), 1, 'the coach sees the Home result');
+update public.skill_results set value = 1 where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home';
+delete from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home';
+select is((select value::int from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home'), 33, 'and can neither edit nor delete it');
+select lives_ok($$update public.skill_results set value = 14 where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'coach'$$, 'the coach still edits a Coach result');
+select pg_temp.logout();
+select pg_temp.login('d6000000-0000-0000-0000-000000000002');
+select is((select count(*)::int from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a'), 2, 'the assistant coach sees both');
+select pg_temp.logout();
+
+select pg_temp.login('d6000000-0000-0000-0000-000000000004');
+update public.skill_results set value = 2 where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home';
+delete from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home';
+select is((select value::int from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home'), 33, 'another parent of the child cannot change a Home result they did not record');
+select pg_temp.logout();
+delete from public.player_guardians where player_id = 'e6000000-0000-0000-0000-00000000000a' and user_id = 'd6000000-0000-0000-0000-000000000004';
+select pg_temp.login('d6000000-0000-0000-0000-000000000004');
+select is((select count(*)::int from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a'), 0, 'a parent of another child sees none of them');
+select pg_temp.logout();
+select pg_temp.login('d6000000-0000-0000-0000-000000000005');
+select throws_ok($$insert into public.skill_results (player_id, skill_test_id, value, source) values ('e6000000-0000-0000-0000-00000000000a', (select id from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'juggling'), 5, 'home')$$, '42501', null, 'an unconfirmed parent cannot record a Home result');
+select pg_temp.logout();
+
+select pg_temp.login('d6000000-0000-0000-0000-000000000003');
+select lives_ok($$delete from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a' and source = 'home'$$, 'a parent deletes their own Home result');
+select is((select count(*)::int from public.skill_results where player_id = 'e6000000-0000-0000-0000-00000000000a'), 1, 'and only that one is gone');
+select pg_temp.logout();
 
 -- ---------- a child who left the roster ----------
 update public.players set archived_at = now() where id = 'e6000000-0000-0000-0000-00000000000a';

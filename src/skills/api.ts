@@ -176,7 +176,15 @@ export function useSkillResults(teamId: string, playerIds: readonly string[]) {
 
 export type SkillResultInput = Pick<
   TablesInsert<'skill_results'>,
-  'player_id' | 'skill_test_id' | 'tested_on' | 'value' | 'attempts' | 'side' | 'note'
+  | 'player_id'
+  | 'skill_test_id'
+  | 'tested_on'
+  | 'value'
+  | 'attempts'
+  | 'side'
+  | 'note'
+  | 'source'
+  | 'conditions'
 >;
 
 export function useAddSkillResults(teamId: string) {
@@ -206,6 +214,8 @@ export function useAddSkillResults(teamId: string) {
             attempts: r.attempts ?? null,
             side: r.side ?? null,
             note: r.note ?? null,
+            source: r.source ?? 'coach',
+            conditions: r.conditions ?? null,
             recorded_by: null,
             created_at: now,
             updated_at: now,
@@ -225,7 +235,7 @@ export function useAddSkillResults(teamId: string) {
 }
 
 export type SkillResultPatch = Partial<
-  Pick<SkillResult, 'tested_on' | 'value' | 'attempts' | 'side' | 'note'>
+  Pick<SkillResult, 'tested_on' | 'value' | 'attempts' | 'side' | 'note' | 'conditions'>
 >;
 
 function useResultsMutation<TArgs>(

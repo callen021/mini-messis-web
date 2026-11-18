@@ -1391,6 +1391,7 @@ export type Database = {
       skill_results: {
         Row: {
           attempts: number | null
+          conditions: string | null
           created_at: string
           id: string
           note: string | null
@@ -1398,6 +1399,7 @@ export type Database = {
           recorded_by: string | null
           side: Database["public"]["Enums"]["body_side"] | null
           skill_test_id: string
+          source: Database["public"]["Enums"]["skill_source"]
           tested_on: string
           updated_at: string
           updated_by: string | null
@@ -1405,6 +1407,7 @@ export type Database = {
         }
         Insert: {
           attempts?: number | null
+          conditions?: string | null
           created_at?: string
           id?: string
           note?: string | null
@@ -1412,6 +1415,7 @@ export type Database = {
           recorded_by?: string | null
           side?: Database["public"]["Enums"]["body_side"] | null
           skill_test_id: string
+          source?: Database["public"]["Enums"]["skill_source"]
           tested_on?: string
           updated_at?: string
           updated_by?: string | null
@@ -1419,6 +1423,7 @@ export type Database = {
         }
         Update: {
           attempts?: number | null
+          conditions?: string | null
           created_at?: string
           id?: string
           note?: string | null
@@ -1426,6 +1431,7 @@ export type Database = {
           recorded_by?: string | null
           side?: Database["public"]["Enums"]["body_side"] | null
           skill_test_id?: string
+          source?: Database["public"]["Enums"]["skill_source"]
           tested_on?: string
           updated_at?: string
           updated_by?: string | null
@@ -2778,6 +2784,7 @@ export type Database = {
         | "AL"
         | "AXL"
       skill_metric: "count" | "time_seconds" | "distance" | "made_of_attempted"
+      skill_source: "coach" | "home"
       snack_mode: "off" | "games" | "both"
       sport:
         | "soccer"
@@ -2949,6 +2956,7 @@ export const Constants = {
       score_side: ["us", "them"],
       shirt_size: ["YXS", "YS", "YM", "YL", "YXL", "AS", "AM", "AL", "AXL"],
       skill_metric: ["count", "time_seconds", "distance", "made_of_attempted"],
+      skill_source: ["coach", "home"],
       snack_mode: ["off", "games", "both"],
       sport: [
         "soccer",

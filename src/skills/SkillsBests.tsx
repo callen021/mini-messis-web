@@ -3,7 +3,15 @@ import { useLocation, useNavigate } from 'react-router';
 import { Row } from '@/components/List';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useSkillResults, useSkillTests } from './api';
-import { bestOf, defaultFor, fmtResult, mainSide, type SkillResult, sortResults } from './defaults';
+import {
+  bestOf,
+  coachResults,
+  defaultFor,
+  fmtResult,
+  mainSide,
+  type SkillResult,
+  sortResults,
+} from './defaults';
 import { Sparkline } from './Sparkline';
 
 /**
@@ -19,7 +27,7 @@ export function SkillsBests({ playerId, playerName }: { playerId: string; player
   const shown = useMemo(() => (tests.data ?? []).filter((t) => t.is_active), [tests.data]);
   const byTest = useMemo(() => {
     const m = new Map<string, SkillResult[]>();
-    for (const r of sortResults(results.data ?? [])) {
+    for (const r of sortResults(coachResults(results.data ?? []))) {
       const list = m.get(r.skill_test_id) ?? [];
       list.push(r);
       m.set(r.skill_test_id, list);

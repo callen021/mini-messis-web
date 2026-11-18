@@ -104,6 +104,8 @@ describe('RecordResultSheet', () => {
           attempts: null,
           side: null,
           note: null,
+          source: 'coach',
+          conditions: null,
           recorded_by: null,
           created_at: '',
           updated_at: '',

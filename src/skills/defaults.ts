@@ -366,6 +366,18 @@ export function fmtResult(
   }
 }
 
+export type SkillSource = Enums<'skill_source'>;
+export const SOURCE_LABEL: Readonly<Record<SkillSource, string>> = { coach: 'Coach', home: 'Home' };
+/** Where a result was recorded; rows from before the column existed are the coach's. */
+export const sourceOf = (r: Pick<SkillResult, 'source'>): SkillSource =>
+  r.source === 'home' ? 'home' : 'coach';
+/**
+ * The results a coach recorded (D132). Bests, trends and sparklines on the coach's screens use
+ * these only: a Home result is shown with its label and never mixed into the same number.
+ */
+export const coachResults = (list: readonly SkillResult[]): SkillResult[] =>
+  list.filter((r) => sourceOf(r) === 'coach');
+
 /** Oldest first, stable. */
 export const sortResults = (list: readonly SkillResult[]): SkillResult[] =>
   [...list].sort(

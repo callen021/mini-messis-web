@@ -19,7 +19,17 @@ import {
   useSkillTests,
   useUpdateSkillResult,
 } from './api';
-import { bestOf, fmtResult, mainSide, metricSentence, type SkillResult, sortResults } from './defaults';
+import {
+  bestOf,
+  coachResults,
+  fmtResult,
+  mainSide,
+  metricSentence,
+  type SkillResult,
+  SOURCE_LABEL,
+  sortResults,
+  sourceOf,
+} from './defaults';
 import { type PlayerBackState, playerBack } from './playerBack';
 import { RecordResultSheet } from './RecordResultSheet';
 
@@ -62,10 +72,12 @@ export function SkillTestPage() {
   }
   const canSee = isStaff || (children.data?.has(playerId) ?? false);
   const shownTests = (tests.data ?? []).filter((t) => t.is_active);
-  const list = mainSide(test, all);
+  // the numbers are the coach's results; Home results are listed with their label (D132)
+  const coach = coachResults(all);
+  const list = mainSide(test, coach);
   const best = bestOf(test, list);
-  const last = all[all.length - 1];
-  const sessions = new Set(all.map((r) => r.tested_on)).size;
+  const last = coach[coach.length - 1];
+  const sessions = new Set(coach.map((r) => r.tested_on)).size;
   const onError = (e: unknown) => toast(errorMessage(e));
 
   const deleteEditing = async () => {
@@ -105,8 +117,8 @@ export function SkillTestPage() {
             {[...all].reverse().map((r) => (
               <Row
                 key={r.id}
-                onClick={isStaff ? () => setEditing(r) : undefined}
-                chevron={isStaff}
+                onClick={isStaff && sourceOf(r) === 'coach' ? () => setEditing(r) : undefined}
+                chevron={isStaff && sourceOf(r) === 'coach'}
                 label={
                   <span className="histrow">
                     <span className="d">{fmtDate(r.tested_on)}</span>
@@ -114,7 +126,8 @@ export function SkillTestPage() {
                       {fmtResult(test, r)}
                       {best && r.id === best.id && <span className="chip pb">PB</span>}
                     </span>
-                    <span className="n">{r.note ?? ''}</span>
+                    <span className={`chip src ${sourceOf(r)}`}>{SOURCE_LABEL[sourceOf(r)]}</span>
+                    <span className="n">{r.note ?? r.conditions ?? ''}</span>
                   </span>
                 }
               />
@@ -151,7 +164,7 @@ export function SkillTestPage() {
               add.mutate(rows, {
                 onError,
                 onSuccess: () => {
-                  const next = mainSide(test, sortResults([...all, ...(rows as unknown as SkillResult[])]));
+                  const next = mainSide(test, sortResults([...coach, ...(rows as unknown as SkillResult[])]));
                   const b = bestOf(test, next);
                   const l = next[next.length - 1];
                   toast(

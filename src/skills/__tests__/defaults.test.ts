@@ -42,6 +42,8 @@ const result = (value: number, over: Partial<SkillResult> = {}): SkillResult => 
   attempts: null,
   side: null,
   note: null,
+  source: 'coach',
+  conditions: null,
   recorded_by: null,
   created_at: String(n),
   updated_at: '',
