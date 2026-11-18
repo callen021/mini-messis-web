@@ -3,6 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/Toast';
 import { layoutDiagram } from '../diagram';
+import { HomeTab } from '../HomeTab';
 import { LearnTab } from '../LearnTab';
 import { cleanOverrides, paramNumber, paramText, stepperModel } from '../params';
 import { SetupTab } from '../SetupTab';
@@ -246,6 +247,50 @@ describe('LearnTab', () => {
     expect(screen.getByText('A great shot comes from:')).toBeInTheDocument();
     expect(screen.getByText('Clean contact.').tagName).toBe('LI');
     expect(screen.getByText('Put it all together to shoot with confidence!')).toBeInTheDocument();
+  });
+});
+
+describe('an at-home drill (D127)', () => {
+  const HOME = {
+    skill: 'Passing',
+    type: 'repetition',
+    type_label: 'Repetition, then accuracy',
+    minutes: 5,
+    intro: 'Parent and child stand 5 yards apart and pass back and forth.',
+    with_parent: 'Pass back and forth and count out loud together.',
+    on_my_own: 'Use drill 8 against a wall.',
+    levels: [
+      { text: '10 passes using two touches.' },
+      { text: '20 passes, switching feet each time.' },
+      { text: 'Score 8 out of 10.', type: 'accuracy' },
+    ],
+    notes: [{ title: 'No wall', text: 'Use drill 10 instead.' }],
+    tips: 'Cushion it. Pass with the inside of your foot.',
+    clip: 'Side view of both players.',
+  };
+  it('is a section of its own: an item shows a tab only for the sections it has', () => {
+    const c = parseContent({ home: HOME });
+    expect(tabsOf(c)).toEqual(['home']);
+    expect(tabsOf(parseContent({ ...CONTENT, home: HOME }))).toEqual(['learn', 'setup', 'home']);
+    expect(tabsOf(content)).toEqual(['learn', 'setup']); // the existing items are unchanged
+    const home = must(c.home);
+    expect(home.type).toBe('repetition');
+    expect(home.minutes).toBe(5);
+    expect(home.levels.map((l) => l.type)).toEqual([null, null, 'accuracy']);
+    expect(home.stopwatch).toBe(false);
+    expect(must(parseContent({ home: { type: 'timed', stopwatch: true } }).home).typeLabel).toBe('Timed');
+  });
+  it('shows both versions, all three levels, the notes and the tips, and nothing for the clip', () => {
+    render(<HomeTab home={must(parseContent({ home: HOME }).home)} />);
+    expect(screen.getByText('Repetition, then accuracy')).toBeInTheDocument();
+    expect(screen.getByText('· 5 min')).toBeInTheDocument();
+    expect(screen.getByText('Pass back and forth and count out loud together.')).toBeInTheDocument();
+    expect(screen.getByText('Use drill 8 against a wall.')).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(3);
+    expect(screen.getByText('Level 3 · Accuracy')).toBeInTheDocument();
+    expect(screen.getByText('Use drill 10 instead.')).toBeInTheDocument();
+    expect(screen.getByText('Cushion it. Pass with the inside of your foot.')).toBeInTheDocument();
+    expect(screen.queryByText(/Side view/)).toBeNull();
   });
 });
 

@@ -4,7 +4,7 @@
 -- built-in content; "Reset to default" is deleting the row.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(28);
+select plan(34);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -66,6 +66,16 @@ select is((select count(*)::int from public.library_items where slug = 'pl-test-
 select is((select count(*)::int from public.library_items where slug in ('passing-the-ball', 'win-it-and-keep-it', 'striking-the-ball')), 0, 'the new items wait unpublished (D125)');
 select throws_ok($$update public.library_items set title = 'Hacked' where slug = 'first-touch'$$, '42501', null, 'nobody edits built-in content from the app');
 select throws_ok($$insert into public.team_library_overrides (team_id, item_id, params) values ((select v from ctx where k = 'team'), (select v from ctx where k = 'item'), '{"cones": 5}')$$, '42501', null, 'a parent cannot adjust the setup');
+select pg_temp.logout();
+
+-- ---------- the ten at-home drills (D127): published, one `home` section each ----------
+select pg_temp.login('d5000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from public.library_items where sport = 'soccer' and category = 'home' and is_published), 10, 'a parent reads the ten at-home drills');
+select is((select count(*)::int from public.library_items where category = 'home' and content ? 'home' and not content ?| array['learn', 'setup']), 10, 'each has a home section and no other');
+select is((select count(*)::int from public.library_items where category = 'home' and content #>> '{home,type}' in ('repetition', 'timed', 'accuracy') and jsonb_typeof(content #> '{home,minutes}') = 'number' and jsonb_array_length(content #> '{home,levels}') = 3 and content #>> '{home,with_parent}' <> '' and content #>> '{home,on_my_own}' <> '' and content #>> '{home,tips}' <> '' and content #>> '{home,clip}' <> ''), 10, 'each stores type, minutes, both versions, three levels, tips and the clip description');
+select is((select string_agg(slug, ',') from public.library_items where content #> '{home,stopwatch}' = 'true'), 'cone-dribbling', 'only Cone Dribbling is timed with the stopwatch');
+select is((select content #>> '{home,levels,2,type}' from public.library_items where slug = 'first-touch-and-passing-with-a-parent'), 'accuracy', 'the passing drill''s third level is the accuracy challenge');
+select is((select count(*)::int from public.library_items where category <> 'home' and content ? 'home'), 0, 'no existing item gained a home section');
 select pg_temp.logout();
 
 -- ---------- a platform admin previews drafts, and still writes nothing (D125) ----------

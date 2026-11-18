@@ -18,8 +18,9 @@ export const CATEGORY_LABEL: Readonly<Record<string, string>> = {
   fundamentals: 'Fundamentals',
   tactics: 'Tactics',
   position: 'Position-specific',
+  home: 'At home',
 };
-export const CATEGORY_ORDER = ['fundamentals', 'tactics', 'position'] as const;
+export const CATEGORY_ORDER = ['fundamentals', 'tactics', 'position', 'home'] as const;
 export const categoryLabel = (key: string): string => CATEGORY_LABEL[key] ?? key;
 
 /** "Ages 6–10", "Ages 6+", "Up to age 10", or nothing. */
@@ -94,9 +95,51 @@ export interface SetupSection {
   equipment: string[];
 }
 
+/** How an at-home drill is measured (D127). */
+export type DrillType = 'repetition' | 'timed' | 'accuracy';
+const DRILL_TYPES: readonly DrillType[] = ['repetition', 'timed', 'accuracy'];
+export const DRILL_TYPE_LABEL: Readonly<Record<DrillType, string>> = {
+  repetition: 'Repetition',
+  timed: 'Timed',
+  accuracy: 'Accuracy',
+};
+export interface HomeLevel {
+  text: string;
+  /** Set when one level is measured differently from the drill ("Repetition, then accuracy"). */
+  type: DrillType | null;
+}
+/** An at-home drill (D127): what a parent and child do together or the child does alone. */
+export interface HomeSection {
+  /** "Footwork", "Dribbling move", … */
+  skill: string;
+  type: DrillType;
+  /** The type as the sheet words it; falls back to the type's own name. */
+  typeLabel: string;
+  minutes: number | null;
+  intro: string;
+  withParent: string;
+  onMyOwn: string;
+  /** Level 1 to 3, in order; suggestions, none locked. */
+  levels: HomeLevel[];
+  /** Extra lines some drills carry ("What counts as a clean run"). */
+  notes: { title: string; text: string }[];
+  tips: string;
+  /** What the demo clip will show. Stored for later: there are no videos yet, nothing shows it. */
+  clip: string;
+  /** The drill has the built-in stopwatch and personal bests. */
+  stopwatch: boolean;
+}
+
+/** "Level 3 · Accuracy" when a level is measured differently from its drill. */
+export function levelLabel(home: HomeSection, index: number): string {
+  const type = home.levels[index]?.type;
+  return type && type !== home.type ? `Level ${index + 1} · ${DRILL_TYPE_LABEL[type]}` : `Level ${index + 1}`;
+}
+
 export interface LibraryContent {
   learn: LearnSection | null;
   setup: SetupSection | null;
+  home: HomeSection | null;
 }
 
 /* ---------- parsing ---------- */
@@ -239,17 +282,47 @@ function parseSetup(v: unknown): SetupSection | null {
   };
 }
 
+function parseHome(v: unknown): HomeSection | null {
+  if (!isObj(v)) return null;
+  const type = DRILL_TYPES.find((t) => t === v.type) ?? 'repetition';
+  return {
+    skill: str(v.skill),
+    type,
+    typeLabel: str(v.type_label) || DRILL_TYPE_LABEL[type],
+    minutes: num(v.minutes),
+    intro: str(v.intro),
+    withParent: str(v.with_parent),
+    onMyOwn: str(v.on_my_own),
+    levels: list(v.levels)
+      .filter(isObj)
+      .map((l) => ({ text: str(l.text), type: DRILL_TYPES.find((t) => t === l.type) ?? null }))
+      .filter((l) => l.text),
+    notes: list(v.notes)
+      .filter(isObj)
+      .map((n) => ({ title: str(n.title), text: str(n.text) }))
+      .filter((n) => n.text),
+    tips: str(v.tips),
+    clip: str(v.clip),
+    stopwatch: v.stopwatch === true,
+  };
+}
+
 export function parseContent(content: unknown): LibraryContent {
   const c = isObj(content) ? content : {};
-  return { learn: parseLearn(c.learn), setup: parseSetup(c.setup) };
+  return { learn: parseLearn(c.learn), setup: parseSetup(c.setup), home: parseHome(c.home) };
 }
 
 /** The tabs an item has, in order. */
-export type TabKey = 'learn' | 'setup';
-export const TAB_LABEL: Readonly<Record<TabKey, string>> = { learn: 'Learn', setup: 'Coach Setup' };
+export type TabKey = 'learn' | 'setup' | 'home';
+export const TAB_LABEL: Readonly<Record<TabKey, string>> = {
+  learn: 'Learn',
+  setup: 'Coach Setup',
+  home: 'At Home',
+};
 export function tabsOf(content: LibraryContent): TabKey[] {
   const tabs: TabKey[] = [];
   if (content.learn) tabs.push('learn');
   if (content.setup) tabs.push('setup');
+  if (content.home) tabs.push('home');
   return tabs;
 }

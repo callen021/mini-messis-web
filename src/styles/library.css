@@ -335,6 +335,50 @@
   font-weight: 600;
 }
 
+/* an at-home drill (D127): type and minutes, then the two ways to do it and the levels */
+.homemeta {
+  margin: 4px 16px 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: 14px;
+  color: var(--text2);
+}
+.homeintro {
+  margin: 0 16px 12px;
+  font-size: 16px;
+  line-height: 1.4;
+}
+.homedrill .libnote {
+  margin-bottom: 10px;
+}
+.homelevels {
+  list-style: none;
+  margin: 0 16px;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.homelevels li {
+  display: flex;
+  gap: 10px;
+  align-items: baseline;
+  padding: 10px 12px;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  line-height: 1.35;
+}
+.homelevels b {
+  flex: none;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tint);
+  white-space: nowrap;
+}
+
 /* wrong vs right */
 .libcompare li {
   padding: 10px 0;

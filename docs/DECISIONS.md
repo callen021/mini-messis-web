@@ -1757,3 +1757,20 @@ Two optional Learn blocks, both data: `tips` (small captioned close-ups shown si
 the coaching cues) and `big_picture_points` with `big_picture_close` (a ticked list between the
 big picture's opening and closing lines). The sheet has no cone setup, so its setup section has
 no diagram and only the empty duration; "How to run it" is the sheet's Try It.
+
+### D127. At-home drills: ten library items with a `home` section
+
+The first piece of at-home Training for parents (soccer only). The ten drills of the reviewed
+home-drills sheet are library items of a new category, `home` ("At home"), each with one content
+section, `home`: skill, type (repetition, timed or accuracy), minutes, intro, "With a parent",
+"On my own", three levels, coaching tips, extra notes ("What counts as a clean run", "No wall")
+and the demo clip description. The migration was generated from the sheet so the text is word
+for word; the sheet itself stays out of the repo.
+
+- **No videos yet.** `clip` is stored and nothing renders it.
+- **Published on insert**, unlike D125: parents cannot see drafts and the drills are for parents.
+- **One tab per section.** The item page already shows a tab only for the sections an item has;
+  a home drill has only "At Home", the existing items are untouched.
+- **"Repetition, then accuracy"** (drill 10) is stored as a repetition drill whose third level is
+  marked accuracy; the label is shown as the sheet words it.
+- **Cone Dribbling** carries `stopwatch: true` for the built-in stopwatch that follows.

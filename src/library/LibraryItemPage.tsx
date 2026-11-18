@@ -8,6 +8,7 @@ import { Segmented } from '@/components/Segmented';
 import { errorMessage } from '@/lib/supabase';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useLibraryItem } from './api';
+import { HomeTab } from './HomeTab';
 import { LearnTab } from './LearnTab';
 import { SetupTab } from './SetupTab';
 import { ageText, categoryLabel, parseContent, TAB_LABEL, type TabKey, tabsOf } from './types';
@@ -80,6 +81,7 @@ export function LibraryItemPage() {
           canEdit={STAFF_ROLES.includes(role)}
         />
       )}
+      {tab === 'home' && content.home && <HomeTab home={content.home} />}
     </Page>
   );
 }
