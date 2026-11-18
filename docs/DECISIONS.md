@@ -1807,3 +1807,25 @@ and Stop, then "Clean run?" with Save or Discard.
 - **With a Parent only.** The sheet's solo version has no stopwatch and counts clean runs, so
   "On My Own" shows the text and no stopwatch.
 - **Same permissions as a Done** (D128); a parent may delete a time they saved, the same day only.
+
+### D130. The streak: what counts, days off, milestones
+
+The streak belongs to the child and is counted in days, at most one a day.
+
+- **A day counts** when a home drill was marked Done, or the child has playing time in a game that
+  day (a stint in clock mode, a place in a period of a started game's lineup in period mode), or a
+  parent marked "We went" on a practice that day. Opening the app and merely scheduled events
+  never count.
+- **No coach attendance exists for practices** (the RSVP says who is expected, not who came), and
+  none was built: a practice counts only through "We went".
+- **"We went"** (`set_practice_went`) opens when the practice starts (its date, when it has no
+  start time), never for a cancelled practice, and can be taken back the same day by the parent
+  who marked it. It is on the practice page and, for the last week's practices, on Training.
+- **Days off**: two missed days in a Monday-to-Sunday week do not break the streak. It resets to
+  zero on the third missed day of a week, or on three missed days in a row, whichever comes
+  first. Today is never a miss until it is over. Days are the team's timezone days.
+- **Computed when read** (`training_streak`, from `streak_from_days`, a pure function); only the
+  longest streak and the celebrated milestones are stored (`player_training`).
+- **Milestones** at 5, 10, 25, 50 and 100 days, each celebrated once per child: the parent sees a
+  note and "Nice!" records it. Coaches see the streak and no celebration.
+- No rest passes, currency, rankings or leaderboards.

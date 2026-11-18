@@ -3,10 +3,13 @@ import { LoadingScreen } from '@/auth/guards';
 import { Group, Row } from '@/components/List';
 import { Page } from '@/components/Page';
 import { useMyChildLinks } from '@/lineups/api';
+import { usePractices } from '@/games/practices';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { DailyDrills } from './DailyDrills';
-import { teamToday } from './rotation';
+import { addDays, teamToday } from './rotation';
+import { StreakCard } from './StreakCard';
+import { WentSection } from './WentSection';
 
 const BACK = { to: '/home', label: 'Home', pop: true } as const;
 
@@ -19,6 +22,7 @@ export function TrainingPage() {
   const { teamId, team, sport } = useCurrentTeam();
   const players = usePlayers(teamId);
   const links = useMyChildLinks();
+  const practices = usePractices(teamId);
 
   if (players.isPending || links.isPending) return <LoadingScreen label="Loading training…" />;
 
@@ -37,6 +41,9 @@ export function TrainingPage() {
   }
 
   const today = teamToday(team.timezone);
+  // practices of the last week that "We went" can still be marked for
+  const weekAgo = addDays(today, -6);
+  const recent = (practices.data ?? []).filter((p) => p.practice_date >= weekAgo && p.practice_date <= today);
   return (
     <Page
       title="Training"
@@ -45,7 +52,15 @@ export function TrainingPage() {
       back={BACK}
       className="training"
     >
+      <StreakCard playerId={child.id} playerName={child.first_name} />
       <DailyDrills playerId={child.id} playerName={child.first_name} sport={sport} today={today} />
+      <WentSection
+        title="Team practice this week"
+        practices={recent}
+        kids={[child]}
+        timezone={team.timezone}
+        today={today}
+      />
     </Page>
   );
 }

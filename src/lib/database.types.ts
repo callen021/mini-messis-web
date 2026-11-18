@@ -559,6 +559,71 @@ export type Database = {
           },
         ]
       }
+      player_training: {
+        Row: {
+          longest_streak: number
+          milestones: number[]
+          player_id: string
+          updated_at: string
+        }
+        Insert: {
+          longest_streak?: number
+          milestones?: number[]
+          player_id: string
+          updated_at?: string
+        }
+        Update: {
+          longest_streak?: number
+          milestones?: number[]
+          player_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "player_training_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: true
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      practice_checkins: {
+        Row: {
+          created_at: string
+          player_id: string
+          practice_id: string
+          set_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          player_id: string
+          practice_id: string
+          set_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          player_id?: string
+          practice_id?: string
+          set_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "practice_checkins_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "practice_checkins_practice_id_fkey"
+            columns: ["practice_id"]
+            isOneToOne: false
+            referencedRelation: "practices"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       join_attempts: {
         Row: {
           attempted_at: string
@@ -1942,6 +2007,32 @@ export type Database = {
       can_see_training: { Args: { p_player_id: string }; Returns: boolean }
       can_train: { Args: { p_player_id: string }; Returns: boolean }
       team_today: { Args: { p_team_id: string }; Returns: string }
+      celebrate_training_milestone: {
+        Args: { p_milestone: number; p_player_id: string }
+        Returns: undefined
+      }
+      set_practice_went: {
+        Args: { p_player_id: string; p_practice_id: string; p_went?: boolean }
+        Returns: undefined
+      }
+      streak_from_days: {
+        Args: { p_days: string[]; p_today: string }
+        Returns: {
+          current_streak: number
+          longest_streak: number
+          misses: number
+        }[]
+      }
+      training_streak: {
+        Args: { p_player_id: string }
+        Returns: {
+          celebrate: number
+          current_streak: number
+          longest_streak: number
+          misses: number
+          today_counts: boolean
+        }[]
+      }
       can_rsvp_for: { Args: { p_player_id: string }; Returns: boolean }
       can_see_contact: {
         Args: { p_player_id: string; p_shared: boolean }

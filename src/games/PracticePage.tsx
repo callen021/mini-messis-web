@@ -2,6 +2,7 @@ import { useParams } from 'react-router';
 import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { AttendanceSection } from '@/rsvp/AttendanceSection';
 import { ParentRsvpSection } from '@/rsvp/ParentRsvpSection';
+import { PracticeWent } from '@/training/PracticeWent';
 import { SnackSection } from '@/snacks/SnackSection';
 import { parentLocked } from '@/rsvp/rsvp';
 import { useOfferBoardPost } from '@/board/offer';
@@ -241,6 +242,7 @@ function PracticeDetail({ practice: p }: { practice: Practice }) {
           lockedText="Replies closed: the practice has started."
         />
       )}
+      {!isStaff && <PracticeWent practice={p} />}
       {!cancelled && (
         <SnackSection
           event={{ kind: 'practice', id: p.id }}
