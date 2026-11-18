@@ -2,7 +2,7 @@
 -- the date is the server's; coaches and assistant coaches read; other parents see nothing.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(20);
+select plan(33);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -58,6 +58,7 @@ insert into public.player_guardians (player_id, user_id, status) values
   ('e6000000-0000-0000-0000-00000000000a', 'd6000000-0000-0000-0000-000000000005', 'pending');
 insert into ctx select 'taps', id from public.library_items where slug = 'toe-taps';
 insert into ctx select 'rolls', id from public.library_items where slug = 'sole-rolls';
+insert into ctx select 'cones', id from public.library_items where slug = 'cone-dribbling';
 insert into ctx select 'touch', id from public.library_items where slug = 'first-touch';
 
 -- ---------- the parent records for their own child ----------
@@ -106,6 +107,27 @@ delete from public.home_drill_completions where item_id = (select v from ctx whe
 select is((select count(*)::int from public.home_drill_completions where player_id = 'e6000000-0000-0000-0000-00000000000a'), 2, 'yesterday''s Done cannot be taken back');
 delete from public.home_drill_completions where item_id = (select v from ctx where k = 'taps');
 select is((select count(*)::int from public.home_drill_completions where player_id = 'e6000000-0000-0000-0000-00000000000a'), 1, 'today''s can');
+select pg_temp.logout();
+
+-- ---------- stopwatch times on Cone Dribbling (D129) ----------
+select pg_temp.login('d6000000-0000-0000-0000-000000000003');
+select lives_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds, run_on) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 2, 12.34, '2020-01-01')$$, 'a parent saves a clean run');
+select is((select seconds::text || '/' || level || '/' || (run_on = public.team_today((select v from ctx where k = 'team')))::text from public.home_drill_times where player_id = 'e6000000-0000-0000-0000-00000000000a'), '12.3/2/true', 'kept to a tenth of a second, at its level, dated today');
+select is((select level::text || '/' || mode from public.home_drill_completions where player_id = 'e6000000-0000-0000-0000-00000000000a' and item_id = (select v from ctx where k = 'cones') and done_on = public.team_today((select v from ctx where k = 'team'))), '2/parent', 'saving a clean run marks the drill Done for the day');
+select lives_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 2, 11.9), ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 1, 15)$$, 'more runs the same day are saved too');
+select is((select count(*)::int from public.home_drill_completions where player_id = 'e6000000-0000-0000-0000-00000000000a' and item_id = (select v from ctx where k = 'cones')), 1, 'and the drill is still Done once');
+select is((select string_agg(level || ':' || best, ' ' order by level) from (select level, min(seconds) as best from public.home_drill_times where player_id = 'e6000000-0000-0000-0000-00000000000a' group by level) b), '1:15.0 2:11.9', 'the personal best is the lowest time per level');
+select throws_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'rolls'), 1, 10)$$, '23514', null, 'only the timed drill takes a time');
+select throws_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 1, 0)$$, '23514', null, 'a time is more than zero');
+select throws_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000b', (select v from ctx where k = 'cones'), 1, 9)$$, '42501', null, 'a parent cannot save a time for another child');
+select throws_ok($$update public.home_drill_times set seconds = 1 where player_id = 'e6000000-0000-0000-0000-00000000000a'$$, '42501', null, 'nobody edits a time');
+select pg_temp.logout();
+select pg_temp.login('d6000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from public.home_drill_times where player_id = 'e6000000-0000-0000-0000-00000000000a'), 3, 'the coach reads the child''s times');
+select throws_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 1, 9)$$, '42501', null, 'and does not save one');
+select pg_temp.logout();
+select pg_temp.login('d6000000-0000-0000-0000-000000000004');
+select is((select count(*)::int from public.home_drill_times), 0, 'another parent sees no times');
 select pg_temp.logout();
 
 -- ---------- a child who left the roster ----------

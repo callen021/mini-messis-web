@@ -1791,3 +1791,19 @@ A parent's Training page for one child (`/training/:playerId`), soccer only.
   see nothing. A parent may take back a Done they recorded, the same day only. Nobody edits.
 - **Screen**: one drill open at a time; the screen stays awake while one is. A short "All three
   done!" note is the celebration.
+
+### D129. Cone Dribbling stopwatch and personal bests
+
+The timed home drill has a stopwatch inside its card: large digits to a tenth of a second, Start
+and Stop, then "Clean run?" with Save or Discard.
+
+- **Times** are rows in `home_drill_times`: child, drill, level, seconds to a tenth. Only a saved
+  run is stored. The personal best is the lowest time per child per level; the course is fixed per
+  level in the drill's text, so times at one level compare.
+- **After Save** the card says whether the time beat the best before it (a tie does not), and
+  lists the last five runs at that level.
+- **A saved clean run marks the drill Done for the day**, at the run's level and "with a parent"
+  (a database trigger, so it cannot be skipped). Discard records nothing.
+- **With a Parent only.** The sheet's solo version has no stopwatch and counts clean runs, so
+  "On My Own" shows the text and no stopwatch.
+- **Same permissions as a Done** (D128); a parent may delete a time they saved, the same day only.

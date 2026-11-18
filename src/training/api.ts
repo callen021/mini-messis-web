@@ -8,6 +8,7 @@ import { addDays } from './rotation';
 
 export type DrillMode = Enums<'drill_mode'>;
 export type Completion = Tables<'home_drill_completions'>;
+export type DrillTime = Tables<'home_drill_times'>;
 
 export const MODE_LABEL: Readonly<Record<DrillMode, string>> = {
   parent: 'With a Parent',
@@ -27,6 +28,7 @@ export const trainingKeys = {
   /** Everything recorded for one child; one invalidation refreshes drills, times and the streak. */
   player: (playerId: string) => ['training', playerId] as const,
   completions: (playerId: string) => ['training', playerId, 'completions'] as const,
+  times: (playerId: string, itemId: string) => ['training', playerId, 'times', itemId] as const,
 };
 
 /** The sport's at-home drills in the sheet's order (soccer only so far). */
@@ -148,5 +150,39 @@ export function useUndoDone(playerId: string) {
     onSettled: () => {
       void qc.invalidateQueries({ queryKey: trainingKeys.player(playerId) });
     },
+  });
+}
+
+/** Every saved run of a child on one timed drill, oldest first (personal bests need them all). */
+export function useDrillTimes(playerId: string, itemId: string) {
+  return useQuery({
+    queryKey: trainingKeys.times(playerId, itemId),
+    queryFn: async (): Promise<DrillTime[]> => {
+      const { data, error } = await supabase
+        .from('home_drill_times')
+        .select('*')
+        .eq('player_id', playerId)
+        .eq('item_id', itemId)
+        .order('created_at');
+      if (error) throw dbError(error);
+      return data;
+    },
+  });
+}
+
+/**
+ * Save a clean run. The server stamps the date and marks the drill Done for the day, so the
+ * child's whole training state is refreshed afterwards.
+ */
+export function useSaveTime(playerId: string, itemId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ level, seconds }: { level: number; seconds: number }) => {
+      const { error } = await supabase
+        .from('home_drill_times')
+        .insert({ player_id: playerId, item_id: itemId, level, seconds });
+      if (error) throw dbError(error);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: trainingKeys.player(playerId) }),
   });
 }

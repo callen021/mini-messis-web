@@ -511,6 +511,54 @@ export type Database = {
           },
         ]
       }
+      home_drill_times: {
+        Row: {
+          created_at: string
+          id: string
+          item_id: string
+          level: number
+          player_id: string
+          recorded_by: string | null
+          run_on: string
+          seconds: number
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          item_id: string
+          level: number
+          player_id: string
+          recorded_by?: string | null
+          run_on?: string
+          seconds: number
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          item_id?: string
+          level?: number
+          player_id?: string
+          recorded_by?: string | null
+          run_on?: string
+          seconds?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_drill_times_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "library_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_drill_times_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       join_attempts: {
         Row: {
           attempted_at: string

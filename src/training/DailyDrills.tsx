@@ -14,6 +14,7 @@ import {
   useUndoDone,
 } from './api';
 import { DrillCard } from './DrillCard';
+import { DrillStopwatch } from './DrillStopwatch';
 import { drillsFor } from './rotation';
 
 export interface DailyDrillsProps {
@@ -101,6 +102,13 @@ export function DailyDrills({ playerId, playerName, sport, today }: DailyDrillsP
           markDone.mutate({ itemId: d.id, level, mode }, { onError: (e) => toast(errorMessage(e)) })
         }
         onUndo={mine ? () => undoDone.mutate(done.id, { onError: (e) => toast(errorMessage(e)) }) : undefined}
+        extra={
+          // the parent runs the stopwatch; alone, the drill counts clean runs instead
+          d.home.stopwatch
+            ? (level, mode) =>
+                mode === 'parent' && <DrillStopwatch playerId={playerId} itemId={d.id} level={level} />
+            : undefined
+        }
       />
     );
   };
