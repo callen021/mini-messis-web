@@ -11,6 +11,7 @@ import { textColor } from '@/sports/colors';
 import { SPORTS } from '@/sports/definitions';
 import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
+import { CoachTraining } from '@/training/CoachTraining';
 
 /** A player's contact card (D57, D60): jersey and name, the Parents list, birthdate and shirt size. */
 export function PlayerPage() {
@@ -71,6 +72,7 @@ export function PlayerPage() {
       />
       {canEdit && <DetailsSection playerId={playerId} playerName={player.first_name} canEdit={canEdit} />}
       {canEdit && <AllergiesSection playerId={playerId} teamId={teamId} playerName={player.first_name} />}
+      {isStaff && sport === 'soccer' && <CoachTraining playerId={playerId} playerName={player.first_name} />}
       {isStaff && (
         <EligibilitySection
           playerId={playerId}

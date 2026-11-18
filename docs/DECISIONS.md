@@ -1858,3 +1858,20 @@ shown ones); there is no second set.
   from Coach results only, so a Home result never moves a coach's number.
 - A Home result must be on one of the team's shown tests and cannot be dated in the future.
 - Copying a team (`duplicate_team`) keeps each result's source and conditions.
+
+### D133. Training permissions, in one place
+
+Everything about at-home Training is enforced by row security and by checks inside the
+functions; the screens only hide what would be refused.
+
+- **A parent** sees and records only for their own child, and only once a coach has confirmed
+  the link (`can_train`: approved link, active member of the team, player on the roster). That
+  covers home drill completions, stopwatch times, "We went", the streak and Home skill results.
+  An unconfirmed parent, a parent of another child, and a parent removed from the team get
+  nothing.
+- **Coaches and assistant coaches** see a child's streak (a read-only row on the player's page),
+  completions, times, "We went" marks and Home skill results. They record none of them and
+  cannot edit or delete a Home result.
+- **Other parents** and other teams see nothing; signed out, nothing.
+- The date of every training record is the server's (the team's day), and none can be edited.
+- pgTAP: `supabase/tests/34_training.test.sql`.

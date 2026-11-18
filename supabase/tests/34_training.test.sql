@@ -2,7 +2,7 @@
 -- the date is the server's; coaches and assistant coaches read; other parents see nothing.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(104);
+select plan(119);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -312,6 +312,36 @@ update public.players set archived_at = now() where id = 'e6000000-0000-0000-000
 select pg_temp.login('d6000000-0000-0000-0000-000000000003');
 select throws_ok($$insert into public.home_drill_completions (player_id, item_id, level, mode) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 1, 'parent')$$, '42501', null, 'nothing is recorded for a player off the roster');
 select pg_temp.logout();
+
+-- ---------- a parent removed from the team loses all of it (D133) ----------
+select pg_temp.login('d6000000-0000-0000-0000-000000000004');
+select lives_ok($$insert into public.home_drill_completions (player_id, item_id, level, mode) values ('e6000000-0000-0000-0000-00000000000b', (select v from ctx where k = 'taps'), 1, 'parent')$$, 'the other parent records for their own child');
+select is((select current_streak from public.training_streak('e6000000-0000-0000-0000-00000000000b')), 2, 'and sees that child''s streak (the game two days ago and today)');
+select pg_temp.logout();
+insert into ctx select 'jug', id from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'juggling';
+update public.team_members set status = 'removed' where user_id = 'd6000000-0000-0000-0000-000000000004' and team_id = (select v from ctx where k = 'team');
+select pg_temp.login('d6000000-0000-0000-0000-000000000004');
+select is((select count(*)::int from public.home_drill_completions), 0, 'removed from the team, the parent reads no completions');
+select throws_ok($$insert into public.home_drill_completions (player_id, item_id, level, mode) values ('e6000000-0000-0000-0000-00000000000b', (select v from ctx where k = 'rolls'), 1, 'parent')$$, '42501', null, 'records none');
+select throws_ok($$select * from public.training_streak('e6000000-0000-0000-0000-00000000000b')$$, '42501', null, 'sees no streak');
+select throws_ok($$insert into public.skill_results (player_id, skill_test_id, value, source) values ('e6000000-0000-0000-0000-00000000000b', (select v from ctx where k = 'jug'), 5, 'home')$$, '42501', null, 'and records no Home result');
+select pg_temp.logout();
+
+-- ---------- nobody signed out gets anything ----------
+select set_config('request.jwt.claims', '', true);
+select set_config('role', 'anon', true);
+select is((select count(*)::int from public.home_drill_completions), 0, 'signed out: no completions');
+select is((select count(*)::int from public.home_drill_times), 0, 'no times');
+select is((select count(*)::int from public.practice_checkins), 0, 'no "We went" marks');
+select is((select count(*)::int from public.player_training), 0, 'no stored streaks');
+select throws_ok($$select * from public.training_streak('e6000000-0000-0000-0000-00000000000b')$$, '42501', null, 'no streak');
+select throws_ok($$select public.set_practice_went('b6000000-0000-0000-0000-000000000001', 'e6000000-0000-0000-0000-00000000000b')$$, '42501', null, 'and no "We went"');
+select pg_temp.logout();
+
+-- ---------- the helper that lists a child's days is not callable from the app ----------
+select ok(not has_function_privilege('authenticated', 'public.training_active_days(uuid)', 'execute'), 'signed-in users cannot call training_active_days directly');
+select ok(not has_function_privilege('anon', 'public.training_active_days(uuid)', 'execute'), 'nor can signed-out ones');
+select ok((select bool_and(c.relrowsecurity) from pg_class c where c.oid in ('public.home_drill_completions'::regclass, 'public.home_drill_times'::regclass, 'public.practice_checkins'::regclass, 'public.player_training'::regclass)), 'row security is on for every training table');
 
 select * from finish();
 rollback;
