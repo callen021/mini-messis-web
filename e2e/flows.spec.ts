@@ -669,7 +669,7 @@ test.describe('coach and parent flows', () => {
     await coach.goto('/settings');
     await coach.getByRole('link', { name: /Practice library/ }).click();
     await expect(coach.getByRole('heading', { level: 1, name: 'Practice library' })).toBeVisible();
-    const card = coach.getByRole('link', { name: /First Touch/ });
+    const card = coach.getByRole('link', { name: /^First Touch\s*Fundamentals/ });
     await expect(card).toContainText('Fundamentals');
     await expect(card).toContainText('Ages 6–10');
     await card.click();
@@ -721,7 +721,7 @@ test.describe('coach and parent flows', () => {
 
     await parent.goto('/settings');
     await parent.getByRole('link', { name: /Practice library/ }).click();
-    await parent.getByRole('link', { name: /First Touch/ }).click();
+    await parent.getByRole('link', { name: /^First Touch\s*Fundamentals/ }).click();
     await expect(parent.locator('.stepcard')).toHaveCount(4);
     await parent.getByRole('radio', { name: 'Coach Setup' }).click();
     await expect(parent.getByTestId('drill-cone')).toHaveCount(5);
