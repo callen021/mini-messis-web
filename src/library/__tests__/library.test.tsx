@@ -152,6 +152,60 @@ describe('drill diagram layout', () => {
   });
 });
 
+describe('a box drill (D125)', () => {
+  const box = must(
+    parseContent({
+      setup: {
+        params: [
+          {
+            key: 'length',
+            label: 'Length',
+            type: 'distance',
+            default: 10,
+            min: 8,
+            max: 15,
+            adjustable: true,
+          },
+          { key: 'width', label: 'Width', type: 'distance', default: 5, min: 3, max: 8, adjustable: true },
+        ],
+        diagram: {
+          elements: [
+            { type: 'cones', id: 'a', from: [0, 0], step: [2, 0], count: 2 },
+            { type: 'cones', id: 'b', from: [0, 1], step: [2, 0], count: 2 },
+            { type: 'measure', from: 'a0', to: 'a1', label: '$length', side: 'above' },
+            { type: 'measure', from: 'a1', to: 'b1', label: '$width', side: 'right' },
+            { type: 'measure', from: 'b0', to: 'b1', label: '$length', side: 'below' },
+            { type: 'player', id: 'att', role: 'attacker', label: 'Attacker', at: [0.55, 0.5] },
+            { type: 'player', id: 'def', role: 'defender', label: 'Defender', at: [1.45, 0.5] },
+          ],
+        },
+        goal: 'Defender wins the ball.',
+      },
+    }).setup,
+  );
+  it('reads the goal and the player roles', () => {
+    expect(box.goal).toBe('Defender wins the ball.');
+    expect(setup.goal).toBe('');
+    const L = layoutDiagram(must(box.diagram), box.params, {});
+    expect(L.players.map((p) => p.role)).toEqual(['attacker', 'defender']);
+    expect(L.cones).toHaveLength(4);
+  });
+  it('draws a measurement on each asked side, inside the picture', () => {
+    const L = layoutDiagram(must(box.diagram), box.params, { width: 8 });
+    const [above, right, below] = L.measures.map(must);
+    const maxConeX = Math.max(...L.cones.map((c) => c.x));
+    const maxConeY = Math.max(...L.cones.map((c) => c.y));
+    expect(must(above).upright).toBe(false);
+    expect(must(above).y1).toBeLessThan(Math.min(...L.cones.map((c) => c.y)));
+    expect(must(right).upright).toBe(true);
+    expect(must(right).label).toBe('8 yd (24 ft)');
+    expect(must(right).x1).toBeGreaterThan(maxConeX);
+    expect(must(right).labelX).toBeLessThan(L.width - 6);
+    expect(must(below).y1).toBeGreaterThan(maxConeY);
+    expect(must(below).labelY).toBeLessThan(L.height - 4);
+  });
+});
+
 describe('LearnTab', () => {
   it('renders the text from data; an image is data too and a missing one shows the step number', () => {
     render(<LearnTab learn={learn} />);
@@ -192,7 +246,7 @@ describe('SetupTab', () => {
     api.stored = { cones: 3, spacing: 6 };
     show(true);
     expect(screen.getAllByTestId('drill-cone')).toHaveLength(3);
-    expect(screen.getByRole('img', { name: /3 cones in a line, 6 yd \(18 ft\) apart/ })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: /3 cones, 6 yd \(18 ft\)/ })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: 'Reset to default' }));
     expect(api.save).toHaveBeenLastCalledWith({}, expect.anything());
   });

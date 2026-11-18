@@ -54,6 +54,7 @@ export function LibraryPage() {
                       <small>
                         <span className="pill">{categoryLabel(r.category)}</span>
                         {ageText(r.age_min, r.age_max)}
+                        {!r.is_published && <span className="pill draft">Draft</span>}
                       </small>
                     </span>
                     <span className="chev" aria-hidden="true" />

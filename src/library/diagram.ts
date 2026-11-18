@@ -1,5 +1,12 @@
 import { fillLabel, type Overrides, paramNumber } from './params';
-import { type ArrowKind, type DiagramPoint, type DiagramSpec, type ParamDef } from './types';
+import {
+  type ArrowKind,
+  type DiagramPoint,
+  type DiagramSpec,
+  type MeasureSide,
+  type ParamDef,
+  type PlayerRole,
+} from './types';
 
 /**
  * Layout of a drill diagram (D123): the item's structured elements plus the team's numbers in,
@@ -11,13 +18,26 @@ export interface DiagramLayout {
   width: number;
   height: number;
   cones: { x: number; y: number }[];
-  players: { x: number; y: number; role: 'passer' | 'receiver'; label: string }[];
+  players: { x: number; y: number; role: PlayerRole; label: string }[];
   arrows: { kind: ArrowKind; d: string; head: string; faded: boolean }[];
-  measures: { x1: number; x2: number; y: number; label: string; labelX: number }[];
+  /** A level measurement runs x1–x2 at y1 = y2; an upright one runs y1–y2 at x1 = x2, its label turned. */
+  measures: {
+    x1: number;
+    y1: number;
+    x2: number;
+    y2: number;
+    upright: boolean;
+    label: string;
+    labelX: number;
+    labelY: number;
+  }[];
 }
 
 export const DIAGRAM_WIDTH = 340;
 const PAD = { left: 34, right: 26, top: 48, bottom: 20 };
+/** Padding on a side that carries a measurement, and how far the line sits from its points. */
+const MEASURE_PAD = { left: 46, right: 46, bottom: 50 };
+const MEASURE_OFF = 24;
 const MAX_GAP = 92;
 const MAX_CONES = 12;
 /** Radius of a player mark; arrows that start or end on a player stop at its edge. */
@@ -105,7 +125,7 @@ export function layoutDiagram(
     const a = anchors.get(p[0]);
     return a ? [a[0] + p[1], a[1] + p[2]] : null;
   };
-  const playerPts: { p: XY; role: 'passer' | 'receiver'; label: string }[] = [];
+  const playerPts: { p: XY; role: PlayerRole; label: string }[] = [];
   const playerIds = new Set<string>();
   for (const el of spec.elements) {
     if (el.type !== 'player') continue;
@@ -119,12 +139,19 @@ export function layoutDiagram(
 
   // 2. arrows and measures; a repeated arrow is drawn once per gap between the cones of its group
   const arrowPts: { kind: ArrowKind; a: XY; b: XY; trimA: boolean; trimB: boolean; faded: boolean }[] = [];
-  const measurePts: { a: XY; b: XY; label: string }[] = [];
+  const measurePts: { a: XY; b: XY; label: string; side: MeasureSide }[] = [];
   for (const el of spec.elements) {
     if (el.type === 'measure') {
       const a = at(el.from);
       const b = at(el.to);
-      if (a && b) measurePts.push({ a, b, label: fillLabel(el.label, defs, overrides) });
+      if (a && b) {
+        const upright = Math.abs(b[1] - a[1]) > Math.abs(b[0] - a[0]);
+        const fits = upright
+          ? el.side === 'left' || el.side === 'right'
+          : el.side === 'above' || el.side === 'below';
+        const side: MeasureSide = fits && el.side ? el.side : upright ? 'left' : 'above';
+        measurePts.push({ a, b, label: fillLabel(el.label, defs, overrides), side });
+      }
     }
     if (el.type !== 'arrow') continue;
     const count = el.repeat ? (counts.get(el.repeat) ?? 0) : 0;
@@ -150,11 +177,18 @@ export function layoutDiagram(
   const maxX = all.length ? Math.max(...xs) : 0;
   const minY = all.length ? Math.min(...ys) : 0;
   const maxY = all.length ? Math.max(...ys) : 0;
-  const room = width - PAD.left - PAD.right;
+  const has = (side: MeasureSide): boolean => measurePts.some((m) => m.side === side);
+  const pad = {
+    left: has('left') ? MEASURE_PAD.left : PAD.left,
+    right: has('right') ? MEASURE_PAD.right : PAD.right,
+    top: PAD.top,
+    bottom: has('below') ? MEASURE_PAD.bottom : PAD.bottom,
+  };
+  const room = width - pad.left - pad.right;
   const gap = maxX > minX ? Math.min(MAX_GAP, room / (maxX - minX)) : MAX_GAP;
-  const left = PAD.left + (room - (maxX - minX) * gap) / 2;
-  const px = (p: XY): XY => [left + (p[0] - minX) * gap, PAD.top + (p[1] - minY) * gap];
-  const height = Math.round(PAD.top + (maxY - minY) * gap + PAD.bottom);
+  const left = pad.left + (room - (maxX - minX) * gap) / 2;
+  const px = (p: XY): XY => [left + (p[0] - minX) * gap, pad.top + (p[1] - minY) * gap];
+  const height = Math.round(pad.top + (maxY - minY) * gap + pad.bottom);
 
   const arrows = arrowPts.map(({ kind, a, b, trimA, trimB, faded }) => {
     let pa = px(a);
@@ -170,17 +204,35 @@ export function layoutDiagram(
     return { kind, d, head: arrowHead(pa, pb), faded };
   });
 
-  const measures = measurePts.map(({ a, b, label }) => {
+  const measures = measurePts.map(({ a, b, label, side }) => {
     const pa = px(a);
     const pb = px(b);
     const half = (label.length * 6.6) / 2 + 6; // 12px text, estimated; keeps the label on the grass
+    if (side === 'left' || side === 'right') {
+      const x = side === 'left' ? Math.min(pa[0], pb[0]) - MEASURE_OFF : Math.max(pa[0], pb[0]) + MEASURE_OFF;
+      const mid = (pa[1] + pb[1]) / 2;
+      return {
+        x1: x,
+        y1: pa[1],
+        x2: x,
+        y2: pb[1],
+        upright: true,
+        label,
+        labelX: side === 'left' ? x - 7 : x + 16,
+        labelY: Math.max(half, Math.min(height - half, mid)),
+      };
+    }
+    const y = side === 'below' ? Math.max(pa[1], pb[1]) + MEASURE_OFF : Math.min(pa[1], pb[1]) - MEASURE_OFF;
     const mid = (pa[0] + pb[0]) / 2;
     return {
       x1: pa[0],
+      y1: y,
       x2: pb[0],
-      y: Math.min(pa[1], pb[1]) - 24,
+      y2: y,
+      upright: false,
       label,
       labelX: Math.max(half, Math.min(width - half, mid)),
+      labelY: side === 'below' ? y + 18 : y - 9,
     };
   });
 

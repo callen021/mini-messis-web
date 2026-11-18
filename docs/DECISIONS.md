@@ -1722,3 +1722,27 @@ Service worker: `**/games/**` is left out of the precache, `navigateFallbackDeny
 app shell from being served in the frame, and a `StaleWhileRevalidate` runtime cache
 (`library-games`) makes a game available offline after its first open. Initial JS is unchanged.
 Soccer teams only, every role. Playwright covers opening the game and coming back.
+
+### D125. Library: more items, entered as drafts; box drills and a goal line
+
+Further practice-library items follow First Touch's structure and are added one migration each,
+**unpublished**: the user reviews a sheet per item (text transcribed from the poster, proposed
+setup, drafted wrong-vs-right pairs), the approved item is inserted with `is_published = false`,
+checked on a phone, then published with an `update` in the SQL editor. So that the phone check is
+possible, the read policy of `library_items` is `is_published or is_platform_admin()`: a platform
+admin sees drafts, marked "Draft" on the card and on the page; nobody else does, and the app still
+cannot write the table. The client no longer filters on `is_published`; row security decides.
+
+First two: **Passing the Ball** (the five-step "Pass & Move!" sheet; the separate "Passing and
+Receiving" sheet is not used) and **Win It and Keep It**. Teaching text is the poster's own,
+including LEFT/RIGHT wording written for a right-footed player. Ages 6–10 like First Touch;
+duration empty. The adjustable ranges are ours: the posters give single values.
+
+Drawing additions, all data: a measurement takes a `side` (`above`, `below`, `left`, `right`; an
+upright one is drawn beside the box with its label turned), players take the roles `attacker`
+(red) and `defender` (blue), and a setup section takes a one-sentence `goal` shown above "How to
+run it". A box is two `cones` rows. Win It and Keep It has no arrows because its poster shows
+none.
+
+Crops for all items come from `scripts/crop-practice-images.mjs`; each item's files go in the
+bucket under its slug (`passing-the-ball/step-1.webp` …).

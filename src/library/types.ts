@@ -8,7 +8,7 @@ import { type Tables } from '@/lib/database.types';
 export type LibraryItemRow = Tables<'library_items'>;
 export type LibraryItemSummary = Pick<
   LibraryItemRow,
-  'id' | 'slug' | 'sport' | 'category' | 'title' | 'age_min' | 'age_max' | 'sort_order'
+  'id' | 'slug' | 'sport' | 'category' | 'title' | 'age_min' | 'age_max' | 'sort_order' | 'is_published'
 >;
 
 /** Sports that have a practice library so far (D123); the Settings row shows for these only. */
@@ -66,11 +66,16 @@ export interface ParamDef {
 /** [x, y] in cone gaps, an anchor id, or an anchor with an offset. */
 export type DiagramPoint = [number, number] | string | [string, number, number];
 export type ArrowKind = 'pass' | 'touch' | 'dribble';
+export type PlayerRole = 'passer' | 'receiver' | 'attacker' | 'defender';
+const PLAYER_ROLES: readonly PlayerRole[] = ['passer', 'receiver', 'attacker', 'defender'];
+/** Where a measurement is drawn: above or below a level one, left or right of an upright one. */
+export type MeasureSide = 'above' | 'below' | 'left' | 'right';
+const MEASURE_SIDES: readonly MeasureSide[] = ['above', 'below', 'left', 'right'];
 export type DiagramElement =
   | { type: 'cones'; id: string; from: [number, number]; step: [number, number]; count: number | string }
-  | { type: 'player'; id: string; role: 'passer' | 'receiver'; label: string; at: DiagramPoint }
+  | { type: 'player'; id: string; role: PlayerRole; label: string; at: DiagramPoint }
   | { type: 'arrow'; kind: ArrowKind; from: DiagramPoint; to: DiagramPoint; repeat: string | null }
-  | { type: 'measure'; from: DiagramPoint; to: DiagramPoint; label: string };
+  | { type: 'measure'; from: DiagramPoint; to: DiagramPoint; label: string; side: MeasureSide | null };
 export interface DiagramSpec {
   elements: DiagramElement[];
 }
@@ -78,6 +83,8 @@ export interface DiagramSpec {
 export interface SetupSection {
   params: ParamDef[];
   diagram: DiagramSpec | null;
+  /** What the drill is for, in one sentence; empty when the item gives none. */
+  goal: string;
   steps: string[];
   equipment: string[];
 }
@@ -174,7 +181,7 @@ function parseElement(v: unknown): DiagramElement | null {
       return {
         type: 'player',
         id: str(v.id),
-        role: v.role === 'passer' ? 'passer' : 'receiver',
+        role: PLAYER_ROLES.find((r) => r === v.role) ?? 'receiver',
         label: str(v.label),
         at,
       };
@@ -190,7 +197,13 @@ function parseElement(v: unknown): DiagramElement | null {
       const from = parsePoint(v.from);
       const to = parsePoint(v.to);
       if (!from || !to) return null;
-      return { type: 'measure', from, to, label: str(v.label) };
+      return {
+        type: 'measure',
+        from,
+        to,
+        label: str(v.label),
+        side: MEASURE_SIDES.find((s) => s === v.side) ?? null,
+      };
     }
     default:
       return null; // an element kind this build does not know is skipped, not an error
@@ -209,6 +222,7 @@ function parseSetup(v: unknown): SetupSection | null {
       .map(parseParam)
       .filter((p): p is ParamDef => p !== null),
     diagram: elements.length ? { elements } : null,
+    goal: str(v.goal),
     steps: strings(v.steps),
     equipment: strings(v.equipment),
   };

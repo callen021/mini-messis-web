@@ -12,7 +12,7 @@ const ARROW_ORDER: readonly ArrowKind[] = ['pass', 'touch', 'dribble'];
 
 /**
  * An overhead drill diagram drawn from the item's structured data and the team's numbers (D123):
- * striped grass like the Field tab's pitch, cones, the two players, and one arrow style per kind
+ * striped grass like the Field tab's pitch, cones, the players, and one arrow style per kind
  * of movement, with a key underneath. Not an image and not editable.
  */
 export function DrillDiagram({
@@ -29,8 +29,8 @@ export function DrillDiagram({
   const stripes = `${uid}-stripes`;
   const kinds = ARROW_ORDER.filter((k) => L.arrows.some((a) => a.kind === k));
   const summary = [
-    `${L.cones.length} cones in a line`,
-    ...L.measures.map((m) => `${m.label} apart`),
+    `${L.cones.length} cones`,
+    ...L.measures.map((m) => m.label),
     ...L.players.map((p) => p.label.toLowerCase()),
     ...kinds.map((k) => ARROW_LABEL[k].toLowerCase()),
   ].join(', ');
@@ -51,8 +51,20 @@ export function DrillDiagram({
         <rect width={L.width} height={L.height} fill={`url(#${stripes})`} />
         {L.measures.map((m, i) => (
           <g key={`m${i}`} className="dmeasure">
-            <path d={`M${m.x1} ${m.y}H${m.x2}M${m.x1} ${m.y - 4}v8M${m.x2} ${m.y - 4}v8`} fill="none" />
-            <text x={m.labelX} y={m.y - 9} textAnchor="middle">
+            <path
+              d={
+                m.upright
+                  ? `M${m.x1} ${m.y1}V${m.y2}M${m.x1 - 4} ${m.y1}h8M${m.x1 - 4} ${m.y2}h8`
+                  : `M${m.x1} ${m.y1}H${m.x2}M${m.x1} ${m.y1 - 4}v8M${m.x2} ${m.y1 - 4}v8`
+              }
+              fill="none"
+            />
+            <text
+              x={m.labelX}
+              y={m.labelY}
+              textAnchor="middle"
+              transform={m.upright ? `rotate(-90 ${m.labelX} ${m.labelY})` : undefined}
+            >
               {m.label}
             </text>
           </g>

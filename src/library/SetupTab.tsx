@@ -83,6 +83,14 @@ export function SetupTab({
           </Footer>
         </>
       )}
+      {setup.goal && (
+        <>
+          <Section>Goal</Section>
+          <div className="libnote">
+            <p>{setup.goal}</p>
+          </div>
+        </>
+      )}
       {setup.steps.length > 0 && (
         <>
           <Section>How to run it</Section>

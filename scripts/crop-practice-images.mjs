@@ -25,6 +25,43 @@ const SHEETS = [
       { name: 'step-4.webp', rect: [1150, 266, 368, 284] },
     ],
   },
+  {
+    source: 'practice-library/source/Win It and Keep It.jpg',
+    out: 'practice-library/out/win-it-and-keep-it',
+    crops: [
+      { name: 'step-1.webp', rect: [18, 266, 368, 272] },
+      { name: 'step-2.webp', rect: [402, 266, 362, 272] },
+      { name: 'step-3.webp', rect: [780, 266, 356, 272] },
+      { name: 'step-4.webp', rect: [1152, 266, 366, 272] },
+    ],
+  },
+  {
+    source: 'practice-library/source/Pass and Move.png',
+    out: 'practice-library/out/passing-the-ball',
+    crops: [
+      { name: 'step-1.webp', rect: [16, 250, 284, 306] },
+      { name: 'step-2.webp', rect: [314, 250, 266, 306] },
+      { name: 'step-3.webp', rect: [594, 250, 266, 306] },
+      { name: 'step-4.webp', rect: [874, 250, 272, 306] },
+      { name: 'step-5.webp', rect: [1158, 250, 274, 306] },
+    ],
+  },
+  {
+    source: 'practice-library/source/Striking the Ball (7 steps).jpg',
+    out: 'practice-library/out/striking-the-ball',
+    crops: [
+      { name: 'step-1.webp', rect: [11, 162, 137, 178] },
+      { name: 'step-2.webp', rect: [158, 162, 134, 178] },
+      { name: 'step-3.webp', rect: [301, 162, 136, 178] },
+      { name: 'step-4.webp', rect: [445, 162, 135, 178] },
+      { name: 'step-5.webp', rect: [590, 162, 139, 178] },
+      { name: 'step-6.webp', rect: [744, 162, 136, 178] },
+      { name: 'step-7.webp', rect: [891, 162, 125, 178] },
+      { name: 'tip-1.webp', rect: [505, 500, 90, 106] },
+      { name: 'tip-2.webp', rect: [600, 500, 90, 106] },
+      { name: 'tip-3.webp', rect: [694, 500, 88, 106] },
+    ],
+  },
 ];
 const QUALITY = 0.86;
 
@@ -32,7 +69,8 @@ const browser = await chromium.launch();
 const page = await browser.newPage();
 for (const sheet of SHEETS) {
   const bytes = await readFile(path.join(root, sheet.source));
-  const dataUrl = `data:image/jpeg;base64,${bytes.toString('base64')}`;
+  const mime = sheet.source.toLowerCase().endsWith('.png') ? 'image/png' : 'image/jpeg';
+  const dataUrl = `data:${mime};base64,${bytes.toString('base64')}`;
   await mkdir(path.join(root, sheet.out), { recursive: true });
   for (const crop of sheet.crops) {
     const b64 = await page.evaluate(

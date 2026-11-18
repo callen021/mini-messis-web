@@ -700,15 +700,13 @@ test.describe('coach and parent flows', () => {
 
     await coach.getByRole('radio', { name: 'Coach Setup' }).click();
     await expect(coach.getByTestId('drill-cone')).toHaveCount(4);
-    await expect(
-      coach.getByRole('img', { name: /4 cones in a line, 3–5 yd \(9–15 ft\) apart/ }),
-    ).toBeVisible();
+    await expect(coach.getByRole('img', { name: /4 cones, 3–5 yd \(9–15 ft\)/ })).toBeVisible();
     await coach.getByRole('button', { name: 'Increase Cones' }).click();
     await expect(coach.getByTestId('drill-cone')).toHaveCount(5);
     await coach.getByRole('button', { name: 'Increase Spacing' }).click();
     await coach.getByRole('button', { name: 'Increase Spacing' }).click();
     await coach.getByRole('button', { name: 'Increase Duration' }).click();
-    await expect(coach.getByRole('img', { name: /5 cones in a line, 6 yd \(18 ft\) apart/ })).toBeVisible();
+    await expect(coach.getByRole('img', { name: /5 cones, 6 yd \(18 ft\)/ })).toBeVisible();
     for (const scheme of ['light', 'dark'] as const) {
       await coach.emulateMedia({ colorScheme: scheme });
       await expect(fits(coach), `Coach Setup fits 375px (${scheme})`).resolves.toBe(true);

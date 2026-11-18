@@ -57,6 +57,11 @@ export function LibraryItemPage() {
   const sub = [categoryLabel(row.category), ageText(row.age_min, row.age_max)].filter(Boolean).join(' · ');
   return (
     <Page title={row.title} sub={sub} back={BACK} className="libitem">
+      {!row.is_published && (
+        <p className="libdraft" role="status">
+          Draft: only you can see this item until it is published.
+        </p>
+      )}
       {tabs.length > 1 && tab && (
         <Segmented<TabKey>
           wide

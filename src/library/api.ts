@@ -17,7 +17,10 @@ export function libraryImageUrl(path: string): string {
   return supabase.storage.from(LIBRARY_BUCKET).getPublicUrl(path).data.publicUrl;
 }
 
-/** The published items for a sport, in display order. Built-in content changes rarely. */
+/**
+ * The sport's items in display order. Row security decides what comes back: published items for
+ * everyone, drafts as well for a platform admin (D125). Built-in content changes rarely.
+ */
 export function useLibraryItems(sport: SportKey) {
   return useQuery({
     queryKey: libraryKeys.list(sport),
@@ -25,9 +28,8 @@ export function useLibraryItems(sport: SportKey) {
     queryFn: async (): Promise<LibraryItemSummary[]> => {
       const { data, error } = await supabase
         .from('library_items')
-        .select('id, slug, sport, category, title, age_min, age_max, sort_order')
+        .select('id, slug, sport, category, title, age_min, age_max, sort_order, is_published')
         .eq('sport', sport)
-        .eq('is_published', true)
         .order('sort_order')
         .order('title');
       if (error) throw dbError(error);
@@ -36,7 +38,7 @@ export function useLibraryItems(sport: SportKey) {
   });
 }
 
-/** One item with its content; null when the slug is unknown or unpublished. */
+/** One item with its content; null when the slug is unknown or a draft this user may not see. */
 export function useLibraryItem(slug: string | undefined) {
   return useQuery({
     queryKey: libraryKeys.item(slug ?? ''),
@@ -47,7 +49,6 @@ export function useLibraryItem(slug: string | undefined) {
         .from('library_items')
         .select('*')
         .eq('slug', slug ?? '')
-        .eq('is_published', true)
         .maybeSingle();
       if (error) throw dbError(error);
       return data;

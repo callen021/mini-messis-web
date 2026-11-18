@@ -53,6 +53,20 @@
   flex: none;
 }
 
+/* an unpublished item, seen by a platform admin only (D125) */
+.pill.draft {
+  color: #8a5a00;
+  background: #ffe9b8;
+}
+.libdraft {
+  margin: 0 16px 12px;
+  padding: 8px 12px;
+  border-radius: 10px;
+  background: #ffe9b8;
+  color: #5c3c00;
+  font-size: 14px;
+}
+
 /* item page */
 .libitem .seg.wide {
   margin-bottom: 14px;
@@ -377,8 +391,12 @@
 .dplayer.passer circle {
   fill: #1f4fbf;
 }
-.dplayer.receiver circle {
+.dplayer.receiver circle,
+.dplayer.attacker circle {
   fill: #e22400;
+}
+.dplayer.defender circle {
+  fill: #1f4fbf;
 }
 .dplayer .dletter {
   fill: #fff;
