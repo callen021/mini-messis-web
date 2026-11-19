@@ -109,7 +109,7 @@ const stint = (over: Partial<Stint>): Stint => ({
   ...over,
 });
 
-function renderView(canEdit = true, highlight = new Set<string>()) {
+function renderView(canEdit = true, highlight = new Set<string>(), ownOnly = false) {
   const ctx: TeamContextValue = {
     teamId: 't1',
     team,
@@ -128,7 +128,12 @@ function renderView(canEdit = true, highlight = new Set<string>()) {
         <ActionSheetProvider>
           <MemoryRouter>
             <TeamProviderForTests value={ctx}>
-              <ClockRotationView players={players} canEdit={canEdit} highlight={highlight} />
+              <ClockRotationView
+                players={players}
+                canEdit={canEdit}
+                highlight={highlight}
+                ownOnly={ownOnly}
+              />
             </TeamProviderForTests>
           </MemoryRouter>
         </ActionSheetProvider>
@@ -176,6 +181,18 @@ describe('ClockRotationView (D72)', () => {
     const names = Array.from(document.querySelectorAll('.minrow .pname')).map((n) => n.textContent);
     expect(names[0]).toMatch(/^Jack/);
     expect(document.querySelector('.minrow')).toHaveClass('mine');
+  });
+
+  it('own-only parents see just their own child, a full bar and no Balance (D134)', () => {
+    renderView(false, new Set(['p2']), true);
+    const names = Array.from(document.querySelectorAll('.minrow .pname')).map((n) => n.textContent);
+    expect(names).toEqual(['Teddy#2']);
+    expect(screen.getByRole('img', { name: 'Teddy: 8 min, 2 shifts' })).toBeInTheDocument();
+    // not scaled against the team's top player (it would read 80%)
+    expect(document.querySelector<HTMLElement>('.minbar i')?.style.width).toBe('100%');
+    expect(screen.queryByText('Out this game')).not.toBeInTheDocument();
+    expect(screen.queryByText('Balance')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Range/)).not.toBeInTheDocument();
   });
 
   it('with no live game it shows the last completed game, and nothing before the first', () => {

@@ -118,12 +118,12 @@ const stored = (q: Period, i: number): StoredPeriod => {
   };
 };
 
-function renderView(canEdit = true, highlight = new Set<string>()) {
+function renderView(canEdit = true, highlight = new Set<string>(), ownOnly = false) {
   return render(
     <ToastProvider>
       <ActionSheetProvider>
         <TeamProviderForTests value={ctx}>
-          <RotationView players={players} canEdit={canEdit} highlight={highlight} />
+          <RotationView players={players} canEdit={canEdit} highlight={highlight} ownOnly={ownOnly} />
         </TeamProviderForTests>
       </ActionSheetProvider>
     </ToastProvider>,
@@ -217,6 +217,36 @@ describe('RotationView', () => {
     expect(screen.getByRole('status')).toHaveTextContent('LW · Left wing');
     // the auto-fill dot is for staff; parents do not see it (D53)
     expect(screen.getByRole('button', { name: 'Teddy, Quarter 1: Striker' })).not.toHaveClass('auto');
+  });
+
+  const rowNames = () =>
+    Array.from(document.querySelectorAll('.prow:not(.rothead) .pname')).map((el) => el.textContent ?? '');
+
+  it('own-only parents see just their own child: no other rows, no Out list, no Balance (D134)', () => {
+    renderView(false, new Set(['p3']), true);
+    expect(rowNames()).toEqual(['Jack#3']);
+    expect(screen.getByRole('button', { name: 'Jack, Quarter 1: Goalkeeper' })).toHaveClass('on');
+    expect(screen.getByLabelText('1 of 4 quarters')).toBeInTheDocument();
+    expect(screen.queryByText('Out this game')).not.toBeInTheDocument(); // Hal is someone else's
+    expect(screen.queryByText('Balance')).not.toBeInTheDocument();
+    expect(screen.queryByText(/Range/)).not.toBeInTheDocument();
+    // the key still names every position in the plan
+    expect(document.querySelector('.poskey')).toHaveTextContent('Left wing');
+  });
+
+  it('own-only: a child who is out shows under Out this game, alone (D134)', () => {
+    renderView(false, new Set(['p4']), true);
+    expect(rowNames()).toEqual(['Hal#4']);
+    expect(screen.getByText('Out this game')).toBeInTheDocument();
+    expect(screen.queryByText('Playing time')).not.toBeInTheDocument();
+  });
+
+  it('own-only: a parent with no linked child sees one line, no players (D134)', () => {
+    renderView(false, new Set(), true);
+    expect(rowNames()).toEqual([]);
+    expect(
+      screen.getByText('Your child’s playing time appears here once you’re linked to a player.'),
+    ).toBeInTheDocument();
   });
 
   it('lists only the codes in the plan in the Position key, with the auto-fill note for staff', () => {

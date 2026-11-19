@@ -32,10 +32,13 @@ export function RotationView({
   players,
   canEdit,
   highlight,
+  ownOnly = false,
 }: {
   players: Player[];
   canEdit: boolean;
   highlight: ReadonlySet<string>;
+  /** A parent on a team whose stats are set to "Own" (D134): only their own children's rows, no team balance. */
+  ownOnly?: boolean;
 }) {
   const { teamId, team, sport } = useCurrentTeam();
   const S = SPORTS[sport];
@@ -63,7 +66,8 @@ export function RotationView({
   const colors = (team.colors ?? {}) as Record<string, string>;
   // a parent's "can't make it" for the planned game counts as out here too (D107)
   const active = players.filter((p) => p.is_available && !parentOut.has(p.id));
-  const outs = players.filter((p) => !p.is_available || parentOut.has(p.id));
+  const allOuts = players.filter((p) => !p.is_available || parentOut.has(p.id));
+  const outs = ownOnly ? allOuts.filter((p) => highlight.has(p.id)) : allOuts;
   const bal = balance(periods, enginePlayers);
 
   const commit = (next: Period[], msg?: string) => {
@@ -188,9 +192,11 @@ export function RotationView({
     </div>
   );
 
-  const ordered = highlight.size
-    ? [...active.filter((p) => highlight.has(p.id)), ...active.filter((p) => !highlight.has(p.id))]
-    : active;
+  const ordered = ownOnly
+    ? active.filter((p) => highlight.has(p.id))
+    : highlight.size
+      ? [...active.filter((p) => highlight.has(p.id)), ...active.filter((p) => !highlight.has(p.id))]
+      : active;
 
   return (
     <>
@@ -214,16 +220,28 @@ export function RotationView({
           )}
         </Toolbar>
       )}
-      <Section>Playing time</Section>
-      <Group>
-        <div className="prow rothead" aria-hidden="true">
-          <span className="pname">Player</span>
-          <span className="qchips" />
-          <span className="total hd">{periodsHeader(S, N)}</span>
-        </div>
-        {ordered.map((p) => row(p, false))}
-        {!active.length && <div className="prow">Add players on the Roster view.</div>}
-      </Group>
+      {(!ownOnly || ordered.length > 0 || !outs.length) && (
+        <>
+          <Section>Playing time</Section>
+          <Group>
+            {(!ownOnly || ordered.length > 0) && (
+              <div className="prow rothead" aria-hidden="true">
+                <span className="pname">Player</span>
+                <span className="qchips" />
+                <span className="total hd">{periodsHeader(S, N)}</span>
+              </div>
+            )}
+            {ordered.map((p) => row(p, false))}
+            {ownOnly
+              ? !ordered.length && (
+                  <div className="prow">
+                    Your child’s playing time appears here once you’re linked to a player.
+                  </div>
+                )
+              : !active.length && <div className="prow">Add players on the Roster view.</div>}
+          </Group>
+        </>
+      )}
       {key.length > 0 && (
         <>
           <Section>Position key</Section>
@@ -262,36 +280,40 @@ export function RotationView({
           <Group>{outs.map((p) => row(p, true))}</Group>
         </>
       )}
-      <Section>Balance</Section>
-      <Group>
-        <div className="balance">
-          {bal ? (
-            <>
-              <p>
-                Range{' '}
-                <b>
-                  {bal.min}–{bal.max}
-                </b>{' '}
-                {periodPlural(S, N)} · average <b>{bal.average}</b>
-              </p>
-              <div
-                className="meter"
-                role="img"
-                aria-label={`Playing time spread: least ${bal.min}, most ${bal.max} ${periodPlural(S, N)}`}
-              >
-                <i className={bal.spread ? 'spread' : undefined} style={{ width: `${bal.percent}%` }} />
-              </div>
-              <p>{balanceHint(bal, noun)}</p>
-            </>
-          ) : (
-            <p>{balanceHint(null, noun)}</p>
-          )}
-        </div>
-      </Group>
+      {!ownOnly && (
+        <>
+          <Section>Balance</Section>
+          <Group>
+            <div className="balance">
+              {bal ? (
+                <>
+                  <p>
+                    Range{' '}
+                    <b>
+                      {bal.min}–{bal.max}
+                    </b>{' '}
+                    {periodPlural(S, N)} · average <b>{bal.average}</b>
+                  </p>
+                  <div
+                    className="meter"
+                    role="img"
+                    aria-label={`Playing time spread: least ${bal.min}, most ${bal.max} ${periodPlural(S, N)}`}
+                  >
+                    <i className={bal.spread ? 'spread' : undefined} style={{ width: `${bal.percent}%` }} />
+                  </div>
+                  <p>{balanceHint(bal, noun)}</p>
+                </>
+              ) : (
+                <p>{balanceHint(null, noun)}</p>
+              )}
+            </div>
+          </Group>
+        </>
+      )}
       <Footer>
         {canEdit
           ? `Tap a ${noun} box to put a player in a position for that ${noun}, or choose * Sitting out to sit them. Picking a position someone else holds swaps them in and leaves the other player unassigned. Auto-fill gives open spots to the players with the fewest ${periodPlural(S, N)}, rotating position groups; a dotted corner marks an auto pick. Mid-${noun} substitutions aren't counted.`
-          : `Each box shows the position for that ${noun}; the number at the end is how many ${periodPlural(S, N)} the player is scheduled for. This is the coach's plan and updates live.`}
+          : `Each box shows the position for that ${noun}; the number at the end is how many ${periodPlural(S, N)} ${ownOnly ? 'your child' : 'the player'} is scheduled for. This is the coach's plan and updates live.`}
       </Footer>
       {picking && (
         <PositionPickerSheet

@@ -25,7 +25,10 @@ export function TeamPage() {
   const list = useMemo(() => players.data ?? [], [players.data]);
   const highlight = children.data ?? new Set<string>();
 
-  if (players.isPending || plan.isPending) return <LoadingScreen />;
+  // "Parents can see stats for: Own" also narrows Rotation to the parent's own children (D134)
+  const ownOnly = !isStaff && team.parent_stats === 'own';
+
+  if (players.isPending || plan.isPending || (ownOnly && children.isPending)) return <LoadingScreen />;
 
   const active = list.filter((p) => p.is_available).length;
   const outCount = list.length - active;
@@ -33,8 +36,14 @@ export function TeamPage() {
   const sub =
     view === 'rotation'
       ? clockMode
-        ? `Minutes each player has played${isStaff ? ' · substitutions on the Field tab' : ''}`
-        : `${N === 1 ? 'Who plays the game' : `${periodPlural(S, N, true)} each player is scheduled for`}${isStaff ? ' · tap a box to assign' : ''}`
+        ? ownOnly
+          ? 'Minutes your child has played'
+          : `Minutes each player has played${isStaff ? ' · substitutions on the Field tab' : ''}`
+        : ownOnly
+          ? N === 1
+            ? 'When your child plays'
+            : `${periodPlural(S, N, true)} your child is scheduled for`
+          : `${N === 1 ? 'Who plays the game' : `${periodPlural(S, N, true)} each player is scheduled for`}${isStaff ? ' · tap a box to assign' : ''}`
       : `${S.emoji} ${S.name} roster · ${active} active${outCount ? ` · ${outCount} out` : ''}`;
 
   return (
@@ -51,9 +60,9 @@ export function TeamPage() {
       />
       {view === 'rotation' ? (
         clockMode ? (
-          <ClockRotationView players={list} canEdit={isStaff} highlight={highlight} />
+          <ClockRotationView players={list} canEdit={isStaff} highlight={highlight} ownOnly={ownOnly} />
         ) : (
-          <RotationView players={list} canEdit={isStaff} highlight={highlight} />
+          <RotationView players={list} canEdit={isStaff} highlight={highlight} ownOnly={ownOnly} />
         )
       ) : (
         <>

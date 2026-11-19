@@ -1875,3 +1875,18 @@ functions; the screens only hide what would be refused.
 - **Other parents** and other teams see nothing; signed out, nothing.
 - The date of every training record is the server's (the team's day), and none can be edited.
 - pgTAP: `supabase/tests/34_training.test.sql`.
+
+### D134. On an "Own" team, a parent's Rotation shows only their own children
+
+When **Parents can see stats for** is set to **Own**, the Team tab's Rotation view narrows for
+parents (not for coaches or assistant coaches):
+
+- Only the parent's own children are listed, under Playing time or Out this game.
+- The Balance section (team range and average) is hidden.
+- The Position key is unchanged; it names positions, not players.
+- On a clock-mode team the minutes bar is full for any time played, never scaled against the
+  team's top player.
+- A parent with no linked child sees one line saying playing time appears once they are linked.
+
+The Roster view is unchanged, and so is everything on a **Team** setting. This is a display
+change only: lineup rows are still readable by team members, and the Field tab is untouched.

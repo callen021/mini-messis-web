@@ -36,10 +36,13 @@ export function ClockRotationView({
   players,
   canEdit,
   highlight,
+  ownOnly = false,
 }: {
   players: Player[];
   canEdit: boolean;
   highlight: ReadonlySet<string>;
+  /** A parent on a team whose stats are set to "Own" (D134): only their own children's rows, no team balance. */
+  ownOnly?: boolean;
 }) {
   const { teamId, team, sport } = useCurrentTeam();
   // volleyball (D121): points on court, not minutes
@@ -64,7 +67,8 @@ export function ClockRotationView({
 
   // a parent's "can't make it" for the planned game counts as out here too (D107)
   const active = players.filter((p) => p.is_available && !parentOut.has(p.id));
-  const outs = players.filter((p) => !p.is_available || parentOut.has(p.id));
+  const allOuts = players.filter((p) => !p.is_available || parentOut.has(p.id));
+  const outs = ownOnly ? allOuts.filter((p) => highlight.has(p.id)) : allOuts;
   const times = useMemo(
     () =>
       playerTimes(
@@ -77,7 +81,11 @@ export function ClockRotationView({
   );
   const max = Math.max(1, ...active.map((p) => times.get(p.id)?.seconds ?? 0));
   const bal = minutesBalance(active.map((p) => times.get(p.id)?.seconds ?? 0));
-  const ordered = highlight.size ? pinFirst(active, (p) => highlight.has(p.id)) : active;
+  const ordered = ownOnly
+    ? active.filter((p) => highlight.has(p.id))
+    : highlight.size
+      ? pinFirst(active, (p) => highlight.has(p.id))
+      : active;
 
   const toggle = (p: Player, on: boolean) => {
     if (on && parentOut.has(p.id) && planned.game) {
@@ -134,7 +142,8 @@ export function ClockRotationView({
             aria-label={`${p.first_name}: ${played(secs)}, ${t?.shifts ?? 0} shift${t?.shifts === 1 ? '' : 's'}${t?.onField ? `, on the field at ${t.code}` : ''}`}
           >
             <div className="minbar">
-              <i style={{ width: `${Math.round((100 * secs) / max)}%` }} />
+              {/* own-only parents: a full bar, never scaled against other players (D134) */}
+              <i style={{ width: `${ownOnly ? (secs > 0 ? 100 : 0) : Math.round((100 * secs) / max)}%` }} />
             </div>
             <span className="mintext">
               <b>{played(secs)}</b> · {t?.shifts ?? 0} shift{t?.shifts === 1 ? '' : 's'}
@@ -169,22 +178,33 @@ export function ClockRotationView({
           </Button>
         </Toolbar>
       )}
-      <Section>{title}</Section>
-      <Group>
-        {game ? (
-          ordered.map((p) => row(p, false))
-        ) : (
-          <div className="prow">Minutes appear here once a game is on the clock.</div>
-        )}
-        {game && !active.length && <div className="prow">Add players on the Roster view.</div>}
-      </Group>
+      {(!ownOnly || !game || ordered.length > 0 || !outs.length) && (
+        <>
+          <Section>{title}</Section>
+          <Group>
+            {game ? (
+              ordered.map((p) => row(p, false))
+            ) : (
+              <div className="prow">Minutes appear here once a game is on the clock.</div>
+            )}
+            {game &&
+              (ownOnly
+                ? !ordered.length && (
+                    <div className="prow">
+                      Your child’s playing time appears here once you’re linked to a player.
+                    </div>
+                  )
+                : !active.length && <div className="prow">Add players on the Roster view.</div>)}
+          </Group>
+        </>
+      )}
       {outs.length > 0 && (
         <>
           <Section>Out this game</Section>
           <Group>{outs.map((p) => row(p, true))}</Group>
         </>
       )}
-      {game && (
+      {game && !ownOnly && (
         <>
           <Section>Balance</Section>
           <Group>
