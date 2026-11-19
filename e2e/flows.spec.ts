@@ -675,6 +675,11 @@ test.describe('coach and parent flows', () => {
     await expect(card).toContainText('Ages 6–10');
     await card.click();
     await expect(coach.getByRole('heading', { level: 1, name: 'First Touch' })).toBeVisible();
+    // a drill's page keeps its /library address and the Training tab stays lit (D136)
+    await expect(coach).toHaveURL(/\/library\//);
+    await expect(
+      coach.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Training' }),
+    ).toHaveClass(/active/);
     await expect(coach.getByRole('radio', { name: 'Learn' })).toBeChecked();
     await expect(coach.getByText('First touch into space, move with it!')).toBeVisible();
     await expect(coach.locator('.stepcard')).toHaveCount(4);
@@ -1802,6 +1807,35 @@ test.describe('coach and parent flows', () => {
     await back;
     await coach.goto('/field');
     await expect(coach.locator('.qcard').first().locator('.slot .shirt')).toHaveCount(9);
+    // a coach with a linked child: the child's tab takes the Lineup tab's place, and the batting order
+    // is a view of the Diamond tab that Back from "Edit order" returns to (D135, D136)
+    await coach.goto('/team');
+    await coach.getByRole('radio', { name: 'Roster' }).click();
+    await coach.getByRole('button', { name: 'Edit roster' }).click();
+    await coach.getByRole('button', { name: 'Add player' }).first().click();
+    const add = coach.getByRole('dialog', { name: 'Add player' });
+    await add.getByLabel('First name').fill('Kit');
+    await add.getByRole('button', { name: 'Add player' }).click();
+    await expect(add).toBeHidden();
+    await coach.goto('/settings/members');
+    await coach.locator('.newmember').getByRole('button', { name: 'Pick child' }).click();
+    await coach.getByRole('switch', { name: 'Kit is their child' }).click();
+    await coach.getByRole('button', { name: 'Save and confirm' }).click();
+    await expect(nav.getByRole('link', { name: 'Kit' })).toBeVisible();
+    await expect(nav.getByRole('link', { name: 'Lineup' })).toHaveCount(0);
+    await nav.getByRole('link', { name: 'Diamond' }).click();
+    await coach.getByRole('radio', { name: 'Batting order' }).click();
+    await expect(coach).toHaveURL(/\/field\?view=lineup$/);
+    await coach.getByRole('button', { name: 'Edit order' }).click();
+    await expect(coach.getByRole('heading', { level: 1, name: 'Edit order' })).toBeVisible();
+    await coach.getByRole('button', { name: 'Batting order' }).click();
+    await expect(coach).toHaveURL(/\/field\?view=lineup$/);
+    await expect(coach.getByRole('radio', { name: 'Batting order' })).toHaveAttribute('aria-checked', 'true');
+    await expect(coach.getByRole('button', { name: 'Edit order' })).toBeVisible();
+    // opened directly, with no page to go back to, the link still leads to the Batting order view
+    await coach.goto('/lineup/order');
+    await coach.getByRole('link', { name: 'Batting order' }).click();
+    await expect(coach).toHaveURL(/\/field\?view=lineup$/);
   });
 
   test('volleyball: six in rotation spots, they serve, our side-out point rotates through the bench with the ball on the new server, Undo puts it back; sets in Team setup (D121)', async () => {
@@ -1919,29 +1953,25 @@ test.describe('coach and parent flows', () => {
     const nav = coach.getByRole('navigation', { name: 'Main' });
     await expect(nav.getByRole('link', { name: 'Rink' })).toBeVisible();
     await expect(coach.locator('.stage.hockey img.pitch').first()).toHaveAttribute('src', /hockey-persp/);
-    await coach.goto('/team');
-    await coach.getByRole('radio', { name: 'Roster' }).click();
-    await coach.getByRole('button', { name: 'Edit roster' }).click();
-    for (const [i, name] of ['Ace', 'Bo', 'Cy', 'Dax', 'Eli', 'Finn', 'Gus', 'Hal', 'Ike'].entries()) {
-      await coach.getByRole('button', { name: 'Add player' }).first().click();
-      const sheet = coach.getByRole('dialog', { name: 'Add player' });
-      await sheet.getByLabel('First name').fill(name);
-      await sheet.getByLabel('Jersey number (optional)').fill(String(i + 1));
-      await sheet.getByRole('button', { name: 'Add player' }).click();
-      await expect(sheet).toBeHidden();
-    }
-    // the Lines screen: F2 is Gus, Hal, Ike
-    await coach.getByRole('button', { name: 'Lines' }).click();
-    await expect(coach).toHaveURL(/\/team\/lines$/);
-    const f2 = coach.getByRole('group', { name: 'F2' });
-    await f2.getByLabel('F2 name').fill('Second');
-    await f2.getByLabel('F2 LW').selectOption({ label: '#7 Gus' });
-    await f2.getByLabel('F2 C').selectOption({ label: '#8 Hal' });
-    await f2.getByLabel('F2 RW').selectOption({ label: '#9 Ike' });
-    await coach.waitForTimeout(600);
-    await coach.reload();
-    await expect(coach.getByRole('group', { name: 'F2' }).getByLabel('F2 LW')).toHaveValue(/./);
-    // Auto-fill on the rink leaves the goalie open; the coach places Ace in the net by hand
+    const addPlayers = async (names: readonly string[], firstNumber: number) => {
+      await coach.goto('/team');
+      await coach.getByRole('radio', { name: 'Roster' }).click();
+      await coach.getByRole('button', { name: 'Edit roster' }).click();
+      for (const [i, name] of names.entries()) {
+        await coach.getByRole('button', { name: 'Add player' }).first().click();
+        const sheet = coach.getByRole('dialog', { name: 'Add player' });
+        await sheet.getByLabel('First name').fill(name);
+        await sheet.getByLabel('Jersey number (optional)').fill(String(firstNumber + i));
+        await sheet.getByRole('button', { name: 'Add player' }).click();
+        await expect(sheet).toBeHidden();
+      }
+    };
+    // Six players first, so the starting six never include the forward line added below. Auto-fill
+    // breaks ties at random and knows nothing of saved lines: with all nine on the roster it could
+    // start a Second-line forward on defense or in the net, and that spot is then left open (as
+    // designed) when the line goes on, which is not what this flow is about.
+    await addPlayers(['Ace', 'Bo', 'Cy', 'Dax', 'Eli', 'Finn'], 1);
+    // Auto-fill on the rink leaves the goalie open; the coach places the one left on the bench by hand
     await coach.goto('/field');
     await expect(coach.locator('.slot .shirt')).toHaveCount(6);
     await coach.locator('.actionbar').getByRole('button', { name: 'Auto-fill' }).click();
@@ -1953,6 +1983,24 @@ test.describe('coach and parent flows', () => {
       .first()
       .click();
     await expect(coach.locator('.slot .shirt.open')).toHaveCount(0);
+    // the Lines screen: F2 is Gus, Hal, Ike, who all start on the bench
+    await addPlayers(['Gus', 'Hal', 'Ike'], 7);
+    await coach.getByRole('button', { name: 'Lines' }).click();
+    await expect(coach).toHaveURL(/\/team\/lines$/);
+    const f2 = coach.getByRole('group', { name: 'F2' });
+    await f2.getByLabel('F2 name').fill('Second');
+    await f2.getByLabel('F2 LW').selectOption({ label: '#7 Gus' });
+    await f2.getByLabel('F2 C').selectOption({ label: '#8 Hal' });
+    await f2.getByLabel('F2 RW').selectOption({ label: '#9 Ike' });
+    await coach.waitForTimeout(600);
+    await coach.reload();
+    await expect(coach.getByRole('group', { name: 'F2' }).getByLabel('F2 LW')).toHaveValue(/./);
+    await coach.goto('/field');
+    await expect(coach.locator('.slot .shirt')).toHaveCount(6);
+    await expect(coach.locator('.slot .shirt.open')).toHaveCount(0);
+    for (const name of ['Gus', 'Hal', 'Ike']) {
+      await expect(coach.getByRole('button', { name: new RegExp(`^Bench: .*${name}`) })).toBeVisible();
+    }
     const goalie = (await coach.getByRole('button', { name: /^GOALIE: / }).getAttribute('aria-label')) ?? '';
     // start the game: the clock runs; the lines row sits under the bench
     await coach.getByRole('button', { name: /Start a game and record goals/ }).click();

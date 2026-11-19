@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate, useSearchParams } from 'react-router';
 import { LoadingScreen, useIsCoach, useIsStaff } from '@/auth/guards';
 import { benchAfterEdit, benchQueue, benchSwap } from '@/clock/bench';
 import { ClockFieldPage } from '@/clock/ClockFieldPage';
@@ -92,7 +92,11 @@ function PeriodFieldPage() {
   // the batting order is a segment here instead.
   // the same for a coach with a linked child, who keeps every edit right there (D135)
   const foldLineup = foldsLineup(S, role, (children.data?.size ?? 0) > 0);
-  const [fieldTab, setFieldTab] = useState<'field' | 'lineup'>('field');
+  // the switch lives in the address (D136), so Back from "Edit order" returns to the Batting order
+  const [search, setSearch] = useSearchParams();
+  const fieldTab: 'field' | 'lineup' = search.get('view') === 'lineup' ? 'lineup' : 'field';
+  const setFieldTab = (v: 'field' | 'lineup') =>
+    setSearch(v === 'lineup' ? { view: 'lineup' } : {}, { replace: true });
 
   const allPlayers = useMemo(() => players.data ?? [], [players.data]);
   // a parent's "can't make it" for the planned game (D107): out of the bench and Auto-fill, but a

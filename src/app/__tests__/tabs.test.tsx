@@ -51,6 +51,11 @@ describe('tabs per role (D53, D135)', () => {
     expect(foldsLineup(SPORTS.soccer, 'parent', true)).toBe(false);
   });
 
+  it('the Library’s own pages belong to the Training tab (D136)', () => {
+    const training = tabsFor(SPORTS.soccer, 'parent', 'Nolan', true).find((t) => t.to === '/training');
+    expect(training?.also).toEqual(['/library']);
+  });
+
   it('names the first tab after the selected child', () => {
     expect(homeTabLabel({ first_name: 'Nolan' })).toBe('Nolan');
     expect(homeTabLabel(null)).toBe('Home');

@@ -37,6 +37,29 @@ describe('Tabbar', () => {
     expect(vibrate).toHaveBeenCalledWith(8);
   });
 
+  it('keeps a tab active on the other paths that belong to it (D136)', () => {
+    const withAlso = [
+      ...tabs,
+      { to: '/training', label: 'Training', icon: <TeamIcon />, also: ['/library'] },
+    ];
+    const at = (path: string) => {
+      const view = render(
+        <MemoryRouter initialEntries={[path]}>
+          <Tabbar tabs={withAlso} />
+        </MemoryRouter>,
+      );
+      const link = screen.getByRole('link', { name: 'Training' });
+      const state = { active: link.classList.contains('active'), current: link.getAttribute('aria-current') };
+      view.unmount();
+      return state;
+    };
+    expect(at('/library/first-touch')).toEqual({ active: true, current: 'page' });
+    expect(at('/library/play/keepy-uppy')).toEqual({ active: true, current: 'page' });
+    expect(at('/training')).toEqual({ active: true, current: 'page' });
+    expect(at('/librarian')).toEqual({ active: false, current: null });
+    expect(at('/field')).toEqual({ active: false, current: null });
+  });
+
   it('is at the bottom by default and supports the legacy top position', () => {
     const { unmount } = render(<App />);
     expect(screen.getByRole('navigation')).not.toHaveClass('top');

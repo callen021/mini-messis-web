@@ -8,6 +8,8 @@ import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
 import { SPORTS } from '@/sports/definitions';
 import { usePlayers } from '@/teams/api';
+import { foldsLineup } from '@/app/tabs';
+import { useMyChildren } from '@/lineups/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useSetBattingOrder } from './api';
 import { battingOrder, moveInOrder } from './batting';
@@ -15,7 +17,8 @@ import { makeNameLookup } from './names';
 
 /** Edit the batting order with up/down arrows (legacy "Edit order" screen). */
 export function BattingOrderPage() {
-  const { teamId, sport } = useCurrentTeam();
+  const { teamId, sport, role } = useCurrentTeam();
+  const children = useMyChildren();
   const toast = useToast();
   const players = usePlayers(teamId);
   const setOrder = useSetBattingOrder(teamId);
@@ -51,7 +54,14 @@ export function BattingOrderPage() {
     <Page
       title="Edit order"
       sub={`${order.length} batters · arrows move a player up or down`}
-      back={{ to: '/lineup', label: 'Batting order', pop: true }}
+      // with the Lineup tab folded into the Field tab, the order is that tab's Batting order view (D136)
+      back={{
+        to: foldsLineup(SPORTS[sport], role, (children.data?.size ?? 0) > 0)
+          ? '/field?view=lineup'
+          : '/lineup',
+        label: 'Batting order',
+        pop: true,
+      }}
     >
       <Toolbar className="noprint">
         <Button variant="gray" onClick={rosterOrder}>
@@ -88,7 +98,7 @@ export function BattingOrderPage() {
       </Group>
       <Footer>
         Use the arrows to move players. Players added to the roster are appended to the bottom; players marked
-        out are skipped. Changes are saved as you go — tap Lineup to go back.
+        out are skipped. Changes are saved as you go — tap Batting order to go back.
       </Footer>
     </Page>
   );

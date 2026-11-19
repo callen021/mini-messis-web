@@ -1933,3 +1933,20 @@ has one reply line per child. The choice is remembered per team on the device.
 **Old addresses.** `/stats` → Team → Season; `/library` → Training → Library;
 `/training/:playerId` → Training with that child selected. Library items and games keep their
 addresses.
+
+### D136. Follow-ups to the Training tab: highlight, Batting order return, a steadier hockey flow
+
+- **Library pages light the Training tab.** A drill's page and a game's page keep their
+  `/library/...` addresses, so a tab can now name other path prefixes that belong to it
+  (`also` on a tab item); the Training tab names `/library`.
+- **Back from "Edit order" returns to the Batting order.** Where the Lineup tab is folded into
+  the Field tab (baseball and softball with a child's tab), the Field / Batting order switch is
+  kept in the address (`/field?view=lineup`) instead of in memory, so going back restores it.
+  Opened directly, the Edit order page's back link leads to the same view.
+- **The hockey end-to-end flow no longer depends on Auto-fill's random tie-break.** Auto-fill
+  ranks by time played and breaks ties at random; it does not look at saved lines. With a new
+  team everyone is tied, so the flow sometimes started a Second-line forward on defense or in
+  the net, and putting the line on then left that spot open, as designed (D122: a player
+  moved by a line change leaves their old spot open unless the line fills it, and the toast
+  says so). The flow now picks the starting six before the three line players are on the
+  roster. Auto-fill itself is unchanged.

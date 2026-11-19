@@ -35,7 +35,8 @@ export function tabsFor(
     ...(S.lineup ? [{ to: '/lineup', label: 'Lineup', icon: <LineupIcon /> }] : []),
     { to: '/team', label: 'Team', icon: <TeamIcon /> },
     { to: '/games', label: 'Schedule', icon: <GamesIcon /> },
-    { to: '/training', label: 'Training', icon: <TrainingIcon /> },
+    // the Library's drill and game pages keep their /library addresses but belong to Training (D136)
+    { to: '/training', label: 'Training', icon: <TrainingIcon />, also: ['/library'] },
   ];
   if (role !== 'parent' && !hasChild) return core;
   const withHome: TabItem[] = [{ to: '/home', label: homeLabel, icon: <StarIcon /> }, ...core];
