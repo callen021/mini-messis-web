@@ -21,21 +21,20 @@ const show = (kids: { id: string; first_name: string }[]) =>
   );
 
 describe('the dashboard streak indicator (D131)', () => {
-  it('shows the count and “Daily Drills”, and opens the child’s Training page', () => {
+  it('shows the count and “Daily Drills”, and opens the Training tab on Daily Drills', () => {
     show([{ id: 'p1', first_name: 'Sam' }]);
     const link = screen.getByRole('link', { name: 'Sam: 4-day streak. Daily Drills' });
-    expect(link).toHaveAttribute('href', '/training/p1');
+    expect(link).toHaveAttribute('href', '/training');
     expect(link).toHaveTextContent('4');
     expect(link).toHaveTextContent('Daily Drills');
   });
-  it('a parent with two children sees one per child, each named', () => {
+  it('given two children it shows one per child, each named', () => {
     show([
       { id: 'p1', first_name: 'Sam' },
       { id: 'p2', first_name: 'Ava' },
     ]);
     const links = screen.getAllByRole('link');
     expect(links).toHaveLength(2);
-    expect(links[1]).toHaveAttribute('href', '/training/p2');
     expect(links[1]).toHaveTextContent('Ava');
     expect(links[1]).toHaveAccessibleName('Ava: 0-day streak. Daily Drills');
   });

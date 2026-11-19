@@ -13,7 +13,7 @@ import { LearnTab } from './LearnTab';
 import { SetupTab } from './SetupTab';
 import { ageText, categoryLabel, parseContent, TAB_LABEL, type TabKey, tabsOf } from './types';
 
-const BACK = { to: '/library', label: 'Practice library', pop: true } as const;
+const BACK = { to: '/training?tab=library', label: 'Library', pop: true } as const;
 
 /**
  * One library item (D123): title, category and ages, then a tab per content section. Every team

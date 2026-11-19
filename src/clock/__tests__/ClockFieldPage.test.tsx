@@ -91,6 +91,8 @@ vi.mock('@/games/api', () => ({
   useCreateGame: () => ({ mutate: vi.fn(), isPending: false }),
   useStartGame: () => ({ mutate: startGame, isPending: false }),
   useKeepStats: () => ({ mutate: keepStats, isPending: false }),
+  // the live game's player stats sit under the field (D135)
+  usePlayerStats: () => ({ data: [], isPending: false, error: null }),
 }));
 vi.mock('../api', () => ({
   useClockAction: () => ({ mutate: act, mutateAsync: actAsync, isPending: false }),
@@ -454,6 +456,8 @@ describe('ClockFieldPage · live game on the clock (D66, D70)', () => {
     expect(screen.getByLabelText('23:00 left, paused')).toHaveTextContent('23:00');
     expect(screen.getByRole('button', { name: 'Resume' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'End H1' })).toBeInTheDocument();
+    // the live game's player stats sit under the field (D135)
+    expect(screen.getByRole('button', { name: 'Player stats' })).toHaveAttribute('aria-expanded', 'false');
     expect(screen.getByRole('button', { name: 'Undo' })).toBeInTheDocument();
     expect(field('Nolan')).toHaveAccessibleName(/2:00 this shift/);
     expect(bench('Hal')).toHaveAccessibleName('Bench: Hal #8, up next');

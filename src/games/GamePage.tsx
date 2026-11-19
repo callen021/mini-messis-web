@@ -54,6 +54,7 @@ import { DirectionsIcon } from '@/components/icons';
 import { useGameClock } from '@/clock/api';
 import { capNote } from '@/clock/clock';
 import { PlayingTimeSection } from '@/clock/PlayingTimeSection';
+import { GameStats } from './GameStats';
 import { directionsUrl } from './directions';
 import { EditScoreSheet } from './EditScoreSheet';
 import { EditStatSheet } from './EditStatSheet';
@@ -680,6 +681,10 @@ function GameDetail({ game }: { game: GameWithScore }) {
             {canEdit && <Row link onClick={() => setPaAdding(true)} label="Add at-bat" />}
           </Group>
         </>
+      )}
+
+      {!isUpcoming && (
+        <GameStats gameId={game.id} live={isLive} from={{ to: `/games/${game.id}`, label: 'Game' }} />
       )}
 
       {clockMode && !isUpcoming ? (

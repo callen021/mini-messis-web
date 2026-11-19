@@ -20,7 +20,7 @@ describe('hockey (D122)', () => {
     expect(S.defaultPeriods).toBe(3);
     expect(S.periodName(3)).toBe('Period');
     expect(shortPeriod(S, 3, 2)).toBe('P3');
-    expect(tabsFor(S, 'coach', 'Home').map((t) => t.label)).toEqual(['Rink', 'Team', 'Schedule', 'Stats']);
+    expect(tabsFor(S, 'coach', 'Home').map((t) => t.label)).toEqual(['Rink', 'Team', 'Schedule', 'Training']);
     expect(f?.name).toBe('Lines');
     expect(f?.positions.map((p) => p.code)).toEqual(['G', 'LD', 'RD', 'LW', 'C', 'RW']);
     expect(f?.positions.map((p) => S.group(p.role))).toEqual(['G', 'D', 'D', 'F', 'F', 'F']);

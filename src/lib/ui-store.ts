@@ -13,8 +13,7 @@ export const FIELD_VIEWS: readonly FieldView[] = ['persp', 'flat'];
  * profile (Phase 3) — this store is the local cache so the PWA paints correctly before the
  * profile loads. `sport` only drives the tint; the real current team comes from the server.
  */
-export type TeamView = 'rotation' | 'roster';
-export type StatsView = 'game' | 'season' | 'skills';
+export type TeamView = 'rotation' | 'roster' | 'season';
 /** Schedule tab segment: everything coming up, or just games / just practices. */
 export type GamesView = 'all' | 'games' | 'practices';
 
@@ -25,9 +24,9 @@ export interface UIState {
   /** Team tab segment (remembered like the legacy app). */
   teamView: TeamView;
   setTeamView: (teamView: TeamView) => void;
-  /** Stats tab segment. */
-  statsView: StatsView;
-  setStatsView: (statsView: StatsView) => void;
+  /** The child a parent last looked at, per team (D135): the first tab, Home and Training follow it. */
+  childByTeam: Record<string, string>;
+  setChild: (teamId: string, playerId: string) => void;
   /** Schedule tab segment. */
   gamesView: GamesView;
   setGamesView: (gamesView: GamesView) => void;
@@ -46,8 +45,8 @@ export const useUIStore = create<UIState>()(
       sport: 'soccer',
       teamView: 'rotation',
       setTeamView: (teamView) => set({ teamView }),
-      statsView: 'season',
-      setStatsView: (statsView) => set({ statsView }),
+      childByTeam: {},
+      setChild: (teamId, playerId) => set((s) => ({ childByTeam: { ...s.childByTeam, [teamId]: playerId } })),
       gamesView: 'all',
       setGamesView: (gamesView) => set({ gamesView }),
       setTheme: (theme) => set({ theme }),
@@ -56,11 +55,13 @@ export const useUIStore = create<UIState>()(
     }),
     {
       name: UI_STORAGE_KEY,
-      version: 2,
+      version: 3,
       // v1 remembered the old Games tab segments (schedule | results); both land on All.
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Partial<UIState>;
         if (version < 2) s.gamesView = 'all';
+        // v3: the Stats tab is gone (D135); its remembered segment goes with it
+        if (version < 3) delete (s as Record<string, unknown>).statsView;
         return s as UIState;
       },
       partialize: (s) => ({
@@ -68,7 +69,7 @@ export const useUIStore = create<UIState>()(
         fieldView: s.fieldView,
         sport: s.sport,
         teamView: s.teamView,
-        statsView: s.statsView,
+        childByTeam: s.childByTeam,
         gamesView: s.gamesView,
       }),
     },

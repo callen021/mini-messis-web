@@ -31,6 +31,8 @@ import { usePlannedGame } from '@/rsvp/api';
 import { heldOutNote, outCaption } from '@/rsvp/rsvp';
 import { useUIStore } from '@/lib/ui-store';
 import { JerseyDefs } from '@/lineups/Jersey';
+import { StatsIcon } from '@/components/icons';
+import { GameStats } from '@/games/GameStats';
 import { toEnginePlayers, useCurrentPlan, useFormations, useMyChildren } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
 import { SPORTS, periodCountText, shortPeriod } from '@/sports/definitions';
@@ -80,6 +82,7 @@ export function ClockFieldPage() {
   const S = SPORTS[sport];
   const N = team.clock_periods;
   const isStaff = useIsStaff();
+  const [statsOpen, setStatsOpen] = useState(false);
   const isCoach = useIsCoach();
   const toast = useToast();
   const sheet = useActionSheet();
@@ -744,7 +747,23 @@ export function ClockFieldPage() {
     <section className="page">
       <JerseyDefs />
       <EditableTitle value={team.name} onSave={onRename} editable={isCoach} />
-      <p className="sub">{sub}</p>
+      {/* the live game's player stats (D135) open below; the link sits at the end of this line so the
+          live page gains no height (D108) */}
+      <p className={live ? 'sub withlink' : 'sub'}>
+        <span>{sub}</span>
+        {live && (
+          <button
+            type="button"
+            className={statsOpen ? 'statsbtn on' : 'statsbtn'}
+            aria-label="Player stats"
+            aria-expanded={statsOpen}
+            title="Player stats for this game"
+            onClick={() => setStatsOpen((o) => !o)}
+          >
+            <StatsIcon aria-hidden="true" />
+          </button>
+        )}
+      </p>
       {live && (
         <KeeperBar
           game={live}
@@ -1016,6 +1035,7 @@ export function ClockFieldPage() {
           }
         />
       )}
+      {live && statsOpen && <GameStats gameId={live.id} live from={{ to: '/field', label: S.field }} />}
       {isStaff ? (
         <>
           {live && vb ? (

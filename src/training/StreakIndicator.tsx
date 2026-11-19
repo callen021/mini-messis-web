@@ -8,8 +8,8 @@ export interface StreakChild {
 
 /**
  * The small streak indicator on the parent dashboard (D131): a flame, the child's current streak
- * and a "Daily Drills" label. Tapping it opens that child's Training page. With more than one
- * child there is one per child, each with the child's first name.
+ * and a "Daily Drills" label. Tapping it opens the Training tab on Daily Drills. The dashboard shows the
+ * selected child's (D135).
  */
 export function StreakIndicators({
   kids,
@@ -34,7 +34,7 @@ function StreakIndicator({ child, named }: { child: StreakChild; named: boolean 
   const n = streak.data?.current ?? 0;
   return (
     <Link
-      to={`/training/${child.id}`}
+      to="/training"
       className="streaklink"
       aria-label={`${child.first_name}: ${n}-day streak. Daily Drills`}
     >

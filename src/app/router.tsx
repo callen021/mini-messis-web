@@ -1,5 +1,5 @@
 import { lazy, Suspense } from 'react';
-import { createBrowserRouter, type RouteObject } from 'react-router';
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router';
 import { AuthRoot } from '@/auth/AuthProvider';
 import { PublicOnly, RequireAuth } from '@/auth/guards';
 import { lazyPage } from './lazy';
@@ -213,12 +213,8 @@ export const routes: RouteObject[] = [
                           import('@/snacks/SnackSignupPage').then((m) => ({ default: m.SnackSignupPage })),
                         ),
                       },
-                      {
-                        path: '/stats',
-                        element: lazyPage(() =>
-                          import('@/games/StatsPage').then((m) => ({ default: m.StatsPage })),
-                        ),
-                      },
+                      // the Stats tab is gone (D135): season stats live on the Team tab
+                      { path: '/stats', element: <Navigate to="/team?view=season" replace /> },
                       {
                         path: '/players/:playerId',
                         element: lazyPage(() =>
@@ -270,10 +266,9 @@ export const routes: RouteObject[] = [
                         ),
                       },
                       {
+                        // the Practice library is a section of the Training tab (D135)
                         path: '/library',
-                        element: lazyPage(() =>
-                          import('@/library/LibraryPage').then((m) => ({ default: m.LibraryPage })),
-                        ),
+                        element: <Navigate to="/training?tab=library" replace />,
                       },
                       {
                         path: '/library/play/:game',
@@ -288,9 +283,18 @@ export const routes: RouteObject[] = [
                         ),
                       },
                       {
-                        path: '/training/:playerId',
+                        path: '/training',
                         element: lazyPage(() =>
                           import('@/training/TrainingPage').then((m) => ({ default: m.TrainingPage })),
+                        ),
+                      },
+                      {
+                        // the old per-child address: select that child, then the tab
+                        path: '/training/:playerId',
+                        element: lazyPage(() =>
+                          import('@/training/TrainingPage').then((m) => ({
+                            default: m.TrainingChildRedirect,
+                          })),
                         ),
                       },
                       {

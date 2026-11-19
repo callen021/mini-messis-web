@@ -1890,3 +1890,46 @@ parents (not for coaches or assistant coaches):
 
 The Roster view is unchanged, and so is everything on a **Team** setting. This is a display
 change only: lineup rows are still readable by team members, and the Field tab is untouched.
+
+### D135. Navigation around a Training tab; the Stats tab is gone
+
+This round only moves and regroups existing features. No database change.
+
+**Bottom bar.** Field, [Lineup], Team, Schedule, Training, then the gear. A parent, and a coach or
+assistant with a linked child on the team, get the child's tab first; they keep every coach
+right. When that would make six tabs (baseball, softball) the Lineup tab folds into the Field
+tab as the "Batting order" switch, as it already did for parents. A coach with a linked child
+still lands on Field.
+
+**Training tab** (`/training`), every sport, showing only the sections the sport has:
+
+- Daily Drills: soccer, for a child whose link a coach confirmed. The streak card sits on top.
+- Skill Tests: every sport. A parent sees their child's cards with "Record at home". Coaches and
+  assistants see the Team table (it was Stats → Skills) with "Edit tests" (it was Settings →
+  Skills tests). A coach with a linked child chooses "My kid" (results save as Home) or "Team"
+  (results save as Coach).
+- Library: the Practice library (it was a Settings row), where the sport has one.
+- Without a confirmed child there is no streak card and no Daily Drills; a parent sees a line
+  saying skill results appear once they are linked. What an unconfirmed parent can do is
+  unchanged.
+
+**Where stats went.**
+
+- Season: Team → Season, a third view beside Rotation and Roster, with a "Last game" link to the
+  most recent finished game on top. The season tiles on the child's tab open it.
+- Current game: on the Field tab while a game is live, and on the game's page during and after
+  it. On the quarter-card Field page it is a collapsed line under the cards; on the clock-mode
+  Field page it opens from a small icon at the end of the subtitle, because that page must fit
+  a phone screen without scrolling (D108) and has no spare line. With no game live, the last
+  game's numbers are on that game's page only.
+- The privacy rule is unchanged and still enforced by the database (D56): on an "Own" team a
+  parent gets individual numbers for their own children only.
+
+**Two or more children on the team.** The child's name on top of the child's tab is a switcher
+(plain text with one child). The first tab's label, the season tiles, the streak and the
+Training tab follow the selected child, and Training shows the same switcher. The Next up card
+has one reply line per child. The choice is remembered per team on the device.
+
+**Old addresses.** `/stats` → Team → Season; `/library` → Training → Library;
+`/training/:playerId` → Training with that child selected. Library items and games keep their
+addresses.

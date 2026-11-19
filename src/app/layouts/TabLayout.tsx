@@ -3,12 +3,12 @@ import { Outlet } from 'react-router';
 import { BoardButton } from '@/board/BoardButton';
 import { SyncBanner } from '@/components/SyncBanner';
 import { Tabbar } from '@/components/Tabbar';
-import { useMyChildren, useTeamRealtime } from '@/lineups/api';
+import { useMyKids } from '@/home/useMyKids';
+import { useTeamRealtime } from '@/lineups/api';
 import { ProfileSync } from '@/settings/ProfileSync';
 import { SPORTS } from '@/sports/definitions';
 import { preloadFieldImage } from '@/sports/field';
 import { useUIStore } from '@/lib/ui-store';
-import { usePlayers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useMainScroll } from '../useMainScroll';
 import { TeamSwitcher } from '@/teams/TeamSwitcher';
@@ -21,13 +21,9 @@ export function TabLayout() {
   useTeamRealtime(teamId);
   const view = useUIStore((s) => s.fieldView);
   useEffect(() => preloadFieldImage(sport, view), [sport, view]);
-  const children = useMyChildren();
-  const players = usePlayers(teamId);
-  const mine = useMemo(() => {
-    const ids = children.data ?? new Set<string>();
-    return (players.data ?? []).filter((p) => ids.has(p.id));
-  }, [children.data, players.data]);
-  const tabs = useMemo(() => tabsFor(S, role, homeTabLabel(mine)), [S, role, mine]);
+  // the first tab is the selected child's, for a parent and for a coach with a linked child (D135)
+  const { child } = useMyKids();
+  const tabs = useMemo(() => tabsFor(S, role, homeTabLabel(child), !!child), [S, role, child]);
   // main is the scroller (D110): restore its position on back, start new pages at the top
   const mainRef = useRef<HTMLElement>(null);
   useMainScroll(mainRef);

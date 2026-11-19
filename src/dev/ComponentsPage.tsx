@@ -22,7 +22,7 @@ import {
   Section,
   Segmented,
   Select,
-  StatsIcon,
+  TrainingIcon,
   Stepper,
   Switch,
   Tabbar,
@@ -56,7 +56,7 @@ const TABS = [
   { to: '/dev/components', label: 'Field', icon: <FieldIcon /> },
   { to: '/team', label: 'Team', icon: <TeamIcon /> },
   { to: '/games', label: 'Schedule', icon: <GamesIcon /> },
-  { to: '/stats', label: 'Stats', icon: <StatsIcon /> },
+  { to: '/training', label: 'Training', icon: <TrainingIcon /> },
 ];
 
 const PLAYERS = [

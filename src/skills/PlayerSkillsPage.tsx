@@ -17,13 +17,16 @@ import { RecordResultSheet } from './RecordResultSheet';
 import { SkillsBests } from './SkillsBests';
 
 /**
- * The skills page (D60): jersey, name, then skills only. Opened from Stats → Skills, the parent
+ * The skills page (D60): jersey, name, then skills only. Opened from Training → Skill Tests, the parent
  * home tab and a test's own page; the contact card (Roster) is a separate page.
  */
 export function PlayerSkillsPage() {
   const { playerId = '' } = useParams<{ playerId: string }>();
   const location = useLocation();
-  const back = playerBack((location.state as PlayerBackState | null) ?? {}, { to: '/stats', label: 'Stats' });
+  const back = playerBack((location.state as PlayerBackState | null) ?? {}, {
+    to: '/training?tab=tests',
+    label: 'Training',
+  });
   const { teamId, team, sport } = useCurrentTeam();
   const S = SPORTS[sport];
   const isStaff = useIsStaff();

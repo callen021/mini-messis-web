@@ -7,7 +7,6 @@ import { Button, Toolbar } from '@/components/Button';
 import { DirectionsIcon } from '@/components/icons';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { Page } from '@/components/Page';
-import { Segmented } from '@/components/Segmented';
 import { Tile, Tiles } from '@/components/Tile';
 import { useToast } from '@/components/Toast';
 import { useGames, usePlayerStats } from '@/games/api';
@@ -20,7 +19,7 @@ import { scheduleEvents } from '@/games/schedule-ics';
 import { formatStat, profileTiles } from '@/games/stats';
 import { countdown, timingLabel } from '@/games/timing';
 import { ChildClockRow } from '@/clock/ChildClockRow';
-import { useCurrentPlan, useFormations, useMyChildLinks, useMyChildren } from '@/lineups/api';
+import { useCurrentPlan, useFormations, useMyChildLinks } from '@/lineups/api';
 import { toEnginePeriods } from '@/lineups/convert';
 import { errorMessage } from '@/lib/supabase';
 import { AllergiesSection } from '@/players/AllergiesSection';
@@ -35,9 +34,11 @@ import { SkillsBests } from '@/skills/SkillsBests';
 import { textColor } from '@/sports/colors';
 import { SPORTS, chipLabel } from '@/sports/definitions';
 import { positionName } from '@/sports/positions';
-import { type Player, usePlayers } from '@/teams/api';
+import { type Player } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { StreakIndicators } from '@/training/StreakIndicator';
+import { ChildSwitcher } from './children';
+import { useMyKids } from './useMyKids';
 import { nextEvent } from './next';
 
 /** Ticks every half minute so countdowns stay honest while the tab is open. */
@@ -50,24 +51,20 @@ function useNow(stepMs = 30_000): Date {
   return now;
 }
 
-/** Parent landing tab (D53): my child, the next event, their positions, season, skills and details. */
+/**
+ * The child's tab (D53): my child, the next event, their positions, season, skills and details.
+ * A parent lands here; a coach or assistant with a linked child on the team has it too (D135).
+ * With two or more children the name on top switches between them, remembered on the device.
+ */
 export function HomePage() {
-  const { teamId, sport } = useCurrentTeam();
+  const { sport } = useCurrentTeam();
   const isStaff = useIsStaff();
-  const players = usePlayers(teamId);
-  const children = useMyChildren();
-  const links = useMyChildLinks();
-  const [picked, setPicked] = useState<string | null>(null);
+  const { kids: mine, child, confirmed, select, isPending } = useMyKids();
 
-  const mine = useMemo(() => {
-    const ids = children.data ?? new Set<string>();
-    return (players.data ?? []).filter((p) => ids.has(p.id));
-  }, [children.data, players.data]);
+  if (isPending) return <LoadingScreen label="Loading your player…" />;
+  // a coach with no child of their own on the team has no such tab
+  if (isStaff && !child) return <Navigate to="/field" replace />;
 
-  if (isStaff) return <Navigate to="/field" replace />;
-  if (players.isPending || children.isPending) return <LoadingScreen label="Loading your player…" />;
-
-  const child = mine.find((p) => p.id === picked) ?? mine[0] ?? null;
   if (!child) {
     return (
       <Page title="My player" sub="No child is linked to your account yet">
@@ -86,35 +83,22 @@ export function HomePage() {
   }
 
   // at-home Training (D131): soccer only, and only for a child whose link a coach confirmed
-  const training = sport === 'soccer' ? mine.filter((p) => links.data?.get(p.id) === 'approved') : [];
+  const training = sport === 'soccer' && confirmed;
 
   return (
     <Page
-      action={training.length > 0 ? <StreakIndicators kids={training} named={mine.length > 1} /> : undefined}
-      title={mine.length > 1 ? 'My players' : child.first_name}
+      action={training ? <StreakIndicators kids={[child]} named={false} /> : undefined}
+      title={<ChildSwitcher kids={mine} child={child} onSelect={select} />}
       documentTitle={child.first_name}
-      sub={
-        mine.length > 1
-          ? `${mine.map((p) => p.first_name).join(' · ')}`
-          : `What’s next for ${child.first_name}`
-      }
+      sub={`What’s next for ${child.first_name}`}
     >
-      {mine.length > 1 && (
-        <Segmented<string>
-          wide
-          label="Which child"
-          value={child.id}
-          onChange={setPicked}
-          options={mine.map((p) => ({ value: p.id, label: p.first_name }))}
-        />
-      )}
       <AnnouncementBanner />
-      <ChildHome key={child.id} child={child} />
+      <ChildHome key={child.id} child={child} kids={mine} />
     </Page>
   );
 }
 
-function ChildHome({ child }: { child: Player }) {
+function ChildHome({ child, kids }: { child: Player; kids: readonly Player[] }) {
   const { teamId, team, sport } = useCurrentTeam();
   const S = SPORTS[sport];
   const toast = useToast();
@@ -190,13 +174,14 @@ function ChildHome({ child }: { child: Player }) {
     const ev = isGame
       ? ({ kind: 'game', id: next.game.id } as const)
       : ({ kind: 'practice', id: next.practice.id } as const);
-    const status = statusOf(repliesFor(rsvps.data ?? [], ev), child.id);
+    const replies = repliesFor(rsvps.data ?? [], ev);
     const locked = isGame
       ? parentLocked({ kind: 'game', status: next.game.status }, now)
       : parentLocked({ kind: 'practice', status: next.practice.status, date, time }, now);
     // snack signup (D115): this family's turn shows on the card, with the allergies to mind
     const slot = isGame ? next.game : next.practice;
-    const bringingSnacks = snackWanted(team.snack_signup, next.kind) && slot.snack_player_id === child.id;
+    const bringingSnacks =
+      snackWanted(team.snack_signup, next.kind) && kids.some((k) => k.id === slot.snack_player_id);
     nextCard = (
       <Group className="homecard">
         <Row
@@ -235,24 +220,28 @@ function ChildHome({ child }: { child: Player }) {
           </p>
         )}
         <div className="rsvpblock">
-          <RsvpControl
-            status={status}
-            playerName={child.first_name}
-            locked={locked}
-            busy={setRsvp.isPending}
-            onSet={(s) =>
-              setRsvp.mutate(
-                { event: ev, playerId: child.id, status: s },
-                {
-                  onError: (e) => toast(errorMessage(e)),
-                  onSuccess: () => {
-                    toast(s === 'none' ? 'Reply cleared' : `${child.first_name} · ${RSVP_LABEL[s]}`);
-                    void snack.afterRsvp(ev, slot, child.id, s);
+          {/* one reply line per child on this team (D135), whichever child is selected */}
+          {kids.map((k) => (
+            <RsvpControl
+              key={k.id}
+              status={statusOf(replies, k.id)}
+              playerName={k.first_name}
+              locked={locked}
+              busy={setRsvp.isPending}
+              onSet={(s) =>
+                setRsvp.mutate(
+                  { event: ev, playerId: k.id, status: s },
+                  {
+                    onError: (e) => toast(errorMessage(e)),
+                    onSuccess: () => {
+                      toast(s === 'none' ? 'Reply cleared' : `${k.first_name} · ${RSVP_LABEL[s]}`);
+                      void snack.afterRsvp(ev, slot, k.id, s);
+                    },
                   },
-                },
-              )
-            }
-          />
+                )
+              }
+            />
+          ))}
           {locked && (
             <p className="rsvpnote">
               Replies are closed: the {isGame ? 'game' : 'practice'} has started. Ask the coach to change it.
@@ -333,11 +322,17 @@ function ChildHome({ child }: { child: Player }) {
       </Group>
 
       <Section>Season</Section>
-      <Tiles cols={4}>
-        {profileTiles(S, team.time_mode === 'clock').map((c, i) => (
-          <Tile key={`${c.key}-${i}`} label={c.label} value={row ? formatStat(row, c.key) : '–'} />
-        ))}
-      </Tiles>
+      <Link
+        to="/team?view=season"
+        className="tileslink"
+        aria-label={`${child.first_name}’s season. Open the team’s season stats`}
+      >
+        <Tiles cols={4}>
+          {profileTiles(S, team.time_mode === 'clock').map((c, i) => (
+            <Tile key={`${c.key}-${i}`} label={c.label} value={row ? formatStat(row, c.key) : '–'} />
+          ))}
+        </Tiles>
+      </Link>
 
       <Section>Skills · personal bests</Section>
       <Group>

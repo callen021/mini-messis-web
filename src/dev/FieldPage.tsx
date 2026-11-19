@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router';
 import { Footer, Group, Page, Row, Segmented, Select, Stepper, Switch, Tabbar } from '@/components';
 import { OpenPill } from '@/components/Badge';
-import { FieldIcon, GamesIcon, StatsIcon, TeamIcon } from '@/components/icons';
+import { FieldIcon, GamesIcon, TrainingIcon, TeamIcon } from '@/components/icons';
 import { useToast } from '@/components/Toast';
 import { useUIStore } from '@/lib/ui-store';
 import { FieldStage } from '@/lineups/FieldStage';
@@ -18,7 +18,7 @@ const TABS = [
   { to: '/dev/field', label: 'Field', icon: <FieldIcon /> },
   { to: '/team', label: 'Team', icon: <TeamIcon /> },
   { to: '/games', label: 'Schedule', icon: <GamesIcon /> },
-  { to: '/stats', label: 'Stats', icon: <StatsIcon /> },
+  { to: '/training', label: 'Training', icon: <TrainingIcon /> },
 ];
 
 type Fill = 'sample' | 'auto' | 'empty';

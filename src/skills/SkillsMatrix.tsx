@@ -25,7 +25,7 @@ import {
 import { RecordResultSheet } from './RecordResultSheet';
 import { RecordSessionSheet } from './RecordSessionSheet';
 
-/** Stats → Skills: players down the side, shown tests across, each cell the personal best with a trend arrow. */
+/** Training → Skill Tests → Team (D135; it was Stats → Skills): players down the side, shown tests across, each cell the personal best with a trend arrow. */
 export function SkillsMatrix({ players }: { players: readonly Player[] }) {
   const { teamId } = useCurrentTeam();
   const isStaff = useIsStaff();
@@ -98,7 +98,7 @@ export function SkillsMatrix({ players }: { players: readonly Player[] }) {
       <Group className="matrix">
         {shown.length === 0 ? (
           <div className="empty">
-            No tests shown.{isStaff ? ' Add or restore tests under Settings → Skills tests.' : ''}
+            No tests shown.{isStaff ? ' Add or restore tests with Edit tests below.' : ''}
           </div>
         ) : rows.length === 0 ? (
           <div className="empty">
@@ -122,7 +122,10 @@ export function SkillsMatrix({ players }: { players: readonly Player[] }) {
               {rows.map((p) => (
                 <tr key={p.id} className={cn(!isStaff && mine.has(p.id) && 'me')}>
                   <td>
-                    <Link to={`/players/${p.id}/skills`} state={{ from: '/stats', fromLabel: 'Skills' }}>
+                    <Link
+                      to={`/players/${p.id}/skills`}
+                      state={{ from: '/training?tab=tests', fromLabel: 'Skill Tests' }}
+                    >
                       {p.first_name}
                     </Link>
                   </td>

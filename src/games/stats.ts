@@ -39,7 +39,7 @@ export function teamRecord(list: readonly Scored[]): TeamRecord {
   return r;
 }
 
-/** Completed games, newest first (the Results list on Stats → Season). */
+/** Completed games, newest first (the Results list on Team → Season). */
 export function completedGames<G extends { status: string; game_date: string; created_at: string }>(
   list: readonly G[],
 ): G[] {

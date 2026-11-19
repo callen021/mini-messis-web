@@ -1,14 +1,16 @@
 import { Link } from 'react-router';
 import { Group, Section } from '@/components/List';
-import { Page } from '@/components/Page';
 import { errorMessage } from '@/lib/supabase';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useLibraryItems } from './api';
 import { gamesFor } from './games';
 import { ageText, CATEGORY_ORDER, categoryLabel } from './types';
 
-/** Settings → Practice library: the sport's items as cards, grouped by category. */
-export function LibraryPage() {
+/**
+ * Training → Library (D135; it was Settings → Practice library): the sport's items as cards,
+ * grouped by category.
+ */
+export function LibraryList() {
   const { sport } = useCurrentTeam();
   const items = useLibraryItems(sport);
   const rows = items.data ?? [];
@@ -18,11 +20,7 @@ export function LibraryPage() {
     ...[...new Set(rows.map((r) => r.category))].filter((c) => !CATEGORY_ORDER.some((k) => k === c)),
   ];
   return (
-    <Page
-      title="Practice library"
-      sub="Fundamentals, tactics, and position-specific drills"
-      back={{ to: '/settings', label: 'Settings', pop: true }}
-    >
+    <>
       {items.isPending && (
         <Group>
           <div className="empty">Loading…</div>
@@ -86,6 +84,6 @@ export function LibraryPage() {
           </ul>
         </div>
       )}
-    </Page>
+    </>
   );
 }

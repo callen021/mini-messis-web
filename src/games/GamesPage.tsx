@@ -168,7 +168,7 @@ type AddChoice = 'game' | 'practice';
 
 /**
  * The Schedule tab (/games): what is coming up, games and practices merged by date, with the live
- * game pinned on top. Completed games live under Stats → Season.
+ * game pinned on top. Completed games live under Team → Season.
  */
 export function GamesPage() {
   const { teamId, team } = useCurrentTeam();
@@ -350,7 +350,7 @@ export function GamesPage() {
       </Group>
       <Footer>
         Games and practices are listed together by date. A cancelled practice stays crossed out so nobody
-        shows up to an empty field. Past games and the season record are under Stats → Season. Add all to
+        shows up to an empty field. Past games and the season record are under Team → Season. Add all to
         calendar saves every upcoming event in one go; the arrow on a row opens directions.
       </Footer>
       {isStaff && (

@@ -18,13 +18,13 @@ export function GamePage() {
   useEffect(() => {
     if (game) document.title = `${game.title} · Mini-Messi's`;
   }, [game]);
-  if (!game || game.sport !== sport) return <Navigate to="/library" replace />;
+  if (!game || game.sport !== sport) return <Navigate to="/training?tab=library" replace />;
   return (
     <section className="gamepage">
       <div className="gamebar">
-        <Link to="/library" className="back">
+        <Link to="/training?tab=library" className="back">
           <ChevronLeftIcon />
-          Practice library
+          Library
         </Link>
         <h1>{game.title}</h1>
       </div>

@@ -21,7 +21,12 @@ describe('volleyball (D121)', () => {
     expect(shortPeriod(S, 3, 1)).toBe('Set 2');
     expect(chipLabel(S, 3, 1)).toBe('2');
     expect(S.eligibility).toBeUndefined();
-    expect(tabsFor(S, 'coach', 'Home').map((t) => t.label)).toEqual(['Court', 'Team', 'Schedule', 'Stats']);
+    expect(tabsFor(S, 'coach', 'Home').map((t) => t.label)).toEqual([
+      'Court',
+      'Team',
+      'Schedule',
+      'Training',
+    ]);
   });
 
   it('one formation: the six rotation spots, slot i = spot i + 1, the server right back', () => {

@@ -23,7 +23,7 @@ import {
 import { DEFAULT_SKILL_TESTS, defaultFor, metricLabel, type SkillTest } from './defaults';
 import { EditTestSheet } from './EditTestSheet';
 
-/** Settings → Skills tests: show/hide, reorder, edit, add custom, add from library, restore defaults. */
+/** Training → Skill Tests → Edit tests (D135; it was Settings → Skills tests): show/hide, reorder, edit, add custom, add from library, restore defaults. */
 export function SkillsSettingsPage() {
   const { teamId, sport } = useCurrentTeam();
   const S = SPORTS[sport];
@@ -132,7 +132,7 @@ export function SkillsSettingsPage() {
     <Page
       title="Skills tests"
       sub={`${S.emoji} ${S.name} · ${shown.length} shown${hidden.length ? ` · ${hidden.length} hidden` : ''}`}
-      back={{ to: '/settings', label: 'Settings' }}
+      back={{ to: '/training?tab=tests', label: 'Skill Tests', pop: true }}
     >
       <Section>Shown on player pages</Section>
       <Group>
@@ -173,8 +173,8 @@ export function SkillsSettingsPage() {
         )}
       </Group>
       <Footer>
-        Tap a test to edit it. The order here is the order on every player page and on the Stats table. Hidden
-        tests keep their history. A test with results can be hidden but not deleted.
+        Tap a test to edit it. The order here is the order on every player page and on the Skill Tests table.
+        Hidden tests keep their history. A test with results can be hidden but not deleted.
       </Footer>
       <EditTestSheet
         open={editing !== null}

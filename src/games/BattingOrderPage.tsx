@@ -51,7 +51,7 @@ export function BattingOrderPage() {
     <Page
       title="Edit order"
       sub={`${order.length} batters · arrows move a player up or down`}
-      back={{ to: '/lineup', label: 'Lineup' }}
+      back={{ to: '/lineup', label: 'Batting order', pop: true }}
     >
       <Toolbar className="noprint">
         <Button variant="gray" onClick={rosterOrder}>

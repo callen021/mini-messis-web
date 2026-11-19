@@ -24,7 +24,7 @@ describe('softball (D119) reuses the baseball model', () => {
       'Lineup',
       'Team',
       'Schedule',
-      'Stats',
+      'Training',
     ]);
   });
 

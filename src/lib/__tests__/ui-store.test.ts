@@ -9,7 +9,7 @@ describe('ui-store', () => {
       fieldView: 'persp',
       sport: 'soccer',
       teamView: 'rotation',
-      statsView: 'season',
+      childByTeam: {},
       gamesView: 'all',
     });
   });
@@ -32,10 +32,10 @@ describe('ui-store', () => {
       fieldView: 'persp',
       sport: 'lacrosse',
       teamView: 'rotation',
-      statsView: 'season',
+      childByTeam: {},
       gamesView: 'all',
     });
-    expect(parsed.version).toBe(2);
+    expect(parsed.version).toBe(3);
   });
 
   it('migrates the v1 Games segments (schedule | results) to All', async () => {
@@ -46,5 +46,16 @@ describe('ui-store', () => {
     await useUIStore.persist.rehydrate();
     expect(useUIStore.getState().gamesView).toBe('all');
     expect(useUIStore.getState().theme).toBe('dark');
+  });
+
+  it('v3 drops the remembered Stats segment: the Stats tab is gone (D135)', async () => {
+    localStorage.setItem(
+      UI_STORAGE_KEY,
+      JSON.stringify({ state: { theme: 'dark', statsView: 'skills', teamView: 'roster' }, version: 2 }),
+    );
+    await useUIStore.persist.rehydrate();
+    expect(useUIStore.getState()).not.toHaveProperty('statsView');
+    expect(useUIStore.getState().teamView).toBe('roster');
+    expect(useUIStore.getState().childByTeam).toEqual({});
   });
 });

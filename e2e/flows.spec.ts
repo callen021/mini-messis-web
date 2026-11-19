@@ -374,7 +374,7 @@ test.describe('coach and parent flows', () => {
   test("the parent's first tab is their child: next event, positions, season, skills, details", async () => {
     const nav = parent.getByRole('navigation', { name: 'Main' });
     await expect(nav.getByRole('link', { name: 'Ava' })).toBeVisible();
-    await expect(nav.getByRole('link')).toHaveCount(6); // Ava, Field, Team, Schedule, Stats + gear
+    await expect(nav.getByRole('link')).toHaveCount(6); // Ava, Field, Team, Schedule, Training + gear
     await expect(parent.getByRole('heading', { level: 1, name: 'Ava' })).toBeVisible();
     await expect(parent.getByText('Next up')).toBeVisible();
     await expect(parent.getByRole('link', { name: /vs Tigers/ })).toBeVisible();
@@ -576,7 +576,7 @@ test.describe('coach and parent flows', () => {
     await parent.setViewportSize({ width: 412, height: 915 });
   });
 
-  test('two player pages: the card from Roster, the skills page from Stats (D60)', async () => {
+  test('two player pages: the card from Roster, the skills page from Team → Season (D60, D135)', async () => {
     // Roster → contact card: Parents and Details, no Skills
     await parent.goto('/team');
     await parent.getByRole('radio', { name: 'Roster' }).click();
@@ -585,8 +585,8 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByText('Parents', { exact: true })).toBeVisible();
     await expect(parent.getByText('Details', { exact: true })).toBeVisible();
     await expect(parent.getByText('Skills', { exact: true })).toHaveCount(0);
-    // Stats → skills page: Skills only
-    await parent.goto('/stats');
+    // Team → Season → skills page: Skills only
+    await parent.goto('/team?view=season');
     await parent.getByRole('radio', { name: 'Season' }).click();
     await parent.locator('.statscroll').getByRole('link', { name: /Ava/ }).click();
     await expect(parent).toHaveURL(/\/players\/[0-9a-f-]+\/skills$/);
@@ -595,11 +595,10 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByLabel('Shirt size')).toHaveCount(0);
   });
 
-  test('back from a player page returns to the opener: Stats (with scroll), Roster, home (D61)', async () => {
-    // Stats → Skills table, scrolled down (the coach's eight-row table in a short viewport so it scrolls)
+  test('back from a player page returns to the opener: Skill Tests (with scroll), Roster, home (D61)', async () => {
+    // Training → Skill Tests table, scrolled down (the coach's eight-row table in a short viewport so it scrolls)
     await coach.setViewportSize({ width: 375, height: 420 });
-    await coach.goto('/stats');
-    await coach.getByRole('radio', { name: 'Skills' }).click();
+    await coach.goto('/training?tab=tests');
     // the table renders once the results arrive; scroll restoration may reset an early scroll, so
     // scroll inside the poll until it sticks
     await expect(coach.locator('.matrix').getByRole('link', { name: 'Ava' })).toBeVisible();
@@ -614,9 +613,9 @@ test.describe('coach and parent flows', () => {
       .toBeGreaterThan(100);
     await coach.locator('.matrix').getByRole('link', { name: 'Ava' }).click();
     await expect(coach).toHaveURL(/\/skills$/);
-    await coach.getByRole('button', { name: 'Skills', exact: true }).click();
-    await expect(coach).toHaveURL(/\/stats$/);
-    await expect(coach.getByRole('radio', { name: 'Skills' })).toHaveAttribute('aria-checked', 'true');
+    await coach.getByRole('button', { name: 'Skill Tests', exact: true }).click();
+    await expect(coach).toHaveURL(/\/training\?tab=tests$/);
+    await expect(coach.locator('.matrix')).toBeVisible();
     await expect
       .poll(() => coach.evaluate(() => document.querySelector('.app-main')?.scrollTop ?? 0))
       .toBeGreaterThan(100);
@@ -637,8 +636,7 @@ test.describe('coach and parent flows', () => {
   });
 
   test('recording skills: a session for the team, then a tap on a cell (D62)', async () => {
-    await coach.goto('/stats');
-    await coach.getByRole('radio', { name: 'Skills' }).click();
+    await coach.goto('/training?tab=tests');
     await coach.getByRole('button', { name: 'Record results' }).click();
     const session = coach.getByRole('dialog', { name: 'Record results' });
     const first = await session.getByRole('combobox', { name: 'Test' }).inputValue();
@@ -664,11 +662,14 @@ test.describe('coach and parent flows', () => {
     await expect(parent.getByText(/Best 12/)).toBeVisible();
   });
 
-  test('practice library: Settings row, First Touch with Learn and Coach Setup at 375px in both themes; the coach adjusts the setup, the parent reads it, Reset to default (D123)', async () => {
+  test('practice library: Training → Library, First Touch with Learn and Coach Setup at 375px in both themes; the coach adjusts the setup, the parent reads it, Reset to default (D123)', async () => {
     await coach.setViewportSize({ width: 375, height: 812 });
+    // it is no longer a Settings row (D135)
     await coach.goto('/settings');
-    await coach.getByRole('link', { name: /Practice library/ }).click();
-    await expect(coach.getByRole('heading', { level: 1, name: 'Practice library' })).toBeVisible();
+    await expect(coach.getByRole('link', { name: /Practice library/ })).toHaveCount(0);
+    await coach.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Training' }).click();
+    await coach.getByRole('radio', { name: 'Library' }).click();
+    await expect(coach).toHaveURL(/\/training\?tab=library$/);
     const card = coach.getByRole('link', { name: /^First Touch\s*Fundamentals/ });
     await expect(card).toContainText('Fundamentals');
     await expect(card).toContainText('Ages 6–10');
@@ -719,8 +720,7 @@ test.describe('coach and parent flows', () => {
     await expect(coach.getByTestId('drill-cone')).toHaveCount(5);
     await expect(coach.getByRole('group', { name: 'Duration' })).toContainText('5 min');
 
-    await parent.goto('/settings');
-    await parent.getByRole('link', { name: /Practice library/ }).click();
+    await parent.goto('/training?tab=library');
     await parent.getByRole('link', { name: /^First Touch\s*Fundamentals/ }).click();
     await expect(parent.locator('.stepcard')).toHaveCount(4);
     await parent.getByRole('radio', { name: 'Coach Setup' }).click();
@@ -746,8 +746,8 @@ test.describe('coach and parent flows', () => {
     const game = coach.frameLocator('iframe.gameframe');
     await expect(game.getByText('Hear the coach. Make the play.')).toBeVisible({ timeout: 15_000 });
     await expect(game.locator('.tile').first()).toBeVisible();
-    await coach.getByRole('link', { name: 'Practice library' }).click();
-    await expect(coach.getByRole('heading', { level: 1, name: 'Practice library' })).toBeVisible();
+    await coach.getByRole('link', { name: 'Library', exact: true }).click();
+    await expect(coach.getByRole('radio', { name: 'Library' })).toHaveAttribute('aria-checked', 'true');
     await expect(coach.getByRole('navigation', { name: 'Main' })).toBeVisible();
   });
 
@@ -1062,7 +1062,7 @@ test.describe('coach and parent flows', () => {
     await expect(log.locator('.row', { hasText: /Q[0-9]Goal/ })).toHaveCount(1); // Ben's goal, name withheld
     await expect(log).not.toContainText('Ben');
 
-    await parent.goto('/stats');
+    await parent.goto('/team?view=season');
     await parent.getByRole('radio', { name: 'Season' }).click();
     const rows = parent.locator('.statscroll .prow:not(.stathead)');
     await expect(rows).toHaveCount(1);
@@ -1088,16 +1088,19 @@ test.describe('coach and parent flows', () => {
     await coach.getByRole('button', { name: /In progress · vs Tigers/ }).click();
   });
 
-  test('coach finishes the game and the Stats show the result', async () => {
+  test('coach finishes the game and Team → Season shows the result', async () => {
     await coach.getByRole('button', { name: 'Finish game' }).click();
     const confirm = coach.getByRole('dialog', { name: 'Finish game vs Tigers?' });
     await confirm.getByRole('button', { name: 'Finish game' }).click();
     await expect(confirm).toBeHidden();
     await expect(coach.getByRole('button', { name: 'Finish game' })).toHaveCount(0);
 
-    await coach.goto('/stats');
+    await coach.goto('/team?view=season');
     await coach.getByRole('radio', { name: 'Season' }).click();
-    const result = coach.getByRole('link', { name: /vs Tigers/ });
+    // "Last game" on top and the Results row both lead to it
+    await expect(coach.getByRole('link', { name: /vs Tigers/ })).toHaveCount(2);
+    await expect(coach.getByRole('link', { name: /Last game/ })).toContainText('vs Tigers');
+    const result = coach.getByRole('link', { name: /vs Tigers/ }).last();
     await expect(result).toBeVisible();
     await expect(result.getByText('Win')).toBeVisible();
     await expect(result.getByLabel('Us 2, them 0')).toBeVisible();
@@ -1105,9 +1108,14 @@ test.describe('coach and parent flows', () => {
     await expect(avaRow.getByLabel('Goals: 1')).toBeVisible();
 
     // the parent sees the same result, read-only
-    await parent.goto('/stats');
+    await parent.goto('/team?view=season');
     await parent.getByRole('radio', { name: 'Season' }).click();
-    await expect(parent.getByRole('link', { name: /vs Tigers/ }).getByText('Win')).toBeVisible();
+    await expect(
+      parent
+        .getByRole('link', { name: /vs Tigers/ })
+        .last()
+        .getByText('Win'),
+    ).toBeVisible();
   });
 
   /* ---------- clock-based playing time (D65–D76) ---------- */
@@ -1464,7 +1472,7 @@ test.describe('coach and parent flows', () => {
       [...starters].sort(),
     );
     await expect(coach.getByRole('combobox', { name: 'Formation' })).toHaveValue(kickoffFormation);
-    await coach.goto('/stats');
+    await coach.goto('/team?view=season');
     await coach.getByRole('radio', { name: 'Season' }).click();
     await expect(coach.locator('.stathead .stat', { hasText: 'MIN' })).toBeVisible();
     await expect(coach.locator('.stathead .stat', { hasText: 'QP' })).toHaveCount(0);
@@ -1473,9 +1481,9 @@ test.describe('coach and parent flows', () => {
   });
 
   test('corrections after the game: add a stint for the bench player, with the checks (D75)', async () => {
-    await coach.goto('/stats');
+    await coach.goto('/team?view=season');
     await coach.getByRole('radio', { name: 'Season' }).click();
-    await coach.getByRole('link', { name: /vs Lions/ }).click();
+    await coach.getByRole('link', { name: /Last game/ }).click();
     await expect(coach.getByText('Playing time', { exact: true })).toBeVisible();
     const row = coach.locator('.group').getByRole('button', { name: new RegExp(`^${benchPlayer}`) });
     await expect(row).toContainText('0 min');
@@ -1530,13 +1538,16 @@ test.describe('coach and parent flows', () => {
     await coach.getByRole('radio', { name: 'Roster' }).click();
     await expect(coach.locator('.group').getByRole('link', { name: /Ava/ })).toHaveCount(0);
     // Stats: the new season is empty; the past season is still there, read-only
-    await coach.goto('/stats');
+    await coach.goto('/team?view=season');
     await coach.getByRole('radio', { name: 'Season' }).click();
     await expect(coach.getByText(/0 games in Spring next/)).toBeVisible();
     await coach.getByLabel('Season', { exact: true }).selectOption({ index: 1 }); // newest first: the past season
     await expect(coach.getByText(/past season, read-only/)).toBeVisible();
-    await expect(coach.getByRole('link', { name: /vs Lions/ })).toBeVisible();
-    await coach.getByRole('link', { name: /vs Lions/ }).click();
+    await expect(coach.getByRole('link', { name: /vs Lions/ }).last()).toBeVisible();
+    await coach
+      .getByRole('link', { name: /vs Lions/ })
+      .last()
+      .click();
     await expect(coach.getByText('Past season · read-only', { exact: false })).toBeVisible();
     await expect(coach.getByRole('button', { name: /Add goal|Add score/ })).toHaveCount(0);
     // Parent Pat is out; the admin can switch the season back
@@ -1552,7 +1563,7 @@ test.describe('coach and parent flows', () => {
     const sheet = coach.getByRole('dialog', { name: /the current season\?/ });
     await sheet.getByRole('button', { name: 'Make current' }).click();
     await expect(coach.getByRole('status').filter({ hasText: 'is current' })).toBeVisible();
-    await coach.goto('/stats');
+    await coach.goto('/team?view=season');
     await expect(coach.getByText(/2 games in \d{4} season/)).toBeVisible();
   });
 
@@ -1677,7 +1688,7 @@ test.describe('coach and parent flows', () => {
     await coach.setViewportSize({ width: 412, height: 915 });
   });
 
-  test('basketball stats: tracked in Settings, REB and AST buttons on the live court, Undo, the game page lists and edits them, the Stats tab shows the columns (D118)', async () => {
+  test('basketball stats: tracked in Settings, REB and AST buttons on the live court, Undo, the game page lists and edits them, the game page’s player stats show the columns (D118)', async () => {
     // nothing tracked: no stat row, no stat columns
     await coach.goto('/field');
     await expect(coach.getByRole('group', { name: 'Quick scoring' })).toBeVisible();
@@ -1739,9 +1750,7 @@ test.describe('coach and parent flows', () => {
     await expect(edit).toBeHidden();
     await expect(coach.getByRole('status').filter({ hasText: 'Stat updated' })).toBeVisible();
     await expect(coach.getByRole('button', { name: /rebound/ })).toHaveCount(2);
-    // the Stats tab shows REB and AST, never STL or PF
-    await coach.goto('/stats');
-    await coach.getByRole('radio', { name: 'Current game' }).click();
+    // the game's own player stats (D135; it was Stats → Current game) show REB and AST, never STL or PF
     const head = coach.locator('.stathead');
     await expect(head).toContainText('REB');
     await expect(head).toContainText('AST');

@@ -10,7 +10,6 @@ import { type FieldView, type Theme, useUIStore } from '@/lib/ui-store';
 import { SPORTS, periodCountText, periodsNoun } from '@/sports/definitions';
 import { useCurrentSeason } from '@/games/api';
 import { useLiveGame } from '@/lineups/api';
-import { useSkillTests } from '@/skills/api';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
 import { DataSection } from './DataSection';
@@ -18,7 +17,6 @@ import { signOut, unconfirmedLinkCount, useTeamMembers } from '@/teams/api';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useSetParentStats, useSetSnackSignup, useSetTrackedStats } from '@/teams/teamMutations';
 import { cn } from '@/lib/cn';
-import { LIBRARY_SPORTS } from '@/library/types';
 import { SNACK_MODE_LABEL, type SnackMode } from '@/snacks/snacks';
 
 export function SettingsPage() {
@@ -35,16 +33,10 @@ export function SettingsPage() {
   const fieldView = useUIStore((s) => s.fieldView);
   const setFieldView = useUIStore((s) => s.setFieldView);
   const S = SPORTS[team.sport];
-  const tests = useSkillTests(team.id);
   const season = useCurrentSeason(team.id);
   const live = useLiveGame(team.id);
   const members = useTeamMembers(STAFF_ROLES.includes(role) ? team.id : undefined);
   const unconfirmed = unconfirmedLinkCount(members.data ?? []);
-  const shownTests = (tests.data ?? []).filter((t) => t.is_active).length;
-  const hiddenTests = (tests.data ?? []).length - shownTests;
-  const skillsSummary = tests.data
-    ? `${shownTests} shown${hiddenTests ? ` · ${hiddenTests} hidden` : ''}`
-    : 'Tests on player pages and the Stats tab';
 
   const confirmSignOut = async () => {
     const ok = await sheet({
@@ -91,17 +83,6 @@ export function SettingsPage() {
             chevron
           />
         </RoleGate>
-        <RoleGate allow={STAFF_ROLES}>
-          <Row to="/settings/skills" label="Skills tests" detail={skillsSummary} chevron />
-        </RoleGate>
-        {LIBRARY_SPORTS.includes(team.sport) && (
-          <Row
-            to="/library"
-            label="Practice library"
-            detail="Fundamentals, tactics, and position-specific drills"
-            chevron
-          />
-        )}
         <RoleGate allow={['coach']}>
           <Row
             to="/settings/season"
@@ -161,7 +142,7 @@ export function SettingsPage() {
               label="Stats tracked"
               detail={
                 team.tracked_stats.length
-                  ? 'Buttons on the live court and columns on the Stats tab'
+                  ? 'Buttons on the live court and columns in the stats tables'
                   : 'Off · points only; turn on the stats you want to keep'
               }
             />

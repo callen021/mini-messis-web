@@ -19,6 +19,8 @@ import {
   useStartGame,
 } from '@/games/api';
 import { fmtDate, fmtTime, todayISO } from '@/games/format';
+import { foldsLineup } from '@/app/tabs';
+import { GameStats } from '@/games/GameStats';
 import { LineupPage } from '@/games/LineupPage';
 import { makeNameLookup, periodSuffix } from '@/games/names';
 import { canKeepStats, canLogGame, keeperText } from '@/games/keeper';
@@ -58,7 +60,7 @@ export function FieldPage() {
 }
 
 function PeriodFieldPage() {
-  const { teamId, team, sport, statKeeper, userId } = useCurrentTeam();
+  const { teamId, team, sport, role, statKeeper, userId } = useCurrentTeam();
   const S = SPORTS[sport];
   const isStaff = useIsStaff();
   const isCoach = useIsCoach();
@@ -88,7 +90,8 @@ function PeriodFieldPage() {
   const [starting, setStarting] = useState<number | null>(null);
   // Parents of a baseball team have no Lineup tab (their child's tab takes the slot, D53):
   // the batting order is a segment here instead.
-  const foldLineup = !isStaff && !!S.lineup;
+  // the same for a coach with a linked child, who keeps every edit right there (D135)
+  const foldLineup = foldsLineup(S, role, (children.data?.size ?? 0) > 0);
   const [fieldTab, setFieldTab] = useState<'field' | 'lineup'>('field');
 
   const allPlayers = useMemo(() => players.data ?? [], [players.data]);
@@ -459,6 +462,9 @@ function PeriodFieldPage() {
             />
           )}
           {periods.length === 0 && <Footer>No periods yet — check the team setup in Settings.</Footer>}
+          {plan.liveGame && (
+            <GameStats gameId={plan.liveGame.id} live collapsed from={{ to: '/field', label: S.field }} />
+          )}
           {isStaff ? (
             <>
               <Toolbar sticky className="mt-3">

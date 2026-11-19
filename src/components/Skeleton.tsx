@@ -1,5 +1,5 @@
 import { cn } from '@/lib/cn';
-import { FieldIcon, GamesIcon, StatsIcon, TeamIcon } from './icons';
+import { FieldIcon, GamesIcon, TeamIcon, TrainingIcon } from './icons';
 import { Tabbar } from './Tabbar';
 
 /** A grey shimmer block; width/height via style or className. Decorative. */
@@ -36,7 +36,7 @@ const SHELL_TABS = [
   { to: '/field', label: 'Field', icon: <FieldIcon /> },
   { to: '/team', label: 'Team', icon: <TeamIcon /> },
   { to: '/games', label: 'Schedule', icon: <GamesIcon /> },
-  { to: '/stats', label: 'Stats', icon: <StatsIcon /> },
+  { to: '/training', label: 'Training', icon: <TrainingIcon /> },
 ];
 
 /**
