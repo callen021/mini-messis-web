@@ -742,6 +742,67 @@ test.describe('coach and parent flows', () => {
     await coach.setViewportSize({ width: 412, height: 915 });
   });
 
+  test('Daily Drills: the parent marks today’s drill Done, the streak goes up by one, and when that drill comes round again the child is a level up (D138)', async ({
+    browser,
+  }) => {
+    await parent.goto('/training');
+    // a child with no Done yet starts with Toe Taps at Level 1, whatever the date
+    const card = parent.locator('.drillcard.pinned');
+    await expect(card).toContainText('Toe Taps');
+    await expect(card).toContainText('Level 1');
+    await expect(card).toContainText('Tap the top of the ball with one foot, then the other. 20 times.');
+    await expect(card).toContainText('Your job: Count the touches out loud together.');
+    // nothing to follow on screen: no timer, and the other levels stay behind More
+    await expect(card.getByRole('timer')).toHaveCount(0);
+    await expect(card.getByRole('radio')).toHaveCount(0);
+    const streak = parent.locator('.streakcard');
+    const count = streak.locator('.count b');
+    await expect(count).toHaveText(/^\d+$/);
+    const before = Number(await count.textContent());
+    await expect(streak).not.toContainText('Done for today.');
+
+    await card.getByRole('button', { name: 'Done' }).click();
+    await expect(parent.getByText('Done for today!')).toBeVisible();
+    await expect(count).toHaveText(String(before + 1));
+    await expect(streak).toContainText('Done for today.');
+    // today's card keeps showing what was done; More already has the child on the next level
+    await expect(card).toContainText('Level 1');
+    await card.getByRole('button', { name: 'More' }).click();
+    await expect(card.getByRole('radio', { name: /^Level 2/ })).toHaveAttribute('aria-checked', 'true');
+    await card.getByRole('button', { name: 'Less' }).click();
+    // it survives a reload: the Done and the streak are the server's
+    await parent.reload();
+    await expect(parent.locator('.streakcard .count b')).toHaveText(String(before + 1));
+    await expect(parent.locator('.drillcard.pinned').getByRole('img', { name: 'Done today' })).toBeVisible();
+
+    // Another day on which Toe Taps is the drill: the same account in a second browser whose clock
+    // is set to the last day the team's rotation had Toe Taps. (An earlier day, not a later one: a
+    // browser clock ahead of the server's makes the sign-in look expired. The server's data is
+    // untouched, so this checks what the card shows when the drill is up and not yet done that day.)
+    const day = 86_400_000;
+    const epoch = Date.UTC(2026, 0, 5); // day 1 of the ten-day rotation, Toe Taps
+    const todayNoon = Math.floor(Date.now() / day) * day + 18 * 3_600_000;
+    const sinceToeTaps = (((Math.floor((todayNoon - epoch) / day) % 10) + 10) % 10) + 10;
+    const otherCtx = await browser.newContext({ storageState: await parentCtx.storageState() });
+    try {
+      const other = await otherCtx.newPage();
+      await other.clock.setFixedTime(new Date(todayNoon - sinceToeTaps * day));
+      await other.goto('/training');
+      const again = other.locator('.drillcard.pinned');
+      await expect(again).toContainText('Toe Taps');
+      await expect(again).toContainText('Level 2');
+      await expect(again).toContainText(
+        'Tap the top of the ball with one foot, then the other. 40 times without stopping.',
+      );
+      await expect(again).toContainText(
+        'Your job: Hold up fingers; your child calls out the number without stopping.',
+      );
+      await expect(again.getByRole('button', { name: 'Done' })).toBeVisible();
+    } finally {
+      await otherCtx.close();
+    }
+  });
+
   test('library games: the Games section opens Coach’s Call full screen in a frame, and the bar leads back (D124)', async () => {
     await coach.goto('/library');
     const card = coach.getByRole('link', { name: /Coach’s Call/ });

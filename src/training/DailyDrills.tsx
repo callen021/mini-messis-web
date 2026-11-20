@@ -164,7 +164,9 @@ export function DailyDrills({ playerId, playerName, sport, today }: DailyDrillsP
           <ul className="drillcards">{others.map((d) => card(d, false))}</ul>
         </>
       )}
-      <Footer>One drill marked Done counts for today. Three Dones at a level move up to the next.</Footer>
+      <Footer>
+        One drill marked Done counts for today. Each Done moves that drill up a level next time.
+      </Footer>
     </>
   );
 }

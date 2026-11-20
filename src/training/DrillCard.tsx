@@ -3,14 +3,7 @@ import { Button } from '@/components/Button';
 import { Segmented } from '@/components/Segmented';
 import { libraryImageUrl } from '@/library/api';
 import { type HomeLevel, levelLabel } from '@/library/types';
-import {
-  type Completion,
-  DONES_PER_LEVEL,
-  type DrillLevel,
-  type DrillMode,
-  type HomeDrill,
-  MODE_LABEL,
-} from './api';
+import { type Completion, type DrillLevel, type DrillMode, type HomeDrill, MODE_LABEL } from './api';
 
 export interface DrillCardProps {
   drill: HomeDrill;
@@ -77,7 +70,6 @@ export function DrillCard({
   // once it is Done today the card keeps showing what was done, even if that Done moved the child up
   const shown = Math.min(Math.max(done?.level ?? current, 1), count);
   const lvl = home.levels[shown - 1];
-  const left = DONES_PER_LEVEL - level.donesAtLevel;
 
   const body = (
     <div className="drillbody" id={`${id}-body`}>
@@ -148,7 +140,7 @@ export function DrillCard({
           </div>
           <p className="drillnote">
             {current < count
-              ? `Three Dones at a level move up to the next: ${left} to go at Level ${current}. Tap a level to change it.`
+              ? `Each Done moves up a level next time: Level ${current + 1} after this one. Tap a level to change it.`
               : 'This is the top level. Tap a level to change it.'}
           </p>
 

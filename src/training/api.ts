@@ -291,7 +291,7 @@ export function useSetGameWent(playerId: string) {
   });
 }
 
-/** Where a child stands on one drill (D138): the level, and the Dones at it so far (three move up). */
+/** Where a child stands on one drill (D138): the level, and the Dones at it (one moves up, so only Level 3 keeps any). */
 export interface DrillLevel {
   level: number;
   donesAtLevel: number;
@@ -299,12 +299,9 @@ export interface DrillLevel {
   firstDoneOn: string | null;
 }
 
-/** Dones at one level that move a child up to the next. */
-export const DONES_PER_LEVEL = 3;
-
 /**
  * A child's level on every at-home drill, by drill id. The database works it out from the Dones:
- * Level 1 to start, up after three Dones at a level, from the level a parent last set.
+ * Level 1 to start, up after one Done at a level, Level 3 at most, from the level a parent last set.
  */
 export function useDrillLevels(playerId: string) {
   return useQuery({

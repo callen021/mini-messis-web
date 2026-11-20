@@ -194,14 +194,16 @@ describe('Daily Drills (D138)', () => {
   });
 
   it('“More” holds the other levels, the tips and On My Own; a parent can change the level', async () => {
-    api.levels = seasoned({ 'inside-inside-touches': at(1, 2) });
+    api.levels = seasoned({ 'inside-inside-touches': at(1) });
     const user = userEvent.setup();
     show();
     await user.click(screen.getByRole('button', { name: 'More' }));
     const levels = within(screen.getByRole('radiogroup', { name: /level/ })).getAllByRole('radio');
     expect(levels).toHaveLength(3);
     expect(levels[0]).toBeChecked();
-    expect(screen.getByText(/1 to go at Level 1/)).toBeInTheDocument();
+    expect(
+      screen.getByText(/Each Done moves up a level next time: Level 2 after this one/),
+    ).toBeInTheDocument();
     expect(screen.getByText(/Stay on the balls of your feet/)).toBeInTheDocument();
     expect(screen.getByText('Alone: inside-inside-touches.')).toBeInTheDocument();
     expect(screen.queryByText(/Side view/)).toBeNull(); // the clip description is not shown
@@ -221,7 +223,7 @@ describe('Daily Drills (D138)', () => {
   });
 
   it('a finished drill says “Done for today”, keeps the level that was done, and offers Undo to its parent', async () => {
-    // the third Done at Level 1 moved the child up; the card still shows what was done
+    // the Done at Level 1 moved the child up; the card still shows what was done
     api.levels = seasoned({ 'inside-inside-touches': at(2, 0) });
     api.completions = [done('inside-inside-touches', { level: 1 })];
     const user = userEvent.setup();

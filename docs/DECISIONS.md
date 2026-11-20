@@ -2008,8 +2008,10 @@ With a Parent is the default.
 - _Wording._ The ten drills are reworded in the migration: `text` and `parent_job` per level.
   The intro, the two modes' text, the notes and the tips are kept for "More" and the Library.
 
-**Levels.** Each child starts every drill at Level 1 and moves up after three Dones at a level,
-to Level 3 at most. A parent can pick a level under "More"; that restarts the count. The level
+**Levels.** Each child starts every drill at Level 1 and moves up after one Done at a level, to
+Level 3 at most: with a ten-day rotation, three Dones a level would have taken a month each. So
+the next time a drill comes round the child is a level up. A parent can pick a level under
+"More", and the child goes on from there. The level
 is worked out from the Dones when read (`home_drill_levels`), so taking a Done back takes its
 progress back. A Done at another level does not count toward the current one. Children who had
 already marked a higher level Done started from the highest one

@@ -6,10 +6,11 @@
 --      No child's streak goes down because of the change: what each child had under the old rule
 --      is carried, and the strict rule starts from the day this migration runs.
 --   2. "We went" for a game, working like the one for a practice.
---   3. Levels: each child starts every drill at Level 1 and moves up after three Dones at a
---      level. A parent can set the level; that restarts the count. The level is worked out from
---      the Dones when read, so taking a Done back takes its progress back too. A child who had
---      already marked a higher level Done starts from the highest one.
+--   3. Levels: each child starts every drill at Level 1 and moves up after one Done at a level,
+--      to Level 3 at most (with a ten-day rotation, more Dones per level would take months).
+--      A parent can set the level. The level is worked out from the Dones when read, so taking
+--      a Done back takes its progress back too. A child who had already marked a higher level
+--      Done starts from the highest one.
 --   4. The ten drills reworded for the simpler card: one instruction per level a parent can read
 --      aloud and one line for the parent's job. Each level has a picture slot, `image` (an object
 --      path in the practice-library bucket); none is set yet and nothing shows without one.
@@ -299,8 +300,9 @@ revoke all on function public.set_home_drill_level(uuid, uuid, int) from public;
 grant execute on function public.set_home_drill_level(uuid, uuid, int) to authenticated, service_role;
 
 -- A child's level on each of the team's at-home drills, how many Dones they have at that level
--- (three move them up), and the day of their first Done of the drill. For the child's confirmed
--- parent and the team's coaches.
+-- (one moves them up, so this is only ever above zero at Level 3), and the day of their first
+-- Done of the drill. Dones are walked a day at a time: a drill is Done at most once a day. For
+-- the child's confirmed parent and the team's coaches.
 create or replace function public.home_drill_levels(p_player_id uuid)
 returns table (item_id uuid, level int, dones_at_level int, first_done_on date)
 language plpgsql
@@ -339,11 +341,11 @@ begin
     for c in
       select k.level as done_level from public.home_drill_completions k
        where k.player_id = p_player_id and k.item_id = r.id and k.created_at > v_since
-       order by k.created_at, k.id
+       order by k.done_on, k.created_at, k.id
     loop
       if c.done_level = v_level then
         v_n := v_n + 1;
-        if v_n >= 3 and v_level < 3 then
+        if v_level < 3 then
           v_level := v_level + 1;
           v_n := 0;
         end if;
