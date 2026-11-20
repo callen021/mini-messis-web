@@ -795,7 +795,7 @@ test.describe('coach and parent flows', () => {
     await coach.getByRole('button', { name: 'Unpublish' }).click();
     const sheet = coach.getByRole('dialog', { name: 'Unpublish Juggling?' });
     await expect(sheet).toContainText(
-      'Parents will no longer see it, and another drill will show on its day in Daily Drills.',
+      'Parents will no longer see it, and another drill will show in its place in Daily Drills.',
     );
     await sheet.getByRole('button', { name: 'Unpublish' }).click();
     await expect(coach.getByText(/^Draft: only platform admins can see this item/)).toBeVisible();

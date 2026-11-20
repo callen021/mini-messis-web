@@ -2106,3 +2106,20 @@ and no longer written; dropping it is left for later.
 
 Not in this round: the prototype's photos (the picture slot stays empty), Skill Tests, any team
 board or ranking. A drill level written without a challenge would still get a plain Done.
+
+### D141. Each child works through the drills easiest first
+
+The day's drill is no longer picked by the calendar for the whole team (D138). Each child has
+their own line-up, easiest first: Toe Taps, Inside-Inside Touches, Sole Rolls, Wall Passing and
+First Touch, First Touch and Passing With a Parent, Inside-Outside Touches, Cone Dribbling,
+V-Cuts, L-Drags, Juggling; then round again.
+
+- Today's drill is the one the child has gone longest without: a drill never done comes before
+  any that was, in that order; after that, the one done longest ago. Nothing is stored; it is
+  read from the child's Dones (`drillForChild`).
+- So a brand-new child starts with Toe Taps, a missed day skips nothing, and a drill done early
+  from "Do another" goes to the back of the line.
+- Only Dones before today count, so the day's drill stays the same once it is done.
+- Children on a team are no longer all on the same drill on the same day. The order of the "Do
+  another" list and of the Library is unchanged.
+- No database change.

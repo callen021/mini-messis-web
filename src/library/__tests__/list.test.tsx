@@ -191,7 +191,7 @@ describe('Publish / Unpublish on an item (D139)', () => {
     const dialog = screen.getByRole('dialog');
     expect(dialog).toHaveTextContent('Unpublish Toe Taps?');
     expect(dialog).toHaveTextContent(
-      'Parents will no longer see it, and another drill will show on its day in Daily Drills.',
+      'Parents will no longer see it, and another drill will show in its place in Daily Drills.',
     );
     await userEvent.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     expect(api.publish).not.toHaveBeenCalled();

@@ -79,7 +79,7 @@ export function LibraryItemPage() {
     const ok = await sheet({
       title: `Unpublish ${row.title}?`,
       message: inRotation
-        ? 'Parents will no longer see it, and another drill will show on its day in Daily Drills.'
+        ? 'Parents will no longer see it, and another drill will show in its place in Daily Drills.'
         : 'Parents and coaches will no longer see it.',
       actions: [{ label: 'Unpublish', value: true, destructive: true }],
     });

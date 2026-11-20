@@ -34,8 +34,8 @@ const START: DrillLevel = { level: 1, firstDoneOn: null };
 const NONE: readonly Attempt[] = [];
 
 /**
- * Daily Drills (D138, D140): one drill a day, the same for everyone on the team, each child at
- * their own level; then "Do another" with the rest. A child's very first drill is Toe Taps. Each
+ * Daily Drills (D138, D140, D141): one drill a day, each child working through the ten easiest
+ * first at their own level; then "Do another" with the rest. A child's first drill is Toe Taps. Each
  * drill is a timed challenge: Record Score saves the attempt and opens its results page, and the
  * day's first score of a drill is that drill Done. `?drill=<slug>` opens one of the other drills
  * (the results page's "Try Again").
@@ -58,18 +58,21 @@ export function DailyDrills({ playerId, playerName, sport, today }: DailyDrillsP
   const [toggled, setToggled] = useState<boolean | null>(null);
 
   const all = useMemo(() => drills.data ?? [], [drills.data]);
-  // the day of the child's first Done of any drill: before it, and on it, the drill is Toe Taps
-  const firstDoneOn = useMemo(() => {
-    let first: string | null = null;
-    for (const l of levels.data?.values() ?? []) {
-      if (l.firstDoneOn && (first === null || l.firstDoneOn < first)) first = l.firstDoneOn;
-    }
-    return first;
-  }, [levels.data]);
+  // the child's own line-up (D141): the drill they have gone longest without, easiest first.
+  // Only Dones before today count, so today's drill stays the same once it is done.
   const todays = useMemo(() => {
-    const slug = drillForChild(today, firstDoneOn);
-    return all.find((d) => d.slug === slug) ?? all[0] ?? null;
-  }, [all, today, firstDoneOn]);
+    const slugOf = new Map(all.map((d) => [d.id, d.slug]));
+    const last = new Map<string, string>();
+    for (const c of completions.data ?? []) {
+      const slug = slugOf.get(c.item_id);
+      if (slug && c.done_on < today && c.done_on > (last.get(slug) ?? '')) last.set(slug, c.done_on);
+    }
+    const slug = drillForChild(
+      all.map((d) => d.slug),
+      last,
+    );
+    return all.find((d) => d.slug === slug) ?? null;
+  }, [all, completions.data, today]);
 
   const doneToday = useMemo(() => {
     const map = new Map<string, Completion>();

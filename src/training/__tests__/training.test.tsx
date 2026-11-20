@@ -7,7 +7,7 @@ import { parseContent } from '@/library/types';
 import type * as Api from '../api';
 import { type Attempt, type Best, type Completion, type DrillLevel, type HomeDrill } from '../api';
 import { DailyDrills } from '../DailyDrills';
-import { addDays, drillFor, drillForChild, FIRST_DRILL, ROTATION, rotationDay, teamToday } from '../rotation';
+import { drillForChild, ROTATION, teamToday } from '../rotation';
 
 const SLUGS = [
   'toe-taps',
@@ -101,10 +101,10 @@ vi.mock('../StopwatchChallenge', () => ({
 }));
 vi.mock('@/library/api', () => ({ libraryImageUrl: (path: string) => `https://img.test/${path}` }));
 
-const TODAY = '2026-01-08'; // day 4 of the rotation: Inside-Inside Touches
+const TODAY = '2026-01-08';
 const BEFORE = '2026-01-02';
 const at = (level: number, firstDoneOn: string | null = BEFORE): DrillLevel => ({ level, firstDoneOn });
-/** A child who has trained before: on the team's rotation. */
+/** A child who did Toe Taps on an earlier day: Inside-Inside Touches is next in their line-up. */
 const seasoned = (over: Record<string, DrillLevel> = {}) =>
   new Map(SLUGS.map((s) => [`id-${s}`, over[s] ?? at(1, s === 'toe-taps' ? BEFORE : null)]));
 const done = (slug: string, o: Partial<Completion> = {}): Completion => ({
@@ -154,28 +154,60 @@ const show = (path = '/training') =>
   );
 const todays = () => screen.getAllByRole('listitem')[0] as HTMLElement;
 
-describe('one drill a day (D138)', () => {
-  it('goes round all ten, one a day, the same for everyone on a date', () => {
-    expect(ROTATION).toHaveLength(10);
+describe('one drill a day, each child easiest first (D141)', () => {
+  const last = (o: Record<string, string> = {}) => new Map(Object.entries(o));
+  it('lists all ten, easiest first', () => {
+    expect(ROTATION).toEqual([
+      'toe-taps',
+      'inside-inside-touches',
+      'sole-rolls',
+      'wall-passing-and-first-touch',
+      'first-touch-and-passing-with-a-parent',
+      'inside-outside-touches',
+      'cone-dribbling',
+      'v-cuts',
+      'l-drags',
+      'juggling',
+    ]);
     expect(new Set(ROTATION)).toEqual(new Set(SLUGS));
-    expect(drillFor('2026-01-05')).toBe('toe-taps');
-    expect(drillFor('2026-01-06')).toBe('cone-dribbling');
-    expect(drillFor('2026-01-14')).toBe('l-drags');
-    expect(drillFor('2026-01-15')).toBe('toe-taps');
   });
-  it('is picked by the calendar and repeats every ten days, before the first day too', () => {
-    expect([0, 1, 9, 10, 11].map((d) => rotationDay(addDays('2026-01-05', d)))).toEqual([0, 1, 9, 0, 1]);
-    expect(rotationDay('2026-01-04')).toBe(9);
-    expect(rotationDay('2025-12-26')).toBe(0);
+  it('a child with no Done yet starts with Toe Taps, whatever order the drills come in', () => {
+    expect(drillForChild(SLUGS, last())).toBe('toe-taps');
+    expect(drillForChild([...SLUGS].reverse(), last())).toBe('toe-taps');
   });
-  it('a child with no Done before today starts with Toe Taps, whatever the date', () => {
-    expect(FIRST_DRILL).toBe('toe-taps');
-    expect(drillForChild('2026-01-08', null)).toBe('toe-taps');
-    // the first Done was today: still Toe Taps for the rest of the day
-    expect(drillForChild('2026-01-08', '2026-01-08')).toBe('toe-taps');
-    // from the next day, the team's rotation
-    expect(drillForChild('2026-01-09', '2026-01-08')).toBe(drillFor('2026-01-09'));
-    expect(drillForChild('2026-01-08', '2026-01-02')).toBe('inside-inside-touches');
+  it('then takes the next easiest they have not done, a day at a time', () => {
+    const done = new Map<string, string>();
+    const days = ROTATION.map((_, i) => `2026-01-${String(i + 1).padStart(2, '0')}`);
+    const got = days.map((day) => {
+      const slug = drillForChild(SLUGS, done) as string;
+      done.set(slug, day);
+      return slug;
+    });
+    expect(got).toEqual(ROTATION);
+    // and round again from the top: Toe Taps is now the one done longest ago
+    expect(drillForChild(SLUGS, done)).toBe('toe-taps');
+  });
+  it('a missed day skips nothing: the line-up waits for the child', () => {
+    const done = last({ 'toe-taps': '2026-01-01' });
+    expect(drillForChild(SLUGS, done)).toBe('inside-inside-touches'); // on 2 January, or on 20 January
+  });
+  it('a drill done early from “Do another” goes to the back of the line', () => {
+    const done = last({ 'toe-taps': '2026-01-01', juggling: '2026-01-01' });
+    expect(drillForChild(SLUGS, done)).toBe('inside-inside-touches');
+    const all = new Map(ROTATION.map((s) => [s, '2026-01-05']));
+    all.set('sole-rolls', '2026-01-03');
+    expect(drillForChild(SLUGS, all)).toBe('sole-rolls'); // the one done longest ago
+  });
+  it('skips a drill that is not on offer, and takes a new one after the ten', () => {
+    expect(
+      drillForChild(
+        SLUGS.filter((s) => s !== 'toe-taps'),
+        last(),
+      ),
+    ).toBe('inside-inside-touches');
+    expect(drillForChild(['new-drill', 'juggling'], last())).toBe('juggling');
+    expect(drillForChild(['new-drill', 'juggling'], last({ juggling: '2026-01-01' }))).toBe('new-drill');
+    expect(drillForChild([], last())).toBeNull();
   });
   it('reads today where the team plays', () => {
     const lateEvening = new Date('2026-03-02T04:30:00Z'); // still 1 March in Chicago
@@ -184,9 +216,10 @@ describe('one drill a day (D138)', () => {
   });
 });
 
-describe('Daily Drills (D138, D140)', () => {
+describe('Daily Drills (D138, D140, D141)', () => {
+  const EARLIER = () => done('toe-taps', { id: 'c-earlier', done_on: BEFORE });
   beforeEach(() => {
-    api.completions = [];
+    api.completions = [EARLIER()];
     api.levels = seasoned();
     api.bests = new Map();
     api.attempts = [];
@@ -220,7 +253,13 @@ describe('Daily Drills (D138, D140)', () => {
     show();
     expect(within(todays()).getByText('Dribbling and Ball Mastery')).toHaveClass('drilltag');
   });
+  it('Toe Taps done for the first time today is still today’s drill', () => {
+    api.completions = [done('toe-taps')];
+    show();
+    expect(within(todays()).getByText('Drill toe-taps')).toBeInTheDocument();
+  });
   it('a brand-new child gets Toe Taps at Level 1', () => {
+    api.completions = [];
     api.levels = new Map(SLUGS.map((s) => [`id-${s}`, at(1, null)]));
     show();
     const card = within(todays());
@@ -295,8 +334,8 @@ describe('Daily Drills (D138, D140)', () => {
     );
   });
 
-  it('a drill with a score today says “Done for today”, and can be tried again', () => {
-    api.completions = [done('inside-inside-touches')];
+  it('a drill with a score today says “Done for today”, stays today’s drill, and can be tried again', () => {
+    api.completions = [EARLIER(), done('inside-inside-touches')];
     show();
     expect(screen.getByText('Done for today!').closest('p')).toHaveTextContent(
       'Done for today! Great work, Sam.',
@@ -310,7 +349,7 @@ describe('Daily Drills (D138, D140)', () => {
   it('opens at the new level once a score has unlocked it', () => {
     // the server moved the child up when the score met the target
     api.levels = seasoned({ 'inside-inside-touches': at(2) });
-    api.completions = [done('inside-inside-touches', { level: 1 })];
+    api.completions = [EARLIER(), done('inside-inside-touches', { level: 1 })];
     show();
     expect(within(todays()).getByText('Level 2')).toBeInTheDocument();
     expect(within(todays()).getByText('Say two.')).toBeInTheDocument();

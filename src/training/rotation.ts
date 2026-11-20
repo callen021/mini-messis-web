@@ -1,29 +1,26 @@
 /**
- * The day's home drill (D138): one drill a day, the same for everyone on the same date, going
- * round all ten. Consecutive days change the kind of drill: footwork, dribbling, passing or
- * control.
+ * The day's home drill (D141): each child works through the ten drills in their own time, easiest
+ * first, one a day, and then round again. (Until D141 the drill was picked by the calendar, the
+ * same for the whole team.)
  *
- * The day is picked by the calendar with nothing stored: days since a fixed Monday, modulo ten.
- * So every child on a team sees the same drill on the same date, each at their own level.
+ * Nothing is stored. Today's drill is the one the child has gone longest without: a drill never
+ * done comes before any that was, in the order below; after that, the one done longest ago. So a
+ * brand-new child starts with Toe Taps, a missed day skips nothing, and a drill done early from
+ * "Do another" simply goes to the back of the line. Only Dones before today count, so the day's
+ * drill stays put once it is done.
  */
 export const ROTATION: readonly string[] = [
   'toe-taps',
-  'cone-dribbling',
-  'wall-passing-and-first-touch',
   'inside-inside-touches',
-  'v-cuts',
-  'juggling',
   'sole-rolls',
-  'inside-outside-touches',
+  'wall-passing-and-first-touch',
   'first-touch-and-passing-with-a-parent',
+  'inside-outside-touches',
+  'cone-dribbling',
+  'v-cuts',
   'l-drags',
+  'juggling',
 ];
-
-/** A child's first drill, whatever the date: until they have a Done on an earlier day. */
-export const FIRST_DRILL = 'toe-taps';
-
-/** Day 1 of the rotation: Monday 5 January 2026. */
-const EPOCH_DAY = Date.UTC(2026, 0, 5) / 86_400_000;
 
 /** Whole days since 1970 for a `yyyy-mm-dd` date. */
 export function dayNumber(iso: string): number {
@@ -31,23 +28,30 @@ export function dayNumber(iso: string): number {
   return Math.round(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1) / 86_400_000);
 }
 
-/** 0 to 9: which drill of the rotation a date falls on. */
-export function rotationDay(iso: string): number {
-  const len = ROTATION.length;
-  return (((dayNumber(iso) - EPOCH_DAY) % len) + len) % len;
-}
-
-/** The slug of that date's drill for the team. */
-export function drillFor(iso: string): string {
-  return ROTATION[rotationDay(iso)] ?? FIRST_DRILL;
-}
-
 /**
- * The slug of a child's drill today. A child with no Done before today starts with Toe Taps, and
- * keeps it for the whole of that first day; from the next day they follow the team's rotation.
+ * The slug of a child's drill today, out of the drills on offer. `lastDoneOn` is the last day
+ * before today each drill was Done, by slug; a drill not in it was never done (or so long ago it
+ * no longer matters). A drill this build does not list comes after the ten, in the order given.
  */
-export function drillForChild(today: string, firstDoneOn: string | null): string {
-  return firstDoneOn === null || firstDoneOn >= today ? FIRST_DRILL : drillFor(today);
+export function drillForChild(
+  slugs: readonly string[],
+  lastDoneOn: ReadonlyMap<string, string>,
+): string | null {
+  const place = (slug: string): number => {
+    const i = ROTATION.indexOf(slug);
+    return i < 0 ? ROTATION.length + slugs.indexOf(slug) : i;
+  };
+  let pick: string | null = null;
+  for (const slug of slugs) {
+    if (pick === null) {
+      pick = slug;
+      continue;
+    }
+    const a = lastDoneOn.get(slug) ?? '';
+    const b = lastDoneOn.get(pick) ?? '';
+    if (a < b || (a === b && place(slug) < place(pick))) pick = slug;
+  }
+  return pick;
 }
 
 /** Today as `yyyy-mm-dd` where the team plays; the server stamps completions the same way. */

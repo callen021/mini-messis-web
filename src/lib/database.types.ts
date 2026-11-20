@@ -506,6 +506,78 @@ export type Database = {
           },
         ]
       }
+      home_drill_attempts: {
+        Row: {
+          created_at: string
+          done_on: string
+          id: string
+          is_record: boolean
+          item_id: string
+          kind: string
+          level: number
+          mode: Database["public"]["Enums"]["drill_mode"]
+          old_course: boolean
+          player_id: string
+          previous_best_reps: number | null
+          previous_best_seconds: number | null
+          recorded_by: string | null
+          reps: number | null
+          seconds: number | null
+          unlocked_level: number | null
+        }
+        Insert: {
+          created_at?: string
+          done_on: string
+          id?: string
+          is_record?: boolean
+          item_id: string
+          kind: string
+          level: number
+          mode?: Database["public"]["Enums"]["drill_mode"]
+          old_course?: boolean
+          player_id: string
+          previous_best_reps?: number | null
+          previous_best_seconds?: number | null
+          recorded_by?: string | null
+          reps?: number | null
+          seconds?: number | null
+          unlocked_level?: number | null
+        }
+        Update: {
+          created_at?: string
+          done_on?: string
+          id?: string
+          is_record?: boolean
+          item_id?: string
+          kind?: string
+          level?: number
+          mode?: Database["public"]["Enums"]["drill_mode"]
+          old_course?: boolean
+          player_id?: string
+          previous_best_reps?: number | null
+          previous_best_seconds?: number | null
+          recorded_by?: string | null
+          reps?: number | null
+          seconds?: number | null
+          unlocked_level?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_drill_attempts_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "library_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_drill_attempts_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       home_drill_completions: {
         Row: {
           created_at: string
@@ -592,63 +664,6 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
-      }
-      home_drill_attempts: {
-        Row: {
-          created_at: string
-          done_on: string
-          id: string
-          is_record: boolean
-          item_id: string
-          kind: string
-          level: number
-          mode: Database["public"]["Enums"]["drill_mode"]
-          old_course: boolean
-          player_id: string
-          previous_best_reps: number | null
-          previous_best_seconds: number | null
-          recorded_by: string | null
-          reps: number | null
-          seconds: number | null
-          unlocked_level: number | null
-        }
-        Insert: {
-          created_at?: string
-          done_on: string
-          id?: string
-          is_record?: boolean
-          item_id: string
-          kind: string
-          level: number
-          mode?: Database["public"]["Enums"]["drill_mode"]
-          old_course?: boolean
-          player_id: string
-          previous_best_reps?: number | null
-          previous_best_seconds?: number | null
-          recorded_by?: string | null
-          reps?: number | null
-          seconds?: number | null
-          unlocked_level?: number | null
-        }
-        Update: {
-          created_at?: string
-          done_on?: string
-          id?: string
-          is_record?: boolean
-          item_id?: string
-          kind?: string
-          level?: number
-          mode?: Database["public"]["Enums"]["drill_mode"]
-          old_course?: boolean
-          player_id?: string
-          previous_best_reps?: number | null
-          previous_best_seconds?: number | null
-          recorded_by?: string | null
-          reps?: number | null
-          seconds?: number | null
-          unlocked_level?: number | null
-        }
-        Relationships: []
       }
       home_drill_times: {
         Row: {
@@ -2375,6 +2390,10 @@ export type Database = {
         Args: { p_sport: Database["public"]["Enums"]["sport"] }
         Returns: Json
       }
+      delete_drill_attempt: {
+        Args: { p_attempt_id: string }
+        Returns: undefined
+      }
       duplicate_team: {
         Args: { p_name: string; p_owner?: string; p_source: string }
         Returns: string
@@ -2472,10 +2491,6 @@ export type Database = {
         Args: { p_player_id: string; p_user_id: string }
         Returns: undefined
       }
-      delete_drill_attempt: {
-        Args: { p_attempt_id: string }
-        Returns: undefined
-      }
       home_drill_bests: {
         Args: { p_player_id: string }
         Returns: {
@@ -2485,17 +2500,6 @@ export type Database = {
           item_id: string
           level: number
         }[]
-      }
-      record_drill_attempt: {
-        Args: {
-          p_item_id: string
-          p_level: number
-          p_mode?: Database["public"]["Enums"]["drill_mode"]
-          p_player_id: string
-          p_reps?: number
-          p_seconds?: number
-        }
-        Returns: string
       }
       home_drill_levels: {
         Args: { p_player_id: string }
@@ -2619,6 +2623,17 @@ export type Database = {
           triples: number
           walks: number
         }[]
+      }
+      record_drill_attempt: {
+        Args: {
+          p_item_id: string
+          p_level: number
+          p_mode?: Database["public"]["Enums"]["drill_mode"]
+          p_player_id: string
+          p_reps?: number
+          p_seconds?: number
+        }
+        Returns: string
       }
       record_join_attempt: {
         Args: { p_code: string; p_uid: string }
