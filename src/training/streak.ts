@@ -1,11 +1,9 @@
-/** A child's streak as the database counts it (D130). */
+/** A child's streak as the database counts it (D130; no days off since D138). */
 export interface Streak {
   current: number;
   longest: number;
   /** Today already counts: a drill is Done, or a game or practice today counted. */
   todayCounts: boolean;
-  /** Days off used so far this Monday-to-Sunday week. */
-  misses: number;
   /** A milestone reached and not yet celebrated; only ever set for the child's parent. */
   celebrate: number | null;
 }
@@ -14,26 +12,16 @@ export const EMPTY_STREAK: Streak = {
   current: 0,
   longest: 0,
   todayCounts: false,
-  misses: 0,
   celebrate: null,
 };
 
 /** "1 day", "4 days". */
 export const days = (n: number): string => `${n} ${n === 1 ? 'day' : 'days'}`;
 
-/** What to tell the family about today and the week's days off. */
+/** The one line under the numbers: what today needs. A missed day ends the streak (D138). */
 export function streakHint(s: Streak): string {
-  const today = s.todayCounts ? 'Today counts.' : 'One drill today keeps it going.';
-  if (s.current === 0 && !s.todayCounts) return 'Do one drill today to start a streak.';
-  const off =
-    s.misses === 0
-      ? 'Two days off a week are fine.'
-      : s.misses === 1
-        ? 'One day off used this week; one more is fine.'
-        : s.misses === 2
-          ? 'Both days off used this week.'
-          : '';
-  return [today, off].filter(Boolean).join(' ');
+  if (s.todayCounts) return 'Done for today.';
+  return s.current > 0 ? 'One drill today keeps it going.' : 'Do one drill today to start a streak.';
 }
 
 /** `yyyy-mm-ddThh:mm` right now where the team plays, to compare with a practice's start. */
@@ -58,6 +46,11 @@ export function teamNowStamp(timezone: string | null | undefined, now: Date = ne
   return `${get('year')}-${get('month')}-${get('day')}T${get('hour')}:${get('minute')}`;
 }
 
+/** Has something on the schedule started: its date and start time, or the start of its date? */
+export function eventStarted(date: string, startTime: string | null, nowStamp: string): boolean {
+  return `${date}T${(startTime ?? '00:00').slice(0, 5)}` <= nowStamp;
+}
+
 /**
  * "We went" opens once a practice has started: its date and start time, or the start of its date
  * when it has no time. Never for a cancelled practice. The server checks the same thing.
@@ -67,5 +60,5 @@ export function practiceStarted(
   nowStamp: string,
 ): boolean {
   if (p.status === 'cancelled') return false;
-  return `${p.practice_date}T${(p.start_time ?? '00:00').slice(0, 5)}` <= nowStamp;
+  return eventStarted(p.practice_date, p.start_time, nowStamp);
 }

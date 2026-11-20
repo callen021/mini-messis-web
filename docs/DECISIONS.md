@@ -1972,3 +1972,48 @@ whole-team "Record results" sheet. Tests that are not timed are unchanged.
   first value field on opening; with the stopwatch above it, a timed test waits for a tap on
   the field, so the stopwatch, the field and Save share the screen. Other tests still focus it.
 - No database change.
+
+### D138. Daily Drills made simple for a brand-new parent
+
+**One drill a day.** Today shows one drill, not three; "Do another" lists the other nine. The
+drill is picked by the calendar from a ten-day rotation, so everyone on a team has the same drill
+on a date, each child at their own level. The order changes the kind of drill from day to day:
+Toe Taps, Cone Dribbling, Wall Passing, Inside-Inside, V-Cuts, Juggling, Sole Rolls,
+Inside-Outside, First Touch With a Parent, L-Drags. A child with no Done before today gets Toe
+Taps, whatever the date, and keeps it for that whole first day; from the next day they follow
+the rotation.
+
+**The streak.** A day counts when a home drill is marked Done, when the child has playing time
+in a started game (as before, so no past game day stops counting), or when a parent taps "We
+went" for a practice or, now, a game. There are no days off: a missed day ends the streak. Today
+is never a miss until it is over. Milestones stay at 5, 10, 25, 50 and 100.
+
+- _No streak went down._ When the migration ran, each child's streak under the old rule was
+  stored with that date (`player_training.carried_streak`, `carried_from`); the strict count
+  starts from that number on that date.
+- The streak card shows the number, the longest, and one line: "Done for today.", "One drill
+  today keeps it going." or "Do one drill today to start a streak."
+- "We went" for a game follows the practice rules: once it has started, for the parent's
+  confirmed child, taken back the same day by the parent who tapped it (`game_checkins`,
+  `set_game_went`). It is on the Training tab and on the game's page.
+
+**The drill card.** Only: the instruction for the child's level (one sentence a parent can read
+aloud; every level stands on its own), a picture when the level has one, the parent's job, and
+Done. No countdown and nothing to follow on screen. Cone Dribbling keeps its stopwatch on the
+card: it is the drill. "More" holds the other levels, the coaching tips, the notes and On My Own;
+With a Parent is the default.
+
+- _Pictures._ One per drill level: `content.home.levels[n].image`, an object path in the
+  `practice-library` bucket. None is set yet, and a level without one shows nothing.
+- _Wording._ The ten drills are reworded in the migration: `text` and `parent_job` per level.
+  The intro, the two modes' text, the notes and the tips are kept for "More" and the Library.
+
+**Levels.** Each child starts every drill at Level 1 and moves up after three Dones at a level,
+to Level 3 at most. A parent can pick a level under "More"; that restarts the count. The level
+is worked out from the Dones when read (`home_drill_levels`), so taking a Done back takes its
+progress back. A Done at another level does not count toward the current one. Children who had
+already marked a higher level Done started from the highest one
+(`home_drill_level_overrides`, seeded by the migration).
+
+Unchanged: Cone Dribbling times and personal bests, Home skill tests, and who may record or see
+training.

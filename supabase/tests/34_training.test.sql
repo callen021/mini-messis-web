@@ -2,7 +2,7 @@
 -- the date is the server's; coaches and assistant coaches read; other parents see nothing.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(119);
+select plan(145);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -130,17 +130,18 @@ select pg_temp.login('d6000000-0000-0000-0000-000000000004');
 select is((select count(*)::int from public.home_drill_times), 0, 'another parent sees no times');
 select pg_temp.logout();
 
--- ---------- the streak count (D130). 2 March 2026 is a Monday. ----------
-select is((select current_streak || '/' || longest_streak || '/' || misses from public.streak_from_days(array['2026-03-02','2026-03-03','2026-03-04']::date[], '2026-03-04')), '3/3/0', 'one a day counts one a day');
-select is((select current_streak || '/' || longest_streak || '/' || misses from public.streak_from_days(array['2026-03-02','2026-03-03']::date[], '2026-03-04')), '2/2/0', 'today is not a miss until it is over');
-select is((select current_streak || '/' || longest_streak || '/' || misses from public.streak_from_days(array['2026-03-02','2026-03-03','2026-03-06','2026-03-07','2026-03-08']::date[], '2026-03-08')), '5/5/2', 'two missed days in a week do not break it');
-select is((select current_streak || '/' || longest_streak || '/' || misses from public.streak_from_days(array['2026-03-02','2026-03-03','2026-03-04','2026-03-08']::date[], '2026-03-08')), '1/3/3', 'the third missed day in a week resets it');
-select is((select current_streak || '/' || longest_streak || '/' || misses from public.streak_from_days(array['2026-03-02','2026-03-05','2026-03-07','2026-03-08']::date[], '2026-03-08')), '2/2/3', 'three misses in a week reset it even when they are apart: two days since count');
-select is((select current_streak || '/' || longest_streak || '/' || misses from public.streak_from_days(array['2026-03-02','2026-03-03','2026-03-04','2026-03-05','2026-03-06','2026-03-10']::date[], '2026-03-10')), '1/5/1', 'three missed days in a row reset it across a week boundary');
-select is((select current_streak || '/' || longest_streak || '/' || misses from public.streak_from_days(array['2026-03-02','2026-03-03','2026-03-04','2026-03-05','2026-03-06','2026-03-07','2026-03-10']::date[], '2026-03-10')), '7/7/1', 'two in a row across the boundary do not');
-select is((select current_streak || '/' || longest_streak || '/' || misses from public.streak_from_days(array['2026-03-02','2026-03-03','2026-03-04','2026-03-05','2026-03-06','2026-03-09','2026-03-10']::date[], '2026-03-10')), '7/7/0', 'a weekend off is two days off');
-select is((select current_streak || '/' || longest_streak || '/' || misses from public.streak_from_days(array['2026-03-02','2026-03-03','2026-03-04']::date[], '2026-03-09')), '0/3/0', 'a stopped streak reads zero and the longest is kept');
+-- ---------- the streak count (D138): no days off, a missed day ends it ----------
+select is((select current_streak || '/' || longest_streak from public.streak_from_days(array['2026-03-02','2026-03-03','2026-03-04']::date[], '2026-03-04')), '3/3', 'one a day counts one a day');
+select is((select current_streak || '/' || longest_streak from public.streak_from_days(array['2026-03-02','2026-03-03']::date[], '2026-03-04')), '2/2', 'today is not a miss until it is over');
+select is((select current_streak || '/' || longest_streak from public.streak_from_days(array['2026-03-02','2026-03-03','2026-03-05']::date[], '2026-03-05')), '1/2', 'one missed day ends the streak');
+select is((select current_streak || '/' || longest_streak from public.streak_from_days(array['2026-03-02','2026-03-03','2026-03-04']::date[], '2026-03-06')), '0/3', 'a stopped streak reads zero and the longest is kept');
 select is((select current_streak || '/' || longest_streak from public.streak_from_days('{}'::date[], '2026-03-04')), '0/0', 'nothing done is no streak');
+-- a streak carried from the rule with days off: nothing goes down on the day of the change
+select is((select current_streak || '/' || longest_streak from public.streak_from_days('{}'::date[], '2026-03-10', 4, '2026-03-10')), '4/4', 'a carried streak stands on the day it was carried');
+select is((select current_streak || '/' || longest_streak from public.streak_from_days(array['2026-03-10']::date[], '2026-03-10', 4, '2026-03-10')), '5/5', 'a drill that day adds to it');
+select is((select current_streak || '/' || longest_streak from public.streak_from_days(array['2026-03-10','2026-03-11','2026-03-12']::date[], '2026-03-12', 4, '2026-03-10')), '7/7', 'and it keeps growing a day at a time');
+select is((select current_streak || '/' || longest_streak from public.streak_from_days('{}'::date[], '2026-03-11', 4, '2026-03-10')), '0/4', 'from then on a missed day ends it, like any other');
+select is((select current_streak || '/' || longest_streak from public.streak_from_days(array['2026-03-05','2026-03-10']::date[], '2026-03-10', 4, '2026-03-10')), '5/5', 'days before the carried date are already in the carried number');
 
 -- ---------- what makes a day count ----------
 -- Kid A so far: one home drill dated yesterday, Cone Dribbling done today.
@@ -247,6 +248,56 @@ select throws_ok($$update public.player_training set longest_streak = 100 where 
 select pg_temp.logout();
 select is((select longest_streak::text || '/' || milestones::text from public.player_training where player_id = 'e6000000-0000-0000-0000-00000000000a'), '5/{5}', 'the longest streak and the celebrated milestone are stored');
 
+-- ---------- "We went" for a game (D138) ----------
+-- Kid A is at five days. Three games the child is in no lineup of: five days ago, tomorrow, and another team's.
+insert into public.games (id, team_id, season_id, opponent, game_date, status)
+select x.id::uuid, t.v, s.id, 'Rovers', public.team_today(t.v) + x.day, 'upcoming'
+  from ctx t join public.seasons s on s.team_id = t.v and s.is_current,
+       (values ('a6000000-0000-0000-0000-000000000003', -5), ('a6000000-0000-0000-0000-000000000004', 1)) as x(id, day)
+ where t.k = 'team';
+insert into public.games (id, team_id, season_id, opponent, game_date, status)
+select 'a6000000-0000-0000-0000-000000000009', t.v, s.id, 'Rovers', public.team_today(t.v) - 5, 'upcoming'
+  from ctx t join public.seasons s on s.team_id = t.v and s.is_current where t.k = 'other';
+select pg_temp.login('d6000000-0000-0000-0000-000000000003');
+select throws_ok($$select public.set_game_went('a6000000-0000-0000-0000-000000000004', 'e6000000-0000-0000-0000-00000000000a')$$, 'P0005', null, '"We went" is not offered before the game starts');
+select throws_ok($$select public.set_game_went('a6000000-0000-0000-0000-000000000009', 'e6000000-0000-0000-0000-00000000000a')$$, '22023', null, 'nor for another team''s game');
+select throws_ok($$select public.set_game_went('a6000000-0000-0000-0000-000000000003', 'e6000000-0000-0000-0000-00000000000b')$$, '42501', null, 'nor for another child');
+select throws_ok($$insert into public.game_checkins (game_id, player_id) values ('a6000000-0000-0000-0000-000000000003', 'e6000000-0000-0000-0000-00000000000a')$$, '42501', null, 'the table is not written directly');
+select lives_ok($$select public.set_game_went('a6000000-0000-0000-0000-000000000003', 'e6000000-0000-0000-0000-00000000000a')$$, 'a parent marks "We went" for a game that has started');
+select is((select current_streak from public.training_streak('e6000000-0000-0000-0000-00000000000a')), 6, 'and that game day counts, with no playing time recorded');
+select lives_ok($$select public.set_game_went('a6000000-0000-0000-0000-000000000003', 'e6000000-0000-0000-0000-00000000000a', false)$$, 'it can be taken back the same day');
+select is((select current_streak from public.training_streak('e6000000-0000-0000-0000-00000000000a')), 5, 'and the day no longer counts');
+select pg_temp.logout();
+select pg_temp.login('d6000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.set_game_went('a6000000-0000-0000-0000-000000000003', 'e6000000-0000-0000-0000-00000000000a')$$, '42501', null, 'a coach does not mark "We went" for a game');
+select pg_temp.logout();
+
+-- ---------- levels (D138): Level 1 to start, up after three Dones, a parent can set it ----------
+-- Kid A so far: Toe Taps twice at Level 1, Sole Rolls once at Level 1, Cone Dribbling once at Level 2.
+select pg_temp.login('d6000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a')), 10, 'a level for each of the ten drills');
+select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), '1/2', 'two Dones at Level 1: still Level 1');
+select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'cones')), '1/0', 'a Done at another level does not count toward this one');
+select is((select first_done_on from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), public.team_today((select v from ctx where k = 'team')) - 4, 'with the day of the first Done of the drill');
+insert into public.home_drill_completions (player_id, item_id, level, mode) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 1, 'parent');
+select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), '2/0', 'the third Done at a level moves the child up');
+delete from public.home_drill_completions where player_id = 'e6000000-0000-0000-0000-00000000000a' and item_id = (select v from ctx where k = 'taps') and done_on = public.team_today((select v from ctx where k = 'team'));
+select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), '1/2', 'taking a Done back takes its progress back');
+select lives_ok($$select public.set_home_drill_level('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 3)$$, 'a parent sets the level');
+select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), '3/0', 'and the count starts again from there');
+select throws_ok($$select public.set_home_drill_level('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 4)$$, '22023', null, 'there are three levels');
+select throws_ok($$select public.set_home_drill_level('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'touch'), 2)$$, '22023', null, 'only an at-home drill has a level');
+select throws_ok($$select public.set_home_drill_level('e6000000-0000-0000-0000-00000000000b', (select v from ctx where k = 'taps'), 2)$$, '42501', null, 'a parent cannot set another child''s level');
+select throws_ok($$insert into public.home_drill_level_overrides (player_id, item_id, level) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'rolls'), 3)$$, '42501', null, 'the table is not written directly');
+select pg_temp.logout();
+select pg_temp.login('d6000000-0000-0000-0000-000000000001');
+select is((select count(*)::int from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a')), 10, 'the coach reads the child''s levels');
+select throws_ok($$select public.set_home_drill_level('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 1)$$, '42501', null, 'and does not set one');
+select pg_temp.logout();
+select pg_temp.login('d6000000-0000-0000-0000-000000000004');
+select throws_ok($$select * from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a')$$, '42501', null, 'another parent does not see them');
+select pg_temp.logout();
+
 -- ---------- skill tests at home (D132) ----------
 -- each team has the default soccer tests; the coach has hidden one of them
 update public.skill_tests set is_active = false where team_id = (select v from ctx where k = 'team') and key = 'sprint';
@@ -316,7 +367,7 @@ select pg_temp.logout();
 -- ---------- a parent removed from the team loses all of it (D133) ----------
 select pg_temp.login('d6000000-0000-0000-0000-000000000004');
 select lives_ok($$insert into public.home_drill_completions (player_id, item_id, level, mode) values ('e6000000-0000-0000-0000-00000000000b', (select v from ctx where k = 'taps'), 1, 'parent')$$, 'the other parent records for their own child');
-select is((select current_streak from public.training_streak('e6000000-0000-0000-0000-00000000000b')), 2, 'and sees that child''s streak (the game two days ago and today)');
+select is((select current_streak from public.training_streak('e6000000-0000-0000-0000-00000000000b')), 1, 'and sees that child''s streak (today; the game two days ago is a day apart and no longer joins it)');
 select pg_temp.logout();
 insert into ctx select 'jug', id from public.skill_tests where team_id = (select v from ctx where k = 'team') and key = 'juggling';
 update public.team_members set status = 'removed' where user_id = 'd6000000-0000-0000-0000-000000000004' and team_id = (select v from ctx where k = 'team');
@@ -334,6 +385,8 @@ select is((select count(*)::int from public.home_drill_completions), 0, 'signed 
 select is((select count(*)::int from public.home_drill_times), 0, 'no times');
 select is((select count(*)::int from public.practice_checkins), 0, 'no "We went" marks');
 select is((select count(*)::int from public.player_training), 0, 'no stored streaks');
+select is((select count(*)::int from public.game_checkins), 0, 'no "We went" marks for games');
+select is((select count(*)::int from public.home_drill_level_overrides), 0, 'no levels');
 select throws_ok($$select * from public.training_streak('e6000000-0000-0000-0000-00000000000b')$$, '42501', null, 'no streak');
 select throws_ok($$select public.set_practice_went('b6000000-0000-0000-0000-000000000001', 'e6000000-0000-0000-0000-00000000000b')$$, '42501', null, 'and no "We went"');
 select pg_temp.logout();
@@ -341,7 +394,7 @@ select pg_temp.logout();
 -- ---------- the helper that lists a child's days is not callable from the app ----------
 select ok(not has_function_privilege('authenticated', 'public.training_active_days(uuid)', 'execute'), 'signed-in users cannot call training_active_days directly');
 select ok(not has_function_privilege('anon', 'public.training_active_days(uuid)', 'execute'), 'nor can signed-out ones');
-select ok((select bool_and(c.relrowsecurity) from pg_class c where c.oid in ('public.home_drill_completions'::regclass, 'public.home_drill_times'::regclass, 'public.practice_checkins'::regclass, 'public.player_training'::regclass)), 'row security is on for every training table');
+select ok((select bool_and(c.relrowsecurity) from pg_class c where c.oid in ('public.home_drill_completions'::regclass, 'public.home_drill_times'::regclass, 'public.practice_checkins'::regclass, 'public.player_training'::regclass, 'public.game_checkins'::regclass, 'public.home_drill_level_overrides'::regclass)), 'row security is on for every training table');
 
 select * from finish();
 rollback;

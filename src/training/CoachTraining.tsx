@@ -29,8 +29,9 @@ export function CoachTraining({ playerId, playerName }: { playerId: string; play
         )}
       </Group>
       <Footer>
-        {playerName}’s streak counts days with a home drill, playing time in a game, or a practice a parent
-        marked “We went”. Results a parent records at home are under Skills, labelled Home.
+        {playerName}’s streak counts days in a row with a home drill, playing time in a game, or a practice or
+        game a parent marked “We went”. A missed day ends it. Results a parent records at home are under
+        Skills, labelled Home.
       </Footer>
     </>
   );

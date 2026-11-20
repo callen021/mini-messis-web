@@ -13,6 +13,8 @@ const api = vi.hoisted(() => ({
   checkins: [] as unknown[],
   celebrate: vi.fn(),
   setWent: vi.fn(),
+  gameCheckins: [] as unknown[],
+  setGameWent: vi.fn(),
 }));
 vi.mock('../api', async () => {
   const actual = await vi.importActual<typeof Api>('../api');
@@ -22,6 +24,8 @@ vi.mock('../api', async () => {
     useCelebrateMilestone: () => ({ mutate: api.celebrate, isPending: false }),
     useCheckins: () => ({ data: api.checkins, isPending: false }),
     useSetWent: () => ({ mutate: api.setWent, isPending: false }),
+    useGameCheckins: () => ({ data: api.gameCheckins, isPending: false }),
+    useSetGameWent: () => ({ mutate: api.setGameWent, isPending: false }),
   };
 });
 vi.mock('@/auth/AuthProvider', () => ({ useAuth: () => ({ user: { id: 'me' } }) }));
@@ -31,17 +35,12 @@ const practice = (id: string, date: string, time: string | null, status = 'sched
   ({ id, team_id: 't1', practice_date: date, start_time: time, status }) as unknown as Practice;
 
 describe('streak wording', () => {
-  it('says what today needs and how many days off are used', () => {
+  it('is one short line about today; there are no days off (D138)', () => {
     expect(streakHint(streak({}))).toBe('Do one drill today to start a streak.');
-    expect(streakHint(streak({ current: 4 }))).toBe(
-      'One drill today keeps it going. Two days off a week are fine.',
-    );
-    expect(streakHint(streak({ current: 5, todayCounts: true, misses: 1 }))).toBe(
-      'Today counts. One day off used this week; one more is fine.',
-    );
-    expect(streakHint(streak({ current: 5, todayCounts: true, misses: 2 }))).toBe(
-      'Today counts. Both days off used this week.',
-    );
+    expect(streakHint(streak({ current: 4 }))).toBe('One drill today keeps it going.');
+    expect(streakHint(streak({ current: 5, todayCounts: true }))).toBe('Done for today.');
+    expect(streakHint(streak({ current: 1, todayCounts: true }))).toBe('Done for today.');
+    expect(streakHint(streak({ current: 4 }))).not.toMatch(/day off|days off/);
   });
 });
 
@@ -76,7 +75,7 @@ describe('StreakCard', () => {
     );
     expect(screen.getByText('7')).toBeInTheDocument();
     expect(screen.getByText('Longest: 12 days')).toBeInTheDocument();
-    expect(screen.getByText(/Today counts/)).toBeInTheDocument();
+    expect(screen.getByText('Done for today.')).toBeInTheDocument();
     expect(screen.queryByText(/-day streak!/)).toBeNull();
   });
   it('celebrates a milestone once: “Nice!” records it', async () => {
@@ -106,6 +105,50 @@ describe('WentSection', () => {
   beforeEach(() => {
     api.checkins = [];
     api.setWent.mockReset();
+    api.gameCheckins = [];
+    api.setGameWent.mockReset();
+  });
+
+  it('“We went” works the same for a game that has started (D138)', async () => {
+    const game = (id: string, date: string) => ({
+      id,
+      game_date: date,
+      start_time: '09:00:00',
+      opponent: 'Rovers',
+    });
+    const user = userEvent.setup();
+    const first = render(
+      <ToastProvider>
+        <WentSection
+          games={[game('g-past', '2000-01-01'), game('g-future', '2999-01-01')]}
+          kids={[{ id: 'p1', first_name: 'Sam' }]}
+          timezone="America/Chicago"
+          today={TODAY}
+        />
+      </ToastProvider>,
+    );
+    expect(screen.getByText(/Sam · game .* vs Rovers/)).toBeInTheDocument();
+    expect(screen.getAllByRole('button')).toHaveLength(1); // not the game still to come
+    await user.click(screen.getByRole('button', { name: 'We went' }));
+    expect(api.setGameWent).toHaveBeenCalledWith({ gameId: 'g-past', went: true }, expect.anything());
+    expect(api.setWent).not.toHaveBeenCalled();
+    first.unmount();
+    api.gameCheckins = [
+      { game_id: 'g-past', player_id: 'p1', set_by: 'me', created_at: '2000-01-02T18:00:00Z' },
+    ];
+    render(
+      <ToastProvider>
+        <WentSection
+          games={[game('g-past', '2000-01-01')]}
+          kids={[{ id: 'p1', first_name: 'Sam' }]}
+          timezone="America/Chicago"
+          today={TODAY}
+        />
+      </ToastProvider>,
+    );
+    expect(screen.getByText('Marked: we went')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Undo' }));
+    expect(api.setGameWent).toHaveBeenCalledWith({ gameId: 'g-past', went: false }, expect.anything());
   });
 
   it('offers nothing before the practice starts, or without a confirmed child', () => {

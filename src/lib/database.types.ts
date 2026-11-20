@@ -345,6 +345,42 @@ export type Database = {
           },
         ]
       }
+      game_checkins: {
+        Row: {
+          created_at: string
+          game_id: string
+          player_id: string
+          set_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          player_id: string
+          set_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          player_id?: string
+          set_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_checkins_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_checkins_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       games: {
         Row: {
           address: string | null
@@ -504,6 +540,45 @@ export type Database = {
           },
           {
             foreignKeyName: "home_drill_completions_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      home_drill_level_overrides: {
+        Row: {
+          item_id: string
+          level: number
+          player_id: string
+          set_at: string
+          set_by: string | null
+        }
+        Insert: {
+          item_id: string
+          level: number
+          player_id: string
+          set_at?: string
+          set_by?: string | null
+        }
+        Update: {
+          item_id?: string
+          level?: number
+          player_id?: string
+          set_at?: string
+          set_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "home_drill_level_overrides_item_id_fkey"
+            columns: ["item_id"]
+            isOneToOne: false
+            referencedRelation: "library_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "home_drill_level_overrides_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "players"
@@ -1034,18 +1109,24 @@ export type Database = {
       }
       player_training: {
         Row: {
+          carried_from: string | null
+          carried_streak: number
           longest_streak: number
           milestones: number[]
           player_id: string
           updated_at: string
         }
         Insert: {
+          carried_from?: string | null
+          carried_streak?: number
           longest_streak?: number
           milestones?: number[]
           player_id: string
           updated_at?: string
         }
         Update: {
+          carried_from?: string | null
+          carried_streak?: number
           longest_streak?: number
           milestones?: number[]
           player_id?: string
@@ -2525,6 +2606,23 @@ export type Database = {
         Args: { p_available: boolean; p_player_id: string }
         Returns: undefined
       }
+      home_drill_levels: {
+        Args: { p_player_id: string }
+        Returns: {
+          dones_at_level: number
+          first_done_on: string
+          item_id: string
+          level: number
+        }[]
+      }
+      set_game_went: {
+        Args: { p_game_id: string; p_player_id: string; p_went?: boolean }
+        Returns: undefined
+      }
+      set_home_drill_level: {
+        Args: { p_item_id: string; p_level: number; p_player_id: string }
+        Returns: undefined
+      }
       set_practice_went: {
         Args: { p_player_id: string; p_practice_id: string; p_went?: boolean }
         Returns: undefined
@@ -2603,11 +2701,15 @@ export type Database = {
         Returns: undefined
       }
       streak_from_days: {
-        Args: { p_days: string[]; p_today: string }
+        Args: {
+          p_carried?: number
+          p_carried_from?: string
+          p_days: string[]
+          p_today: string
+        }
         Returns: {
           current_streak: number
           longest_streak: number
-          misses: number
         }[]
       }
       team_allergy_summary: {
@@ -2653,7 +2755,6 @@ export type Database = {
           celebrate: number
           current_streak: number
           longest_streak: number
-          misses: number
           today_counts: boolean
         }[]
       }

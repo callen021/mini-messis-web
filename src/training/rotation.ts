@@ -1,19 +1,26 @@
 /**
- * The day's three home drills (D128): the five-day rotation of the home-drills sheet, one
- * footwork drill, one dribbling drill and one passing or control drill a day. Five days cover all
- * ten drills, then it repeats.
+ * The day's home drill (D138): one drill a day, the same for everyone on the same date, going
+ * round all ten. Consecutive days change the kind of drill: footwork, dribbling, passing or
+ * control.
  *
- * The day is picked by the calendar with nothing stored: days since a fixed Monday, modulo five.
- * So every child sees the same three drills on the same date, and siblings match. Seven is not a
- * multiple of five, so a Monday is not always day 1.
+ * The day is picked by the calendar with nothing stored: days since a fixed Monday, modulo ten.
+ * So every child on a team sees the same drill on the same date, each at their own level.
  */
-export const ROTATION: readonly (readonly [string, string, string])[] = [
-  ['toe-taps', 'cone-dribbling', 'first-touch-and-passing-with-a-parent'],
-  ['inside-inside-touches', 'v-cuts', 'wall-passing-and-first-touch'],
-  ['sole-rolls', 'l-drags', 'juggling'],
-  ['toe-taps', 'inside-outside-touches', 'first-touch-and-passing-with-a-parent'],
-  ['inside-inside-touches', 'cone-dribbling', 'wall-passing-and-first-touch'],
+export const ROTATION: readonly string[] = [
+  'toe-taps',
+  'cone-dribbling',
+  'wall-passing-and-first-touch',
+  'inside-inside-touches',
+  'v-cuts',
+  'juggling',
+  'sole-rolls',
+  'inside-outside-touches',
+  'first-touch-and-passing-with-a-parent',
+  'l-drags',
 ];
+
+/** A child's first drill, whatever the date: until they have a Done on an earlier day. */
+export const FIRST_DRILL = 'toe-taps';
 
 /** Day 1 of the rotation: Monday 5 January 2026. */
 const EPOCH_DAY = Date.UTC(2026, 0, 5) / 86_400_000;
@@ -24,15 +31,23 @@ export function dayNumber(iso: string): number {
   return Math.round(Date.UTC(y ?? 1970, (m ?? 1) - 1, d ?? 1) / 86_400_000);
 }
 
-/** 0 to 4: which row of the rotation a date falls on. */
+/** 0 to 9: which drill of the rotation a date falls on. */
 export function rotationDay(iso: string): number {
   const len = ROTATION.length;
   return (((dayNumber(iso) - EPOCH_DAY) % len) + len) % len;
 }
 
-/** The slugs of that date's three drills, in the sheet's order. */
-export function drillsFor(iso: string): readonly [string, string, string] {
-  return ROTATION[rotationDay(iso)] ?? ['', '', ''];
+/** The slug of that date's drill for the team. */
+export function drillFor(iso: string): string {
+  return ROTATION[rotationDay(iso)] ?? FIRST_DRILL;
+}
+
+/**
+ * The slug of a child's drill today. A child with no Done before today starts with Toe Taps, and
+ * keeps it for the whole of that first day; from the next day they follow the team's rotation.
+ */
+export function drillForChild(today: string, firstDoneOn: string | null): string {
+  return firstDoneOn === null || firstDoneOn >= today ? FIRST_DRILL : drillFor(today);
 }
 
 /** Today as `yyyy-mm-dd` where the team plays; the server stamps completions the same way. */

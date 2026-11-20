@@ -4,6 +4,7 @@ import { LoadingScreen, useIsStaff } from '@/auth/guards';
 import { Group, Row } from '@/components/List';
 import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
+import { useGames } from '@/games/api';
 import { usePractices } from '@/games/practices';
 import { ChildSwitcher } from '@/home/children';
 import { useMyKids } from '@/home/useMyKids';
@@ -32,6 +33,7 @@ export function TrainingPage() {
   const players = usePlayers(teamId);
   const { kids, child, confirmed, select, isPending } = useMyKids();
   const practices = usePractices(teamId);
+  const games = useGames(teamId);
   const [search, setSearch] = useSearchParams();
   const [testsView, setTestsView] = useState<TestsView>('mine');
 
@@ -43,9 +45,10 @@ export function TrainingPage() {
   const asked = search.get('tab') as TrainingTab | null;
   const tab: TrainingTab = asked && tabs.includes(asked) ? asked : (tabs[0] ?? 'tests');
   const today = teamToday(team.timezone);
-  // practices of the last week that "We went" can still be marked for
+  // practices and games of the last week that "We went" can still be marked for
   const weekAgo = addDays(today, -6);
   const recent = (practices.data ?? []).filter((p) => p.practice_date >= weekAgo && p.practice_date <= today);
+  const recentGames = (games.data ?? []).filter((g) => g.game_date >= weekAgo && g.game_date <= today);
   const teamView = isStaff && (!mine || testsView === 'team');
 
   return (
@@ -86,8 +89,9 @@ export function TrainingPage() {
             today={today}
           />
           <WentSection
-            title="Team practice this week"
+            title="Team practice or game this week"
             practices={recent}
+            games={recentGames}
             kids={[mine]}
             timezone={team.timezone}
             today={today}

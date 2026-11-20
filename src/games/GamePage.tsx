@@ -54,6 +54,7 @@ import { DirectionsIcon } from '@/components/icons';
 import { useGameClock } from '@/clock/api';
 import { capNote } from '@/clock/clock';
 import { PlayingTimeSection } from '@/clock/PlayingTimeSection';
+import { GameWent } from '@/training/GameWent';
 import { GameStats } from './GameStats';
 import { directionsUrl } from './directions';
 import { EditScoreSheet } from './EditScoreSheet';
@@ -682,6 +683,8 @@ function GameDetail({ game }: { game: GameWithScore }) {
           </Group>
         </>
       )}
+
+      {!isStaff && <GameWent game={game} />}
 
       {!isUpcoming && (
         <GameStats gameId={game.id} live={isLive} from={{ to: `/games/${game.id}`, label: 'Game' }} />

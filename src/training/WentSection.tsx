@@ -2,32 +2,38 @@ import { Button } from '@/components/Button';
 import { Footer, Group, Row, Section } from '@/components/List';
 import { useToast } from '@/components/Toast';
 import { useAuth } from '@/auth/AuthProvider';
+import { type Game } from '@/games/api';
 import { fmtDate, fmtTime } from '@/games/format';
 import { type Practice } from '@/games/practices';
 import { errorMessage } from '@/lib/supabase';
-import { useCheckins, useSetWent } from './api';
+import { useCheckins, useGameCheckins, useSetGameWent, useSetWent } from './api';
 import { teamToday } from './rotation';
-import { practiceStarted, teamNowStamp } from './streak';
+import { eventStarted, practiceStarted, teamNowStamp } from './streak';
 
 export interface WentChild {
   id: string;
   first_name: string;
 }
 
+type WentGame = Pick<Game, 'id' | 'game_date' | 'start_time' | 'opponent'>;
+
 /**
- * "We went" (D130): a parent marks that their child was at a practice, which counts the day
- * toward the streak. Offered only once the practice has started, never for a cancelled one, and
- * only for a child whose link a coach confirmed. It can be taken back the same day.
+ * "We went" (D130, D138): a parent marks that their child was at a practice or a game, which
+ * counts the day toward the streak. Offered only once it has started, never for a cancelled
+ * practice, and only for a child whose link a coach confirmed. It can be taken back the same day.
  */
 export function WentSection({
-  practices,
+  practices = [],
+  games = [],
   kids,
   timezone,
   today,
   title = 'Were you there?',
 }: {
   /** The practices to offer, already narrowed by the caller. */
-  practices: readonly Practice[];
+  practices?: readonly Practice[];
+  /** The games to offer, already narrowed by the caller. */
+  games?: readonly WentGame[];
   /** The parent's confirmed children. */
   kids: readonly WentChild[];
   timezone: string | null;
@@ -36,15 +42,21 @@ export function WentSection({
   title?: string;
 }) {
   const now = teamNowStamp(timezone);
-  const started = practices.filter((p) => practiceStarted(p, now));
-  if (!started.length || !kids.length) return null;
+  const startedPractices = practices.filter((p) => practiceStarted(p, now));
+  const startedGames = games.filter((g) => eventStarted(g.game_date, g.start_time, now));
+  if ((!startedPractices.length && !startedGames.length) || !kids.length) return null;
   return (
     <>
       <Section>{title}</Section>
       <Group>
-        {started.flatMap((p) =>
+        {startedPractices.flatMap((p) =>
           kids.map((c) => (
-            <WentRow key={`${p.id}:${c.id}`} practice={p} child={c} today={today} timezone={timezone} />
+            <PracticeRow key={`p:${p.id}:${c.id}`} practice={p} child={c} today={today} timezone={timezone} />
+          )),
+        )}
+        {startedGames.flatMap((g) =>
+          kids.map((c) => (
+            <GameRow key={`g:${g.id}:${c.id}`} game={g} child={c} today={today} timezone={timezone} />
           )),
         )}
       </Group>
@@ -53,7 +65,7 @@ export function WentSection({
   );
 }
 
-function WentRow({
+function PracticeRow({
   practice: p,
   child,
   today,
@@ -64,34 +76,95 @@ function WentRow({
   today: string;
   timezone: string | null;
 }) {
-  const { user } = useAuth();
-  const toast = useToast();
   const checkins = useCheckins(child.id);
   const setWent = useSetWent(child.id);
+  const toast = useToast();
   const row = (checkins.data ?? []).find((k) => k.practice_id === p.id);
-  const went = !!row;
-  // the server decides; this only hides a button that would be refused
-  const canUndo = went && row.set_by === user?.id && teamToday(timezone, new Date(row.created_at)) === today;
-  const set = (value: boolean) =>
-    setWent.mutate(
-      { practiceId: p.id, went: value },
-      {
-        onError: (e) => toast(errorMessage(e)),
-        onSuccess: () => toast(value ? `${child.first_name} · went to practice` : 'Taken back'),
-      },
-    );
   return (
-    <Row
-      label={
-        <>
-          {child.first_name} · practice {fmtDate(p.practice_date)}
-        </>
+    <WentRow
+      label={`${child.first_name} · practice ${fmtDate(p.practice_date)}`}
+      time={p.start_time}
+      mark={row ?? null}
+      today={today}
+      timezone={timezone}
+      busy={setWent.isPending || checkins.isPending}
+      onSet={(value) =>
+        setWent.mutate(
+          { practiceId: p.id, went: value },
+          {
+            onError: (e) => toast(errorMessage(e)),
+            onSuccess: () => toast(value ? `${child.first_name} · went to practice` : 'Taken back'),
+          },
+        )
       }
-      detail={went ? 'Marked: we went' : p.start_time ? fmtTime(p.start_time) : undefined}
-    >
+    />
+  );
+}
+
+function GameRow({
+  game: g,
+  child,
+  today,
+  timezone,
+}: {
+  game: WentGame;
+  child: WentChild;
+  today: string;
+  timezone: string | null;
+}) {
+  const checkins = useGameCheckins(child.id);
+  const setWent = useSetGameWent(child.id);
+  const toast = useToast();
+  const row = (checkins.data ?? []).find((k) => k.game_id === g.id);
+  return (
+    <WentRow
+      label={`${child.first_name} · game ${fmtDate(g.game_date)}${g.opponent ? ` vs ${g.opponent}` : ''}`}
+      time={g.start_time}
+      mark={row ?? null}
+      today={today}
+      timezone={timezone}
+      busy={setWent.isPending || checkins.isPending}
+      onSet={(value) =>
+        setWent.mutate(
+          { gameId: g.id, went: value },
+          {
+            onError: (e) => toast(errorMessage(e)),
+            onSuccess: () => toast(value ? `${child.first_name} · went to the game` : 'Taken back'),
+          },
+        )
+      }
+    />
+  );
+}
+
+function WentRow({
+  label,
+  time,
+  mark,
+  today,
+  timezone,
+  busy,
+  onSet,
+}: {
+  label: string;
+  time: string | null;
+  /** The saved "We went", if there is one. */
+  mark: { set_by: string | null; created_at: string } | null;
+  today: string;
+  timezone: string | null;
+  busy: boolean;
+  onSet: (went: boolean) => void;
+}) {
+  const { user } = useAuth();
+  const went = mark !== null;
+  // the server decides; this only hides a button that would be refused
+  const canUndo =
+    went && mark.set_by === user?.id && teamToday(timezone, new Date(mark.created_at)) === today;
+  return (
+    <Row label={label} detail={went ? 'Marked: we went' : time ? fmtTime(time) : undefined}>
       {went ? (
         canUndo ? (
-          <Button size="sm" variant="gray" disabled={setWent.isPending} onClick={() => set(false)}>
+          <Button size="sm" variant="gray" disabled={busy} onClick={() => onSet(false)}>
             Undo
           </Button>
         ) : (
@@ -100,7 +173,7 @@ function WentRow({
           </span>
         )
       ) : (
-        <Button size="sm" disabled={setWent.isPending || checkins.isPending} onClick={() => set(true)}>
+        <Button size="sm" disabled={busy} onClick={() => onSet(true)}>
           We went
         </Button>
       )}

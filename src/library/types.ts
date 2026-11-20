@@ -104,7 +104,12 @@ export const DRILL_TYPE_LABEL: Readonly<Record<DrillType, string>> = {
   accuracy: 'Accuracy',
 };
 export interface HomeLevel {
+  /** The instruction, one sentence a parent can read aloud; it stands on its own (D138). */
   text: string;
+  /** The parent's one line for this level; empty when the drill gives none. */
+  parentJob: string;
+  /** One picture per level; null until one is supplied, and then nothing is shown. */
+  image: StepImage | null;
   /** Set when one level is measured differently from the drill ("Repetition, then accuracy"). */
   type: DrillType | null;
 }
@@ -295,7 +300,12 @@ function parseHome(v: unknown): HomeSection | null {
     onMyOwn: str(v.on_my_own),
     levels: list(v.levels)
       .filter(isObj)
-      .map((l) => ({ text: str(l.text), type: DRILL_TYPES.find((t) => t === l.type) ?? null }))
+      .map((l) => ({
+        text: str(l.text),
+        parentJob: str(l.parent_job),
+        image: parseImage(l.image),
+        type: DRILL_TYPES.find((t) => t === l.type) ?? null,
+      }))
       .filter((l) => l.text),
     notes: list(v.notes)
       .filter(isObj)

@@ -195,6 +195,52 @@
   }
 }
 
+/* the simple drill card (D138): the instruction to read aloud, a picture, the parent's job, Done */
+.drillcard.pinned .drillhead {
+  cursor: default;
+}
+.drillcard.pinned .drillhead:active {
+  background: none;
+}
+.drillhead .drilllevel {
+  display: block;
+  margin-top: 2px;
+  font-size: 14px;
+  color: var(--text2);
+}
+.drillimg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 240px;
+  object-fit: contain;
+  border-radius: 10px;
+  background: var(--fill);
+}
+.drillbody .drillsay {
+  font-size: 22px;
+  line-height: 1.3;
+  font-weight: 600;
+}
+.drillbody .drilljob {
+  font-size: 17px;
+  line-height: 1.35;
+  color: var(--text2);
+}
+.drilljob b {
+  color: var(--text);
+  font-weight: 600;
+}
+.drillbody .drillmore {
+  text-align: center;
+}
+.drillextra {
+  display: grid;
+  gap: 12px;
+  padding-top: 4px;
+  border-top: 1px solid var(--sep);
+}
+
 /* the Cone Dribbling stopwatch (D129) */
 .stopwatch {
   display: grid;
