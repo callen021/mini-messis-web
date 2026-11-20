@@ -289,6 +289,13 @@ export const routes: RouteObject[] = [
                         ),
                       },
                       {
+                        // one recorded drill score (D140)
+                        path: '/training/result/:attemptId',
+                        element: lazyPage(() =>
+                          import('@/training/ResultPage').then((m) => ({ default: m.ResultPage })),
+                        ),
+                      },
+                      {
                         // the old per-child address: select that child, then the tab
                         path: '/training/:playerId',
                         element: lazyPage(() =>

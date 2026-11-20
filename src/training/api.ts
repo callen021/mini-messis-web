@@ -9,7 +9,6 @@ import { EMPTY_STREAK, type Streak } from './streak';
 
 export type DrillMode = Enums<'drill_mode'>;
 export type Completion = Tables<'home_drill_completions'>;
-export type DrillTime = Tables<'home_drill_times'>;
 export type Checkin = Tables<'practice_checkins'>;
 export type GameCheckin = Tables<'game_checkins'>;
 
@@ -31,7 +30,8 @@ export const trainingKeys = {
   /** Everything recorded for one child; one invalidation refreshes drills, times and the streak. */
   player: (playerId: string) => ['training', playerId] as const,
   completions: (playerId: string) => ['training', playerId, 'completions'] as const,
-  times: (playerId: string, itemId: string) => ['training', playerId, 'times', itemId] as const,
+  attempts: (playerId: string) => ['training', playerId, 'attempts'] as const,
+  bests: (playerId: string) => ['training', playerId, 'bests'] as const,
   streak: (playerId: string) => ['training', playerId, 'streak'] as const,
   checkins: (playerId: string) => ['training', playerId, 'checkins'] as const,
   gameCheckins: (playerId: string) => ['training', playerId, 'game-checkins'] as const,
@@ -88,8 +88,9 @@ export interface DoneInput {
 }
 
 /**
- * Mark a drill Done for today. The server writes the date (today where the team plays) and who
- * recorded it; a second Done for the same drill on the same day changes nothing.
+ * Mark a drill Done for today without a score: only for a drill level that has no challenge
+ * (D140; every built-in level has one, and recording a score marks the drill Done). The server
+ * writes the date and who recorded it; a second Done the same day changes nothing.
  */
 export function useMarkDone(playerId: string, today: string) {
   const qc = useQueryClient();
@@ -133,62 +134,112 @@ export function useMarkDone(playerId: string, today: string) {
   });
 }
 
-/** Take back a Done recorded today (the server refuses anything older or someone else's). */
-export function useUndoDone(playerId: string) {
-  const qc = useQueryClient();
-  const key = trainingKeys.completions(playerId);
-  return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await supabase.from('home_drill_completions').delete().eq('id', id);
-      if (error) throw dbError(error);
-    },
-    onMutate: async (id) => {
-      await qc.cancelQueries({ queryKey: key });
-      const previous = qc.getQueryData<Completion[]>(key);
-      if (previous)
-        qc.setQueryData<Completion[]>(
-          key,
-          previous.filter((c) => c.id !== id),
-        );
-      return { previous };
-    },
-    onError: (_e, _v, ctx) => {
-      if (ctx?.previous) qc.setQueryData(key, ctx.previous);
-    },
-    onSettled: () => {
-      void qc.invalidateQueries({ queryKey: trainingKeys.player(playerId) });
-    },
-  });
-}
+/** One recorded score (D140). */
+export type Attempt = Tables<'home_drill_attempts'>;
+/** A score as the challenge hands it over: reps from a timer, seconds from a stopwatch. */
+export type Score = { reps: number } | { seconds: number };
 
-/** Every saved run of a child on one timed drill, oldest first (personal bests need them all). */
-export function useDrillTimes(playerId: string, itemId: string) {
+/** A child's recent scores on every drill, newest first (the "Recent scores" under More). */
+export function useAttempts(playerId: string) {
   return useQuery({
-    queryKey: trainingKeys.times(playerId, itemId),
-    queryFn: async (): Promise<DrillTime[]> => {
+    queryKey: trainingKeys.attempts(playerId),
+    queryFn: async (): Promise<Attempt[]> => {
       const { data, error } = await supabase
-        .from('home_drill_times')
+        .from('home_drill_attempts')
         .select('*')
         .eq('player_id', playerId)
-        .eq('item_id', itemId)
-        .order('created_at');
+        .order('created_at', { ascending: false })
+        .limit(200);
       if (error) throw dbError(error);
       return data;
     },
   });
 }
 
+/** One score by its id, for the results page; null when it is gone or not this user's to see. */
+export function useAttempt(id: string | undefined) {
+  return useQuery({
+    queryKey: ['training-attempt', id ?? ''] as const,
+    enabled: !!id,
+    queryFn: async (): Promise<Attempt | null> => {
+      const { data, error } = await supabase
+        .from('home_drill_attempts')
+        .select('*')
+        .eq('id', id ?? '')
+        .maybeSingle();
+      if (error) throw dbError(error);
+      return data;
+    },
+  });
+}
+
+/** A child's personal best at one level of one drill: the most reps, or the least time. */
+export interface Best {
+  reps: number | null;
+  seconds: number | null;
+  attempts: number;
+}
+export const bestKey = (itemId: string, level: number): string => `${itemId}:${level}`;
+
 /**
- * Save a clean run. The server stamps the date and marks the drill Done for the day, so the
- * child's whole training state is refreshed afterwards.
+ * Personal bests per drill and level, by `bestKey` (D140). The database works them out and leaves
+ * out times on the old five-cone course. For the child's confirmed parents and the team's coaches.
  */
-export function useSaveTime(playerId: string, itemId: string) {
+export function useBests(playerId: string | undefined) {
+  return useQuery({
+    queryKey: trainingKeys.bests(playerId ?? ''),
+    enabled: !!playerId,
+    queryFn: async (): Promise<Map<string, Best>> => {
+      const { data, error } = await supabase.rpc('home_drill_bests', { p_player_id: playerId ?? '' });
+      if (error) throw dbError(error);
+      return new Map(
+        data.map((r) => [
+          bestKey(r.item_id, r.level),
+          {
+            reps: (r.best_reps as number | null) ?? null,
+            seconds: r.best_seconds === null ? null : Number(r.best_seconds),
+            attempts: r.attempts,
+          },
+        ]),
+      );
+    },
+  });
+}
+
+/**
+ * Record a score. The server decides whether it is a record and whether it unlocks the next level,
+ * and marks the drill Done when it is the day's first; it answers with the new attempt's id, which
+ * is the results page's address.
+ */
+export function useRecordAttempt(playerId: string) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ level, seconds }: { level: number; seconds: number }) => {
-      const { error } = await supabase
-        .from('home_drill_times')
-        .insert({ player_id: playerId, item_id: itemId, level, seconds });
+    mutationFn: async (v: {
+      itemId: string;
+      level: number;
+      mode: DrillMode;
+      score: Score;
+    }): Promise<string> => {
+      const { data, error } = await supabase.rpc('record_drill_attempt', {
+        p_player_id: playerId,
+        p_item_id: v.itemId,
+        p_level: v.level,
+        ...('reps' in v.score ? { p_reps: v.score.reps } : { p_seconds: v.score.seconds }),
+        p_mode: v.mode,
+      });
+      if (error) throw dbError(error);
+      return data;
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: trainingKeys.player(playerId) }),
+  });
+}
+
+/** Delete a score recorded today (the server refuses anything older or someone else's). */
+export function useDeleteAttempt(playerId: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc('delete_drill_attempt', { p_attempt_id: id });
       if (error) throw dbError(error);
     },
     onSettled: () => qc.invalidateQueries({ queryKey: trainingKeys.player(playerId) }),
@@ -292,17 +343,16 @@ export function useSetGameWent(playerId: string) {
   });
 }
 
-/** Where a child stands on one drill (D138): the level, and the Dones at it (one moves up, so only Level 3 keeps any). */
+/** Where a child stands on one drill: the level they are on (D140: stored, Level 1 to start). */
 export interface DrillLevel {
   level: number;
-  donesAtLevel: number;
   /** The day of the first Done of this drill, `yyyy-mm-dd`; null when it was never done. */
   firstDoneOn: string | null;
 }
 
 /**
- * A child's level on every at-home drill, by drill id. The database works it out from the Dones:
- * Level 1 to start, up after one Done at a level, Level 3 at most, from the level a parent last set.
+ * A child's level on every at-home drill, by drill id: Level 1 to start, up when a score meets the
+ * level's target, or wherever a parent set it.
  */
 export function useDrillLevels(playerId: string) {
   return useQuery({
@@ -315,7 +365,6 @@ export function useDrillLevels(playerId: string) {
           r.item_id,
           {
             level: r.level,
-            donesAtLevel: r.dones_at_level,
             firstDoneOn: (r.first_done_on as string | null) ?? null,
           },
         ]),
@@ -324,7 +373,7 @@ export function useDrillLevels(playerId: string) {
   });
 }
 
-/** A parent sets the level of one drill; the count toward the next level starts again. */
+/** A parent sets the level of one drill. */
 export function useSetDrillLevel(playerId: string) {
   const qc = useQueryClient();
   return useMutation({

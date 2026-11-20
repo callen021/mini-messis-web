@@ -1,5 +1,13 @@
 import { Section } from '@/components/List';
-import { type HomeSection, levelLabel } from './types';
+import { DrillDiagram } from './DrillDiagram';
+import { type Challenge, type HomeSection, levelLabel } from './types';
+
+/** "60 seconds · target 40", "Stopwatch · target 10.0 s". */
+function challengeLine(c: Challenge): string {
+  const how = c.mode === 'stopwatch' ? 'Stopwatch' : `${c.seconds} seconds`;
+  if (c.target === null) return how;
+  return `${how} · target ${c.mode === 'stopwatch' ? `${c.target.toFixed(1)} s` : c.target}`;
+}
 
 /** "Footwork · Repetition · 3 min", each part only when the drill gives it. */
 export function HomeMeta({ home }: { home: HomeSection }) {
@@ -42,11 +50,14 @@ export function HomeTab({ home }: { home: HomeSection }) {
               <li key={i}>
                 <b>{levelLabel(home, i)}</b>
                 <span>{l.text}</span>
+                {l.challenge && <span className="homechallenge">{challengeLine(l.challenge)}</span>}
+                {l.harder && <span className="homeharder">Make it harder: {l.harder}</span>}
               </li>
             ))}
           </ol>
         </>
       )}
+      {home.diagram && <DrillDiagram spec={home.diagram} params={[]} overrides={{}} />}
       {home.notes.map((n) => (
         <div className="libnote" key={n.title}>
           <b>{n.title}</b>

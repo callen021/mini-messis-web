@@ -163,3 +163,6 @@ perf/
 
 # Practice library source sheets and image crops (D123): never committed, uploaded to Storage
 practice-library/
+
+# Design references made outside the project (D140): never committed
+design/

@@ -1,10 +1,11 @@
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter, Route, Routes } from 'react-router';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { ToastProvider } from '@/components/Toast';
 import { parseContent } from '@/library/types';
 import type * as Api from '../api';
-import { type Completion, type DrillLevel, type HomeDrill } from '../api';
+import { type Attempt, type Best, type Completion, type DrillLevel, type HomeDrill } from '../api';
 import { DailyDrills } from '../DailyDrills';
 import { addDays, drillFor, drillForChild, FIRST_DRILL, ROTATION, rotationDay, teamToday } from '../rotation';
 
@@ -21,6 +22,9 @@ const SLUGS = [
   'first-touch-and-passing-with-a-parent',
 ];
 const drill = (slug: string): HomeDrill => {
+  const cones = slug === 'cone-dribbling';
+  const challenge = (target?: number) =>
+    cones ? { mode: 'stopwatch', target } : { mode: 'timer', seconds: 60, target };
   const home = parseContent({
     home: {
       skill: 'Dribbling and Ball Mastery',
@@ -30,13 +34,26 @@ const drill = (slug: string): HomeDrill => {
       with_parent: `Together: ${slug}.`,
       on_my_own: `Alone: ${slug}.`,
       levels: [
-        { text: 'Say one.', parent_job: 'Job one.' },
-        { text: 'Say two.', parent_job: 'Job two.', image: 'home/pic-two.png' },
-        { text: 'Say three.', parent_job: 'Job three.' },
+        { text: 'Say one.', parent_job: 'Job one.', challenge: challenge(cones ? 10 : 40) },
+        {
+          text: 'Say two.',
+          parent_job: 'Job two.',
+          harder: 'Harder two.',
+          image: 'home/pic-two.png',
+          challenge: challenge(cones ? 8 : 70),
+        },
+        // juggling's top level is written the old way, without a challenge
+        {
+          text: 'Say three.',
+          parent_job: 'Job three.',
+          ...(slug === 'juggling' ? {} : { challenge: challenge() }),
+        },
       ],
       tips: 'Stay on the balls of your feet.',
       clip: 'Side view.',
-      stopwatch: slug === 'cone-dribbling',
+      ...(cones
+        ? { diagram: { elements: [{ type: 'cones', id: 'c', from: [0, 0], step: [1, 0], count: 4 }] } }
+        : {}),
     },
   }).home;
   if (!home) throw new Error('no home section');
@@ -47,10 +64,11 @@ const DRILLS = SLUGS.map(drill);
 const api = vi.hoisted(() => ({
   completions: [] as unknown[],
   levels: new Map<string, unknown>(),
+  bests: new Map<string, unknown>(),
+  attempts: [] as unknown[],
   markDone: vi.fn(),
-  undoDone: vi.fn(),
+  record: vi.fn(),
   setLevel: vi.fn(),
-  wake: vi.fn(),
 }));
 vi.mock('../api', async () => {
   const actual = await vi.importActual<typeof Api>('../api');
@@ -59,28 +77,36 @@ vi.mock('../api', async () => {
     useHomeDrills: () => ({ data: DRILLS, isPending: false, isError: false }),
     useCompletions: () => ({ data: api.completions, isPending: false, isError: false }),
     useDrillLevels: () => ({ data: api.levels, isPending: false, isError: false }),
+    useBests: () => ({ data: api.bests, isPending: false, isError: false }),
+    useAttempts: () => ({ data: api.attempts, isPending: false, isError: false }),
     useMarkDone: () => ({ mutate: api.markDone, isPending: false }),
-    useUndoDone: () => ({ mutate: api.undoDone, isPending: false }),
+    useRecordAttempt: () => ({ mutate: api.record, isPending: false }),
     useSetDrillLevel: () => ({ mutate: api.setLevel, isPending: false }),
   };
 });
-vi.mock('../DrillStopwatch', () => ({
-  DrillStopwatch: ({ level }: { level: number }) => <div role="timer">stopwatch at level {level}</div>,
+// the challenges have their own tests; here each is a button that hands over a score
+vi.mock('../TimerChallenge', () => ({
+  TimerChallenge: ({ seconds, onRecord }: { seconds: number; onRecord: (reps: number) => void }) => (
+    <button type="button" onClick={() => onRecord(41)}>
+      timer {seconds}
+    </button>
+  ),
+}));
+vi.mock('../StopwatchChallenge', () => ({
+  StopwatchChallenge: ({ onRecord }: { onRecord: (seconds: number) => void }) => (
+    <button type="button" onClick={() => onRecord(9.87)}>
+      stopwatch
+    </button>
+  ),
 }));
 vi.mock('@/library/api', () => ({ libraryImageUrl: (path: string) => `https://img.test/${path}` }));
-vi.mock('@/auth/AuthProvider', () => ({ useAuth: () => ({ user: { id: 'me' } }) }));
-vi.mock('@/clock/useWakeLock', () => ({ useWakeLock: (on: boolean) => api.wake(on) }));
 
 const TODAY = '2026-01-08'; // day 4 of the rotation: Inside-Inside Touches
 const BEFORE = '2026-01-02';
-const at = (level: number, donesAtLevel = 0, firstDoneOn: string | null = BEFORE): DrillLevel => ({
-  level,
-  donesAtLevel,
-  firstDoneOn,
-});
+const at = (level: number, firstDoneOn: string | null = BEFORE): DrillLevel => ({ level, firstDoneOn });
 /** A child who has trained before: on the team's rotation. */
 const seasoned = (over: Record<string, DrillLevel> = {}) =>
-  new Map(SLUGS.map((s) => [`id-${s}`, over[s] ?? at(1, 0, s === 'toe-taps' ? BEFORE : null)]));
+  new Map(SLUGS.map((s) => [`id-${s}`, over[s] ?? at(1, s === 'toe-taps' ? BEFORE : null)]));
 const done = (slug: string, o: Partial<Completion> = {}): Completion => ({
   id: `c-${slug}`,
   player_id: 'p1',
@@ -92,10 +118,38 @@ const done = (slug: string, o: Partial<Completion> = {}): Completion => ({
   created_at: `${TODAY}T10:00:00Z`,
   ...o,
 });
-const show = () =>
+const attempt = (slug: string, o: Partial<Attempt> = {}): Attempt => ({
+  id: `a-${slug}-${o.done_on ?? TODAY}`,
+  player_id: 'p1',
+  item_id: `id-${slug}`,
+  level: 1,
+  kind: 'reps',
+  reps: 30,
+  seconds: null,
+  mode: 'parent',
+  done_on: TODAY,
+  recorded_by: 'me',
+  created_at: `${TODAY}T10:00:00Z`,
+  previous_best_reps: null,
+  previous_best_seconds: null,
+  is_record: false,
+  unlocked_level: null,
+  old_course: false,
+  ...o,
+});
+const best = (o: Partial<Best>): Best => ({ reps: null, seconds: null, attempts: 1, ...o });
+const show = (path = '/training') =>
   render(
     <ToastProvider>
-      <DailyDrills playerId="p1" playerName="Sam" sport="soccer" today={TODAY} />
+      <MemoryRouter initialEntries={[path]}>
+        <Routes>
+          <Route
+            path="/training"
+            element={<DailyDrills playerId="p1" playerName="Sam" sport="soccer" today={TODAY} />}
+          />
+          <Route path="/training/result/:attemptId" element={<p>the results page</p>} />
+        </Routes>
+      </MemoryRouter>
     </ToastProvider>,
   );
 const todays = () => screen.getAllByRole('listitem')[0] as HTMLElement;
@@ -130,18 +184,19 @@ describe('one drill a day (D138)', () => {
   });
 });
 
-describe('Daily Drills (D138)', () => {
+describe('Daily Drills (D138, D140)', () => {
   beforeEach(() => {
     api.completions = [];
     api.levels = seasoned();
+    api.bests = new Map();
+    api.attempts = [];
     api.markDone.mockReset();
-    api.undoDone.mockReset();
+    api.record.mockReset();
     api.setLevel.mockReset();
-    api.wake.mockReset();
   });
 
-  it('shows one drill for today, open, at the child’s level: the instruction, the parent’s job and Done', () => {
-    api.levels = seasoned({ 'inside-inside-touches': at(2, 1) });
+  it('shows one drill for today at the child’s level: the instruction, the parent’s job and the challenge', () => {
+    api.levels = seasoned({ 'inside-inside-touches': at(2) });
     show();
     expect(screen.getByText('Today’s drill')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(1);
@@ -150,23 +205,23 @@ describe('Daily Drills (D138)', () => {
     expect(card.getByText('Level 2')).toBeInTheDocument();
     expect(card.getByText('Say two.')).toBeInTheDocument();
     expect(card.getByText('Job two.')).toBeInTheDocument();
-    expect(card.getByRole('button', { name: 'Done' })).toBeInTheDocument();
-    // nothing else on the card: no other level, no tips, no mode switch, no timer
+    expect(card.getByRole('button', { name: 'timer 60' })).toBeInTheDocument();
+    expect(todays()).toHaveTextContent('Level 2 best: no score yet');
+    expect(card.getByText('Target: 70 or more unlocks Level 3')).toBeInTheDocument();
+    // the simple Done button is gone, and nothing else is on the card until More
+    expect(card.queryByRole('button', { name: 'Done' })).toBeNull();
     expect(card.queryByText('Say one.')).toBeNull();
+    expect(card.queryByText('Harder two.')).toBeNull();
     expect(card.queryByText(/Stay on the balls/)).toBeNull();
     expect(card.queryByRole('radio')).toBeNull();
-    expect(card.queryByRole('timer')).toBeNull();
-    expect(card.queryByText(/Intro of/)).toBeNull();
-    expect(api.wake).toHaveBeenLastCalledWith(false);
   });
 
   it('tags the card with the drill’s Library group (D139)', () => {
-    api.levels = seasoned();
     show();
     expect(within(todays()).getByText('Dribbling and Ball Mastery')).toHaveClass('drilltag');
   });
   it('a brand-new child gets Toe Taps at Level 1', () => {
-    api.levels = new Map(SLUGS.map((s) => [`id-${s}`, at(1, 0, null)]));
+    api.levels = new Map(SLUGS.map((s) => [`id-${s}`, at(1, null)]));
     show();
     const card = within(todays());
     expect(card.getByText('Drill toe-taps')).toBeInTheDocument();
@@ -174,11 +229,11 @@ describe('Daily Drills (D138)', () => {
     expect(card.getByText('Say one.')).toBeInTheDocument();
   });
 
-  it('the picture shows only when the level has one', () => {
+  it('the picture slot stays empty until the level has a picture', () => {
     show(); // Level 1 has no picture
     expect(todays().querySelector('img')).toBeNull();
   });
-  it('and comes from the level’s own image', () => {
+  it('and then shows the level’s own image', () => {
     api.levels = seasoned({ 'inside-inside-touches': at(2) });
     show();
     expect(todays().querySelector('img.drillimg')).toHaveAttribute(
@@ -187,28 +242,41 @@ describe('Daily Drills (D138)', () => {
     );
   });
 
-  it('Done records the drill at the child’s level, with a parent by default', async () => {
+  it('Record Score saves the attempt at the child’s level and opens its results page', async () => {
     api.levels = seasoned({ 'inside-inside-touches': at(3) });
-    const user = userEvent.setup();
+    api.record.mockImplementation((_v: unknown, o: { onSuccess: (id: string) => void }) =>
+      o.onSuccess('att-1'),
+    );
     show();
-    await user.click(screen.getByRole('button', { name: 'Done' }));
-    expect(api.markDone).toHaveBeenCalledWith(
-      { itemId: 'id-inside-inside-touches', level: 3, mode: 'parent' },
+    await userEvent.click(screen.getByRole('button', { name: 'timer 60' }));
+    expect(api.record).toHaveBeenCalledWith(
+      { itemId: 'id-inside-inside-touches', level: 3, mode: 'parent', score: { reps: 41 } },
       expect.anything(),
     );
+    expect(screen.getByText('the results page')).toBeInTheDocument();
   });
 
-  it('“More” holds the other levels, the tips and On My Own; a parent can change the level', async () => {
-    api.levels = seasoned({ 'inside-inside-touches': at(1) });
+  it('shows the personal best of the level the child is on, and no target at the top level', () => {
+    api.levels = seasoned({ 'inside-inside-touches': at(3) });
+    api.bests = new Map([
+      ['id-inside-inside-touches:1', best({ reps: 99 })],
+      ['id-inside-inside-touches:3', best({ reps: 52 })],
+    ]);
+    show();
+    expect(todays()).toHaveTextContent('Level 3 best: 52');
+    expect(within(todays()).queryByText(/^Target:/)).toBeNull();
+  });
+
+  it('“More” holds Make it harder, the levels, the tips and On My Own; a parent can change the level', async () => {
+    api.levels = seasoned({ 'inside-inside-touches': at(2) });
     const user = userEvent.setup();
     show();
     await user.click(screen.getByRole('button', { name: 'More' }));
+    expect(screen.getByText('Harder two.').closest('p')).toHaveTextContent('Make it harder: Harder two.');
     const levels = within(screen.getByRole('radiogroup', { name: /level/ })).getAllByRole('radio');
     expect(levels).toHaveLength(3);
-    expect(levels[0]).toBeChecked();
-    expect(
-      screen.getByText(/Each Done moves up a level next time: Level 2 after this one/),
-    ).toBeInTheDocument();
+    expect(levels[1]).toBeChecked();
+    expect(screen.getByText(/A score that meets the target unlocks Level 3/)).toBeInTheDocument();
     expect(screen.getByText(/Stay on the balls of your feet/)).toBeInTheDocument();
     expect(screen.getByText('Alone: inside-inside-touches.')).toBeInTheDocument();
     expect(screen.queryByText(/Side view/)).toBeNull(); // the clip description is not shown
@@ -217,36 +285,35 @@ describe('Daily Drills (D138)', () => {
       { itemId: 'id-inside-inside-touches', level: 3 },
       expect.anything(),
     );
-    // On My Own: the parent's job gives way to the solo version, and Done records it so
+    // On My Own: the parent's job gives way to the solo version, and the score is recorded so
     await user.click(screen.getByRole('radio', { name: 'On My Own' }));
-    expect(screen.queryByText('Job one.')).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Done' }));
-    expect(api.markDone).toHaveBeenCalledWith(
-      { itemId: 'id-inside-inside-touches', level: 1, mode: 'solo' },
+    expect(screen.queryByText('Job two.')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'timer 60' }));
+    expect(api.record).toHaveBeenCalledWith(
+      { itemId: 'id-inside-inside-touches', level: 2, mode: 'solo', score: { reps: 41 } },
       expect.anything(),
     );
   });
 
-  it('a finished drill says “Done for today”, keeps the level that was done, and offers Undo to its parent', async () => {
-    // the Done at Level 1 moved the child up; the card still shows what was done
-    api.levels = seasoned({ 'inside-inside-touches': at(2, 0) });
-    api.completions = [done('inside-inside-touches', { level: 1 })];
-    const user = userEvent.setup();
+  it('a drill with a score today says “Done for today”, and can be tried again', () => {
+    api.completions = [done('inside-inside-touches')];
     show();
     expect(screen.getByText('Done for today!').closest('p')).toHaveTextContent(
       'Done for today! Great work, Sam.',
     );
     const card = within(todays());
     expect(card.getByRole('img', { name: 'Done today' })).toBeInTheDocument();
-    expect(card.getByText('Say one.')).toBeInTheDocument();
-    expect(card.queryByRole('button', { name: 'Done' })).toBeNull();
-    await user.click(card.getByRole('button', { name: 'Undo' }));
-    expect(api.undoDone).toHaveBeenCalledWith('c-inside-inside-touches', expect.anything());
+    expect(card.getByRole('button', { name: 'timer 60' })).toBeInTheDocument();
+    expect(card.queryByRole('button', { name: 'Undo' })).toBeNull();
   });
-  it('but not to another parent', () => {
-    api.completions = [done('inside-inside-touches', { recorded_by: 'other' })];
+
+  it('opens at the new level once a score has unlocked it', () => {
+    // the server moved the child up when the score met the target
+    api.levels = seasoned({ 'inside-inside-touches': at(2) });
+    api.completions = [done('inside-inside-touches', { level: 1 })];
     show();
-    expect(screen.queryByRole('button', { name: 'Undo' })).toBeNull();
+    expect(within(todays()).getByText('Level 2')).toBeInTheDocument();
+    expect(within(todays()).getByText('Say two.')).toBeInTheDocument();
   });
 
   it('“Do another” lists the other nine, closed, recorded the same way', async () => {
@@ -255,26 +322,77 @@ describe('Daily Drills (D138)', () => {
     await user.click(screen.getByRole('button', { name: 'Do another' }));
     expect(screen.getByText('The other 9 drills')).toBeInTheDocument();
     expect(screen.getAllByRole('listitem')).toHaveLength(10);
-    expect(screen.getAllByRole('button', { name: 'Done' })).toHaveLength(1); // only today's is open
-    await user.click(screen.getByRole('button', { name: /Drill juggling/ }));
-    const juggling = within(
-      screen.getByRole('button', { name: /Drill juggling/ }).closest('li') as HTMLElement,
+    expect(screen.getAllByRole('button', { name: 'timer 60' })).toHaveLength(1); // only today's is open
+    await user.click(screen.getByRole('button', { name: /Drill sole-rolls/ }));
+    const rolls = within(
+      screen.getByRole('button', { name: /Drill sole-rolls/ }).closest('li') as HTMLElement,
     );
-    await user.click(juggling.getByRole('button', { name: 'Done' }));
-    expect(api.markDone).toHaveBeenCalledWith(
-      { itemId: 'id-juggling', level: 1, mode: 'parent' },
+    await user.click(rolls.getByRole('button', { name: 'timer 60' }));
+    expect(api.record).toHaveBeenCalledWith(
+      { itemId: 'id-sole-rolls', level: 1, mode: 'parent', score: { reps: 41 } },
       expect.anything(),
     );
   });
 
-  it('Cone Dribbling keeps its stopwatch on the card, at the child’s level', async () => {
-    api.levels = seasoned({ 'cone-dribbling': at(2) });
+  it('Try Again from the results page opens that drill', () => {
+    show('/training?drill=sole-rolls');
+    expect(screen.getAllByRole('listitem')).toHaveLength(10);
+    expect(screen.getByRole('button', { name: /Drill sole-rolls/ })).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getAllByRole('button', { name: 'timer 60' })).toHaveLength(2);
+  });
+  it('and today’s own drill needs no list', () => {
+    show('/training?drill=inside-inside-touches');
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+  });
+
+  it('Cone Dribbling is a stopwatch: a time is recorded, with the course diagram and old five-cone times under More', async () => {
+    api.levels = seasoned({ 'cone-dribbling': at(1) });
+    api.bests = new Map([['id-cone-dribbling:1', best({ seconds: 9.5 })]]);
+    api.attempts = [
+      attempt('cone-dribbling', { kind: 'time', reps: null, seconds: 9.5 }),
+      attempt('cone-dribbling', {
+        kind: 'time',
+        reps: null,
+        seconds: 5.9,
+        done_on: '2025-11-02',
+        old_course: true,
+      }),
+      attempt('cone-dribbling', { kind: 'time', reps: null, seconds: 7, level: 2 }),
+    ];
     const user = userEvent.setup();
-    show();
-    expect(screen.queryByRole('timer')).toBeNull(); // no timer on any other drill
-    await user.click(screen.getByRole('button', { name: 'Do another' }));
-    await user.click(screen.getByRole('button', { name: /Drill cone-dribbling/ }));
-    expect(screen.getByRole('timer')).toHaveTextContent('stopwatch at level 2');
-    expect(api.wake).toHaveBeenLastCalledWith(true); // the screen stays awake for the stopwatch
+    show('/training?drill=cone-dribbling');
+    const cones = screen.getByRole('button', { name: /Drill cone-dribbling/ }).closest('li') as HTMLElement;
+    expect(cones).toHaveTextContent('Level 1 best: 9.50 s');
+    expect(within(cones).getByText('Target: 10.0 s or less unlocks Level 2')).toBeInTheDocument();
+    await user.click(within(cones).getByRole('button', { name: 'stopwatch' }));
+    expect(api.record).toHaveBeenCalledWith(
+      { itemId: 'id-cone-dribbling', level: 1, mode: 'parent', score: { seconds: 9.87 } },
+      expect.anything(),
+    );
+    await user.click(within(cones).getByRole('button', { name: 'More' }));
+    expect(within(cones).getByRole('img', { name: /Overhead diagram: 4 cones/ })).toBeInTheDocument();
+    const scores = within(within(cones).getByRole('list', { name: 'Level 1 recent scores' })).getAllByRole(
+      'listitem',
+    );
+    // this level's only; the old course is kept and labelled, though it is no personal best
+    expect(scores).toHaveLength(2);
+    expect(scores[0]).toHaveTextContent('9.50 s');
+    expect(scores[1]).toHaveTextContent('five cones');
+    expect(scores[1]).toHaveTextContent('5.90 s');
+  });
+
+  it('a level written without a challenge keeps a plain Done', async () => {
+    api.levels = seasoned({ juggling: at(3) });
+    const user = userEvent.setup();
+    show('/training?drill=juggling');
+    const juggling = within(
+      screen.getByRole('button', { name: /Drill juggling/ }).closest('li') as HTMLElement,
+    );
+    expect(juggling.queryByRole('button', { name: /timer/ })).toBeNull();
+    await user.click(juggling.getByRole('button', { name: 'Done' }));
+    expect(api.markDone).toHaveBeenCalledWith(
+      { itemId: 'id-juggling', level: 3, mode: 'parent' },
+      expect.anything(),
+    );
   });
 });

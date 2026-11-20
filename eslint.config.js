@@ -16,6 +16,7 @@ export default tseslint.config(
       'coverage',
       'node_modules',
       'legacy',
+      'design',
       'scripts',
       'docs',
       'playwright-report',

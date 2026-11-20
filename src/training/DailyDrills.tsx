@@ -1,23 +1,25 @@
 import { useMemo, useState } from 'react';
-import { useAuth } from '@/auth/AuthProvider';
-import { useWakeLock } from '@/clock/useWakeLock';
+import { useNavigate, useSearchParams } from 'react-router';
 import { Footer, Group, Section } from '@/components/List';
 import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
 import { type SportKey } from '@/sports/types';
 import {
+  type Attempt,
+  bestKey,
   type Completion,
   type DrillLevel,
   type HomeDrill,
+  useAttempts,
+  useBests,
   useCompletions,
   useDrillLevels,
   useHomeDrills,
   useMarkDone,
+  useRecordAttempt,
   useSetDrillLevel,
-  useUndoDone,
 } from './api';
 import { DrillCard } from './DrillCard';
-import { DrillStopwatch } from './DrillStopwatch';
 import { drillForChild } from './rotation';
 
 export interface DailyDrillsProps {
@@ -28,24 +30,32 @@ export interface DailyDrillsProps {
   today: string;
 }
 
-const START: DrillLevel = { level: 1, donesAtLevel: 0, firstDoneOn: null };
+const START: DrillLevel = { level: 1, firstDoneOn: null };
+const NONE: readonly Attempt[] = [];
 
 /**
- * Daily Drills (D138): one drill a day, the same for everyone on the team, each child at their
- * own level; then "Do another" with the rest. A child's very first drill is Toe Taps. Every Done
- * is recorded the same way, whichever list it came from.
+ * Daily Drills (D138, D140): one drill a day, the same for everyone on the team, each child at
+ * their own level; then "Do another" with the rest. A child's very first drill is Toe Taps. Each
+ * drill is a timed challenge: Record Score saves the attempt and opens its results page, and the
+ * day's first score of a drill is that drill Done. `?drill=<slug>` opens one of the other drills
+ * (the results page's "Try Again").
  */
 export function DailyDrills({ playerId, playerName, sport, today }: DailyDrillsProps) {
-  const { user } = useAuth();
   const toast = useToast();
+  const navigate = useNavigate();
+  const [search] = useSearchParams();
   const drills = useHomeDrills(sport);
   const completions = useCompletions(playerId, today);
   const levels = useDrillLevels(playerId);
+  const bests = useBests(playerId);
+  const attempts = useAttempts(playerId);
   const markDone = useMarkDone(playerId, today);
-  const undoDone = useUndoDone(playerId);
+  const record = useRecordAttempt(playerId);
   const setLevel = useSetDrillLevel(playerId);
-  const [open, setOpen] = useState<string | null>(null);
-  const [showAll, setShowAll] = useState(false);
+  const asked = search.get('drill');
+  const [open, setOpen] = useState<string | null>(asked);
+  // null until the parent taps: open by itself only when one of the other drills was asked for
+  const [toggled, setToggled] = useState<boolean | null>(null);
 
   const all = useMemo(() => drills.data ?? [], [drills.data]);
   // the day of the child's first Done of any drill: before it, and on it, the drill is Toe Taps
@@ -66,9 +76,11 @@ export function DailyDrills({ playerId, playerName, sport, today }: DailyDrillsP
     for (const c of completions.data ?? []) if (c.done_on === today) map.set(c.item_id, c);
     return map;
   }, [completions.data, today]);
-
-  // the screen stays awake only where a stopwatch may be running
-  useWakeLock(!!todays?.home.stopwatch || all.some((d) => d.home.stopwatch && open === d.id));
+  const byDrill = useMemo(() => {
+    const map = new Map<string, Attempt[]>();
+    for (const a of attempts.data ?? []) map.set(a.item_id, [...(map.get(a.item_id) ?? []), a]);
+    return map;
+  }, [attempts.data]);
 
   if (drills.isPending || completions.isPending || levels.isPending) {
     return (
@@ -94,38 +106,42 @@ export function DailyDrills({ playerId, playerName, sport, today }: DailyDrillsP
     );
   }
 
-  const busy = markDone.isPending || undoDone.isPending || setLevel.isPending;
+  const busy = markDone.isPending || record.isPending || setLevel.isPending;
   const others = all.filter((d) => d.id !== todays.id);
+  const showAll = toggled ?? others.some((d) => d.slug === asked);
 
   const card = (d: HomeDrill, pinned: boolean) => {
-    const done = doneToday.get(d.id) ?? null;
-    const mine = done !== null && !done.id.startsWith('temp-') && done.recorded_by === user?.id;
+    const level = levels.data.get(d.id) ?? START;
     return (
       <DrillCard
         key={d.id}
         drill={d}
         pinned={pinned}
-        open={pinned || open === d.id}
-        onToggle={() => setOpen(open === d.id ? null : d.id)}
-        level={levels.data.get(d.id) ?? START}
-        done={done}
+        open={pinned || open === d.slug}
+        onToggle={() => setOpen(open === d.slug ? null : d.slug)}
+        level={level}
+        done={doneToday.get(d.id) ?? null}
+        best={bests.data?.get(bestKey(d.id, level.level)) ?? null}
+        attempts={byDrill.get(d.id) ?? NONE}
         busy={busy}
-        onDone={(level, mode) =>
-          markDone.mutate({ itemId: d.id, level, mode }, { onError: (e) => toast(errorMessage(e)) })
-        }
-        onUndo={mine ? () => undoDone.mutate(done.id, { onError: (e) => toast(errorMessage(e)) }) : undefined}
-        onSetLevel={(level) =>
-          setLevel.mutate(
-            { itemId: d.id, level },
-            { onError: (e) => toast(errorMessage(e)), onSuccess: () => toast(`${d.title} · Level ${level}`) },
+        onRecord={(lv, mode, score) =>
+          record.mutate(
+            { itemId: d.id, level: lv, mode, score },
+            {
+              onSuccess: (id) => void navigate(`/training/result/${id}`),
+              // the attempt stays on the card, so Record Score can be tapped again
+              onError: (e) => toast(errorMessage(e)),
+            },
           )
         }
-        extra={
-          // the parent runs the stopwatch; alone, the drill counts clean runs instead
-          d.home.stopwatch
-            ? (level, mode) =>
-                mode === 'parent' && <DrillStopwatch playerId={playerId} itemId={d.id} level={level} />
-            : undefined
+        onDone={(lv, mode) =>
+          markDone.mutate({ itemId: d.id, level: lv, mode }, { onError: (e) => toast(errorMessage(e)) })
+        }
+        onSetLevel={(lv) =>
+          setLevel.mutate(
+            { itemId: d.id, level: lv },
+            { onError: (e) => toast(errorMessage(e)), onSuccess: () => toast(`${d.title} · Level ${lv}`) },
+          )
         }
       />
     );
@@ -152,7 +168,7 @@ export function DailyDrills({ playerId, playerName, sport, today }: DailyDrillsP
             type="button"
             className="linkbtn"
             aria-expanded={showAll}
-            onClick={() => setShowAll(!showAll)}
+            onClick={() => setToggled(!showAll)}
           >
             {showAll ? 'Hide the other drills' : 'Do another'}
           </button>
@@ -165,7 +181,8 @@ export function DailyDrills({ playerId, playerName, sport, today }: DailyDrillsP
         </>
       )}
       <Footer>
-        One drill marked Done counts for today. Each Done moves that drill up a level next time.
+        The first score of the day on a drill counts for today. A score that meets a level’s target unlocks
+        the next level.
       </Footer>
     </>
   );

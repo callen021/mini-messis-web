@@ -691,3 +691,18 @@
 .libcard small + small {
   margin-top: 4px;
 }
+
+/* a drill level's challenge and "Make it harder" on its Library page (D140) */
+.homelevels .homechallenge,
+.homelevels .homeharder {
+  display: block;
+  margin-top: 4px;
+  font-size: 14px;
+  color: var(--text2);
+}
+.homelevels .homechallenge {
+  font-weight: 600;
+}
+.homedrill .drill {
+  margin: 14px 0;
+}

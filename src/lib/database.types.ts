@@ -593,6 +593,63 @@ export type Database = {
           },
         ]
       }
+      home_drill_attempts: {
+        Row: {
+          created_at: string
+          done_on: string
+          id: string
+          is_record: boolean
+          item_id: string
+          kind: string
+          level: number
+          mode: Database["public"]["Enums"]["drill_mode"]
+          old_course: boolean
+          player_id: string
+          previous_best_reps: number | null
+          previous_best_seconds: number | null
+          recorded_by: string | null
+          reps: number | null
+          seconds: number | null
+          unlocked_level: number | null
+        }
+        Insert: {
+          created_at?: string
+          done_on: string
+          id?: string
+          is_record?: boolean
+          item_id: string
+          kind: string
+          level: number
+          mode?: Database["public"]["Enums"]["drill_mode"]
+          old_course?: boolean
+          player_id: string
+          previous_best_reps?: number | null
+          previous_best_seconds?: number | null
+          recorded_by?: string | null
+          reps?: number | null
+          seconds?: number | null
+          unlocked_level?: number | null
+        }
+        Update: {
+          created_at?: string
+          done_on?: string
+          id?: string
+          is_record?: boolean
+          item_id?: string
+          kind?: string
+          level?: number
+          mode?: Database["public"]["Enums"]["drill_mode"]
+          old_course?: boolean
+          player_id?: string
+          previous_best_reps?: number | null
+          previous_best_seconds?: number | null
+          recorded_by?: string | null
+          reps?: number | null
+          seconds?: number | null
+          unlocked_level?: number | null
+        }
+        Relationships: []
+      }
       home_drill_times: {
         Row: {
           created_at: string
@@ -2415,10 +2472,34 @@ export type Database = {
         Args: { p_player_id: string; p_user_id: string }
         Returns: undefined
       }
+      delete_drill_attempt: {
+        Args: { p_attempt_id: string }
+        Returns: undefined
+      }
+      home_drill_bests: {
+        Args: { p_player_id: string }
+        Returns: {
+          attempts: number
+          best_reps: number
+          best_seconds: number
+          item_id: string
+          level: number
+        }[]
+      }
+      record_drill_attempt: {
+        Args: {
+          p_item_id: string
+          p_level: number
+          p_mode?: Database["public"]["Enums"]["drill_mode"]
+          p_player_id: string
+          p_reps?: number
+          p_seconds?: number
+        }
+        Returns: string
+      }
       home_drill_levels: {
         Args: { p_player_id: string }
         Returns: {
-          dones_at_level: number
           first_done_on: string
           item_id: string
           level: number

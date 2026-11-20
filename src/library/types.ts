@@ -138,11 +138,24 @@ export const DRILL_TYPE_LABEL: Readonly<Record<DrillType, string>> = {
   timed: 'Timed',
   accuracy: 'Accuracy',
 };
+/** How a drill level is scored (D140): reps against a countdown, or a course against a stopwatch. */
+export type ChallengeMode = 'timer' | 'stopwatch';
+export interface Challenge {
+  mode: ChallengeMode;
+  /** The countdown's length; unused by a stopwatch. */
+  seconds: number;
+  /** The score that unlocks the next level: at least this many reps, or at most this many seconds. */
+  target: number | null;
+}
 export interface HomeLevel {
   /** The instruction, one sentence a parent can read aloud; it stands on its own (D138). */
   text: string;
   /** The parent's one line for this level; empty when the drill gives none. */
   parentJob: string;
+  /** "Make it harder", shown under More; empty when the level has none. */
+  harder: string;
+  /** The timed challenge; null for content written before D140. */
+  challenge: Challenge | null;
   /** One picture per level; null until one is supplied, and then nothing is shown. */
   image: StepImage | null;
   /** Set when one level is measured differently from the drill ("Repetition, then accuracy"). */
@@ -166,8 +179,10 @@ export interface HomeSection {
   tips: string;
   /** What the demo clip will show. Stored for later: there are no videos yet, nothing shows it. */
   clip: string;
-  /** The drill has the built-in stopwatch and personal bests. */
+  /** Stored since D129 for Cone Dribbling; the level's `challenge` decides the mode now (D140). */
   stopwatch: boolean;
+  /** The course, drawn (Cone Dribbling); null for most drills. */
+  diagram: DiagramSpec | null;
 }
 
 /** "Level 3 · Accuracy" when a level is measured differently from its drill. */
@@ -304,18 +319,30 @@ function parseElement(v: unknown): DiagramElement | null {
   }
 }
 
-function parseSetup(v: unknown): SetupSection | null {
-  if (!isObj(v)) return null;
-  const elements = isObj(v.diagram)
-    ? list(v.diagram.elements)
+function parseDiagram(v: unknown): DiagramSpec | null {
+  const elements = isObj(v)
+    ? list(v.elements)
         .map(parseElement)
         .filter((e): e is DiagramElement => e !== null)
     : [];
+  return elements.length ? { elements } : null;
+}
+
+function parseChallenge(v: unknown): Challenge | null {
+  if (!isObj(v)) return null;
+  const mode = v.mode === 'timer' || v.mode === 'stopwatch' ? v.mode : null;
+  if (!mode) return null;
+  const seconds = num(v.seconds);
+  return { mode, seconds: seconds !== null && seconds > 0 ? seconds : 60, target: num(v.target) };
+}
+
+function parseSetup(v: unknown): SetupSection | null {
+  if (!isObj(v)) return null;
   return {
     params: list(v.params)
       .map(parseParam)
       .filter((p): p is ParamDef => p !== null),
-    diagram: elements.length ? { elements } : null,
+    diagram: parseDiagram(v.diagram),
     goal: str(v.goal),
     steps: strings(v.steps),
     equipment: strings(v.equipment),
@@ -338,6 +365,8 @@ function parseHome(v: unknown): HomeSection | null {
       .map((l) => ({
         text: str(l.text),
         parentJob: str(l.parent_job),
+        harder: str(l.harder),
+        challenge: parseChallenge(l.challenge),
         image: parseImage(l.image),
         type: DRILL_TYPES.find((t) => t === l.type) ?? null,
       }))
@@ -349,6 +378,7 @@ function parseHome(v: unknown): HomeSection | null {
     tips: str(v.tips),
     clip: str(v.clip),
     stopwatch: v.stopwatch === true,
+    diagram: parseDiagram(v.diagram),
   };
 }
 

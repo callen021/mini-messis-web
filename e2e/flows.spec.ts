@@ -822,9 +822,10 @@ test.describe('coach and parent flows', () => {
     await expect(drills.locator('.libgroup')).toHaveText(GROUPS);
   });
 
-  test('Daily Drills: the parent marks today’s drill Done, the streak goes up by one, and when that drill comes round again the child is a level up (D138)', async ({
-    browser,
-  }) => {
+  test('Daily Drills: a timed challenge on the card: 3, 2, 1, the countdown, reps counted and corrected after TIME!, Record Score to the results page; the streak goes up by one, the target unlocks Level 2, a better score is a NEW RECORD, a score can be deleted; Cone Dribbling runs on a stopwatch with pause and resume (D138, D140)', async () => {
+    // the page's clock can be moved on, so a 60-second countdown takes no time here
+    await parent.clock.install();
+    await parent.setViewportSize({ width: 375, height: 812 });
     await parent.goto('/training');
     // a child with no Done yet starts with Toe Taps at Level 1, whatever the date
     const card = parent.locator('.drillcard.pinned');
@@ -832,10 +833,15 @@ test.describe('coach and parent flows', () => {
     // the tag is the drill's Library group (D139)
     await expect(card.locator('.drilltag')).toHaveText('Dribbling and Ball Mastery');
     await expect(card).toContainText('Level 1');
-    await expect(card).toContainText('Tap the top of the ball with one foot, then the other. 20 times.');
-    await expect(card).toContainText('Your job: Count the touches out loud together.');
-    // nothing to follow on screen: no timer, and the other levels stay behind More
-    await expect(card.getByRole('timer')).toHaveCount(0);
+    await expect(card).toContainText(
+      'Tap the top of the ball with one foot, then the other. Count every tap.',
+    );
+    await expect(card).toContainText('Your job: Tap + for every clean one.');
+    await expect(card).toContainText('Level 1 best: no score yet');
+    await expect(card).toContainText('Target: 40 or more unlocks Level 2');
+    await expect(card.getByRole('timer')).toHaveText('1:00');
+    // the challenge replaces the Done button; the other levels stay behind More
+    await expect(card.getByRole('button', { name: 'Done', exact: true })).toHaveCount(0);
     await expect(card.getByRole('radio')).toHaveCount(0);
     const streak = parent.locator('.streakcard');
     const count = streak.locator('.count b');
@@ -843,46 +849,144 @@ test.describe('coach and parent flows', () => {
     const before = Number(await count.textContent());
     await expect(streak).not.toContainText('Done for today.');
 
-    await card.getByRole('button', { name: 'Done' }).click();
+    const plus = card.getByRole('button', { name: 'One more' });
+    const minus = card.getByRole('button', { name: 'One fewer' });
+    const reps = card.locator('.chscore');
+    /** Start, wait out the 3, 2, 1, tap + that many times, and run the clock to zero. */
+    const run = async (taps: number) => {
+      await card.getByRole('button', { name: 'Start' }).click();
+      await expect(card.locator('.chcount')).toHaveText('3'); // on the card, not full screen
+      await expect(card).toContainText('Toe Taps');
+      await parent.clock.fastForward(3000);
+      await expect(card.getByRole('timer')).toBeVisible();
+      for (let i = 0; i < taps; i++) await plus.click();
+      await expect(reps).toHaveText(String(taps));
+      // the large buttons and the count fit a 375px phone: nothing scrolls sideways
+      await expect(
+        parent
+          .locator('.app-main')
+          .evaluate((el) => el.scrollWidth <= el.clientWidth && window.scrollX === 0),
+      ).resolves.toBe(true);
+      expect((await plus.boundingBox())?.width).toBeGreaterThanOrEqual(88);
+      await expect(card.getByRole('button', { name: 'Record Score' })).toHaveCount(0);
+      await parent.clock.fastForward(61_000);
+      await expect(card.getByRole('alert')).toHaveText('TIME!');
+    };
+
+    await run(38);
+    // plus and minus still work after the buzzer: a score corrected and entered late
+    await plus.click();
+    await plus.click();
+    await plus.click();
+    await minus.click();
+    await expect(reps).toHaveText('40');
+    await card.getByRole('button', { name: 'Record Score' }).click();
+
+    // the results page: its own address, so a reload shows the same thing
+    await expect(parent).toHaveURL(/\/training\/result\/[0-9a-f-]{36}$/);
+    await expect(parent.getByRole('heading', { level: 1, name: 'Toe Taps' })).toBeVisible();
+    await expect(parent.getByTestId('result-score')).toHaveText('40');
+    await expect(parent.locator('.resultbest')).toHaveText('Personal best: 40');
+    await expect(parent.getByText('First score at this level: that is the one to beat.')).toBeVisible();
+    await expect(parent.getByText('NEW RECORD', { exact: true })).toHaveCount(0);
+    await expect(parent.locator('.resultunlock')).toHaveText(
+      'Level 2 unlocked! Toe Taps opens at Level 2 next time.',
+    );
+    await parent.reload();
+    await expect(parent.getByTestId('result-score')).toHaveText('40');
+    await expect(parent.locator('.resultunlock')).toBeVisible();
+
+    // back on Training: the first score of the day was the Done, and the drill is on Level 2
+    await parent.getByRole('link', { name: 'Back to Training' }).click();
+    await expect(parent).toHaveURL(/\/training$/);
     await expect(parent.getByText('Done for today!')).toBeVisible();
     await expect(count).toHaveText(String(before + 1));
     await expect(streak).toContainText('Done for today.');
-    // today's card keeps showing what was done; More already has the child on the next level
-    await expect(card).toContainText('Level 1');
+    await expect(card.getByRole('img', { name: 'Done today' })).toBeVisible();
+    await expect(card).toContainText('Level 2');
+    await expect(card).toContainText(
+      'Tap the top of the ball with one foot, then the other, looking up at me, not down at the ball. Count every tap.',
+    );
+    await expect(card).toContainText('Target: 70 or more unlocks Level 3');
     await card.getByRole('button', { name: 'More' }).click();
+    await expect(card).toContainText(
+      'Make it harder: Hold up fingers; your child calls out the number without stopping.',
+    );
     await expect(card.getByRole('radio', { name: /^Level 2/ })).toHaveAttribute('aria-checked', 'true');
     await card.getByRole('button', { name: 'Less' }).click();
-    // it survives a reload: the Done and the streak are the server's
-    await parent.reload();
-    await expect(parent.locator('.streakcard .count b')).toHaveText(String(before + 1));
-    await expect(parent.locator('.drillcard.pinned').getByRole('img', { name: 'Done today' })).toBeVisible();
 
-    // Another day on which Toe Taps is the drill: the same account in a second browser whose clock
-    // is set to the last day the team's rotation had Toe Taps. (An earlier day, not a later one: a
-    // browser clock ahead of the server's makes the sign-in look expired. The server's data is
-    // untouched, so this checks what the card shows when the drill is up and not yet done that day.)
-    const day = 86_400_000;
-    const epoch = Date.UTC(2026, 0, 5); // day 1 of the ten-day rotation, Toe Taps
-    const todayNoon = Math.floor(Date.now() / day) * day + 18 * 3_600_000;
-    const sinceToeTaps = (((Math.floor((todayNoon - epoch) / day) % 10) + 10) % 10) + 10;
-    const otherCtx = await browser.newContext({ storageState: await parentCtx.storageState() });
-    try {
-      const other = await otherCtx.newPage();
-      await other.clock.setFixedTime(new Date(todayNoon - sinceToeTaps * day));
-      await other.goto('/training');
-      const again = other.locator('.drillcard.pinned');
-      await expect(again).toContainText('Toe Taps');
-      await expect(again).toContainText('Level 2');
-      await expect(again).toContainText(
-        'Tap the top of the ball with one foot, then the other. 40 times without stopping.',
-      );
-      await expect(again).toContainText(
-        'Your job: Hold up fingers; your child calls out the number without stopping.',
-      );
-      await expect(again.getByRole('button', { name: 'Done' })).toBeVisible();
-    } finally {
-      await otherCtx.close();
-    }
+    // attempts are unlimited: a first score at Level 2, then one that ties it, then one that beats it
+    await run(2);
+    await card.getByRole('button', { name: 'Record Score' }).click();
+    await expect(parent.getByTestId('result-score')).toHaveText('2');
+    await expect(parent.locator('.resultunlock')).toHaveCount(0); // below the target
+    await parent.getByRole('link', { name: 'Try Again' }).click();
+    await expect(card).toContainText('Level 2 best: 2');
+    await run(2);
+    await card.getByRole('button', { name: 'Record Score' }).click();
+    await expect(parent.getByText('That ties the best. One better is a new record.')).toBeVisible();
+    await expect(parent.getByText('NEW RECORD', { exact: true })).toHaveCount(0);
+    await parent.getByRole('link', { name: 'Try Again' }).click();
+    await run(3);
+    await card.getByRole('button', { name: 'Record Score' }).click();
+    await expect(parent.getByText('NEW RECORD', { exact: true })).toBeVisible();
+    await expect(parent.locator('.resultbest')).toHaveText('Personal best: 3 (was 2)');
+    // deleting it puts the best back; the streak and the Done stay, earned by the day's other scores
+    await parent.getByRole('button', { name: 'Delete this score' }).click();
+    await parent
+      .getByRole('dialog', { name: 'Delete this score?' })
+      .getByRole('button', { name: 'Delete this score' })
+      .click();
+    await expect(parent).toHaveURL(/\/training$/);
+    await expect(card).toContainText('Level 2 best: 2');
+    await expect(count).toHaveText(String(before + 1));
+    await expect(card.getByRole('img', { name: 'Done today' })).toBeVisible();
+
+    // leaving mid-attempt abandons it: nothing is saved
+    await card.getByRole('button', { name: 'Start' }).click();
+    await parent.clock.fastForward(3000);
+    await plus.click();
+    await parent.getByRole('radio', { name: 'Skill Tests' }).click();
+    await parent.getByRole('radio', { name: 'Daily Drills' }).click();
+    await expect(card.getByRole('button', { name: 'Start' })).toBeVisible();
+    await expect(card).toContainText('Level 2 best: 2');
+
+    // Cone Dribbling is a stopwatch on four cones: Start, Pause, Resume, Stop, Record Score
+    await parent.getByRole('button', { name: 'Do another' }).click();
+    await parent.getByRole('button', { name: /^Cone Dribbling/ }).click();
+    const cones = parent.locator('.drillcard').filter({ hasText: 'Cone Dribbling' });
+    await expect(cones).toContainText(
+      'Weave the ball through 4 cones set about 3 yards apart, down and back, without knocking one over.',
+    );
+    await expect(cones).toContainText('Your job: Run the stopwatch.');
+    await expect(cones).toContainText('Target: 10.0 s or less unlocks Level 2');
+    const watch = cones.getByRole('timer', { name: 'Stopwatch' });
+    await expect(watch).toHaveText('0.00');
+    await cones.getByRole('button', { name: 'Start' }).click();
+    await parent.clock.fastForward(5000);
+    await cones.getByRole('button', { name: 'Pause' }).click();
+    await expect(watch).toHaveText(/^5\.\d\d$/);
+    await parent.clock.fastForward(30_000); // paused time does not count
+    await expect(watch).toHaveText(/^5\.\d\d$/);
+    await cones.getByRole('button', { name: 'Resume' }).click();
+    await parent.clock.fastForward(2000);
+    await cones.getByRole('button', { name: 'Stop' }).click();
+    await expect(watch).toHaveText(/^7\.\d\d$/);
+    await cones.getByRole('button', { name: 'More' }).click();
+    await expect(
+      cones.getByRole('img', { name: /Overhead diagram: 4 cones, About 3 yd \(9 ft\)/ }),
+    ).toBeVisible();
+    await cones.getByRole('button', { name: 'Record Score' }).click();
+    await expect(parent.getByRole('heading', { level: 1, name: 'Cone Dribbling' })).toBeVisible();
+    await expect(parent.getByText('Course time')).toBeVisible();
+    await expect(parent.getByTestId('result-score')).toHaveText(/^7\.\d\d s$/);
+    await expect(parent.locator('.resultunlock')).toContainText('Level 2 unlocked!');
+    // Try Again opens that drill again, now on Level 2
+    await parent.getByRole('link', { name: 'Try Again' }).click();
+    await expect(cones).toContainText('Level 2');
+    await expect(cones).toContainText('using only your stronger foot');
+    await expect(cones).toContainText('Target: 8.0 s or less unlocks Level 3');
+    await parent.setViewportSize({ width: 412, height: 915 });
   });
 
   test('library games: the Games section opens Coach’s Call full screen in a frame, and the bar leads back (D124)', async () => {

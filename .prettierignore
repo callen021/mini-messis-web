@@ -12,3 +12,4 @@ package-lock.json
 src/lib/database.types.ts
 public
 docs/BUILD-PROMPT.md
+design

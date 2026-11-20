@@ -2049,3 +2049,60 @@ read rule is unchanged: nobody but a platform admin is ever sent a draft.
 
 - Daily Drills reads published drills only, for a platform admin too, so an admin sees what
   parents see there.
+
+### D140. Daily Drills are timed challenges
+
+The Done button is replaced by a timed challenge on every drill level. `design/` holds a
+prototype made outside the project, used for layout and flow only; it is not committed
+(`.gitignore`) and is left out of lint and format.
+
+**Two modes, set per level** (`content.home.levels[n].challenge`: `mode`, `seconds`, `target`).
+
+- _Timer._ Start shows 3, 2, 1 on the card with a beep each, then a 60-second countdown with
+  large plus and minus to count reps; press and hold repeats. At zero a buzzer sounds and the
+  card says "TIME!" for a phone on silent. Plus and minus keep working, so a score can be
+  corrected or entered late. Record Score saves it. There is no typed entry.
+- _Stopwatch_ (Cone Dribbling). Start, Pause and Resume, Stop, Reset, Record Score; counts up, to
+  a hundredth of a second.
+- Time is read from the clock on every tick, so it is right after the browser was in the
+  background. The screen stays awake from Start until the score is recorded. An attempt lives
+  only on the card: leaving the page abandons it.
+
+**Scores.** Every recorded score is kept (`home_drill_attempts`); attempts are unlimited.
+`record_drill_attempt` is the only way in. The first score of the day on a drill marks it Done
+and counts toward the streak; any score counts, zero too.
+
+- _Personal bests_ are per child, drill and level: most reps, least time (`home_drill_bests`).
+  The child's confirmed parents and the team's coaches see them, as with the rest of at-home
+  training; a coach sees them on the player's page.
+- _A record_ is decided on the server and stored on the attempt: a score that beats the best. A
+  tie is not a record, and neither is a first score, which has nothing to beat.
+- _Results page._ `/training/result/<attempt>`: the score, the personal best, NEW RECORD, the
+  level unlocked, Try Again and Back to Training. Being the attempt's own address, a reload
+  shows the same thing.
+- _Delete this score_ is on the results page for whoever recorded it, the same day
+  (`delete_drill_attempt`). When it was the day's only score of the drill the Done goes too. A
+  level it unlocked stays.
+
+**Levels move up on a target.** "One Done moves up a level" (D138) is gone. A child's level on a
+drill is stored (`home_drill_level_overrides`) and moves up when a score at that level meets its
+target: at least so many reps, or at most so many seconds. Only a score at the child's current
+level unlocks. Level 3 has no target. A parent can still set the level under More. The migration
+worked out every child's level one last time under the old rule and stored it, so nobody moved.
+The card always shows the child's current level, so after an unlock the next attempt is at the
+new level.
+
+**Wording.** Every level stands alone, drops its fixed count and says what one count is ("Count
+every tap."). The parent's job on a timer level is "Tap + for every clean one."; what used to be
+the parent's job is "Make it harder" under More (`harder`). Level 2 is a different challenge from
+Level 1: looking up (Toe Taps, Inside-Inside), the weaker foot only (V-Cuts, L-Drags). The
+targets are first estimates, to be tuned from real scores after two weeks of use.
+
+**Cone Dribbling** is four cones about 3 yards apart, down and back, at every level, with a
+diagram under More and on its Library page (`content.home.diagram`); targets 10.0 s and 8.0 s.
+Times on the old five-cone course were copied into the attempts as `old_course`: they show in
+the recent scores, labelled, and are never a personal best. `home_drill_times` is kept, unused
+and no longer written; dropping it is left for later.
+
+Not in this round: the prototype's photos (the picture slot stays empty), Skill Tests, any team
+board or ranking. A drill level written without a challenge would still get a plain Done.

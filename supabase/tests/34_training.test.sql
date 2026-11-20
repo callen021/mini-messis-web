@@ -2,7 +2,7 @@
 -- the date is the server's; coaches and assistant coaches read; other parents see nothing.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(146);
+select plan(131);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -109,25 +109,10 @@ delete from public.home_drill_completions where item_id = (select v from ctx whe
 select is((select count(*)::int from public.home_drill_completions where player_id = 'e6000000-0000-0000-0000-00000000000a'), 1, 'today''s can');
 select pg_temp.logout();
 
--- ---------- stopwatch times on Cone Dribbling (D129) ----------
+-- ---------- the old stopwatch times (D129) are kept and no longer written (D140) ----------
 select pg_temp.login('d6000000-0000-0000-0000-000000000003');
-select lives_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds, run_on) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 2, 12.34, '2020-01-01')$$, 'a parent saves a clean run');
-select is((select seconds::text || '/' || level || '/' || (run_on = public.team_today((select v from ctx where k = 'team')))::text from public.home_drill_times where player_id = 'e6000000-0000-0000-0000-00000000000a'), '12.3/2/true', 'kept to a tenth of a second, at its level, dated today');
-select is((select level::text || '/' || mode from public.home_drill_completions where player_id = 'e6000000-0000-0000-0000-00000000000a' and item_id = (select v from ctx where k = 'cones') and done_on = public.team_today((select v from ctx where k = 'team'))), '2/parent', 'saving a clean run marks the drill Done for the day');
-select lives_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 2, 11.9), ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 1, 15)$$, 'more runs the same day are saved too');
-select is((select count(*)::int from public.home_drill_completions where player_id = 'e6000000-0000-0000-0000-00000000000a' and item_id = (select v from ctx where k = 'cones')), 1, 'and the drill is still Done once');
-select is((select string_agg(level || ':' || best, ' ' order by level) from (select level, min(seconds) as best from public.home_drill_times where player_id = 'e6000000-0000-0000-0000-00000000000a' group by level) b), '1:15.0 2:11.9', 'the personal best is the lowest time per level');
-select throws_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'rolls'), 1, 10)$$, '23514', null, 'only the timed drill takes a time');
-select throws_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 1, 0)$$, '23514', null, 'a time is more than zero');
-select throws_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000b', (select v from ctx where k = 'cones'), 1, 9)$$, '42501', null, 'a parent cannot save a time for another child');
-select throws_ok($$update public.home_drill_times set seconds = 1 where player_id = 'e6000000-0000-0000-0000-00000000000a'$$, '42501', null, 'nobody edits a time');
-select pg_temp.logout();
-select pg_temp.login('d6000000-0000-0000-0000-000000000001');
-select is((select count(*)::int from public.home_drill_times where player_id = 'e6000000-0000-0000-0000-00000000000a'), 3, 'the coach reads the child''s times');
-select throws_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 1, 9)$$, '42501', null, 'and does not save one');
-select pg_temp.logout();
-select pg_temp.login('d6000000-0000-0000-0000-000000000004');
-select is((select count(*)::int from public.home_drill_times), 0, 'another parent sees no times');
+select throws_ok($$insert into public.home_drill_times (player_id, item_id, level, seconds) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 2, 12.3)$$, '42501', null, 'a time is no longer saved to the old table');
+insert into public.home_drill_completions (player_id, item_id, level, mode) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'cones'), 2, 'parent');
 select pg_temp.logout();
 
 -- ---------- the streak count (D138): no days off, a missed day ends it ----------
@@ -272,25 +257,22 @@ select pg_temp.login('d6000000-0000-0000-0000-000000000001');
 select throws_ok($$select public.set_game_went('a6000000-0000-0000-0000-000000000003', 'e6000000-0000-0000-0000-00000000000a')$$, '42501', null, 'a coach does not mark "We went" for a game');
 select pg_temp.logout();
 
--- ---------- levels (D138): Level 1 to start, up after one Done, Level 3 at most, a parent can set it ----------
+-- ---------- levels (D140): stored per child and drill, Level 1 to start; a Done no longer moves one ----------
 -- Kid A so far: Toe Taps twice at Level 1 (on two days), Sole Rolls once at Level 1, Cone Dribbling once at Level 2.
 select pg_temp.login('d6000000-0000-0000-0000-000000000003');
 select is((select count(*)::int from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a')), 10, 'a level for each of the ten drills');
-select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), '2/0', 'one Done at Level 1 moved the child to Level 2; a later Done at the old level adds nothing');
-select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'cones')), '1/0', 'a Done at another level does not count toward this one');
+select is((select level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), 1, 'Dones do not move a child up: that takes a score that meets the target');
 select is((select first_done_on from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), public.team_today((select v from ctx where k = 'team')) - 4, 'with the day of the first Done of the drill');
 insert into public.home_drill_completions (player_id, item_id, level, mode) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 2, 'parent');
-select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), '3/0', 'a Done at the new level moves the child up again');
 delete from public.home_drill_completions where player_id = 'e6000000-0000-0000-0000-00000000000a' and item_id = (select v from ctx where k = 'taps') and done_on = public.team_today((select v from ctx where k = 'team'));
-select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), '2/0', 'taking a Done back takes its progress back');
 insert into public.home_drill_completions (player_id, item_id, level, mode) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 2, 'parent');
 select pg_temp.logout();
 update public.home_drill_completions set done_on = public.team_today((select v from ctx where k = 'team')) - 1 where player_id = 'e6000000-0000-0000-0000-00000000000a' and item_id = (select v from ctx where k = 'taps') and done_on = public.team_today((select v from ctx where k = 'team'));
 select pg_temp.login('d6000000-0000-0000-0000-000000000003');
 insert into public.home_drill_completions (player_id, item_id, level, mode) values ('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 3, 'parent');
-select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), '3/1', 'Level 3 is the top: a Done there stays at Level 3');
-select lives_ok($$select public.set_home_drill_level('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 1)$$, 'a parent sets the level');
-select is((select level || '/' || dones_at_level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), '1/0', 'and the child goes on from there: earlier Dones no longer count');
+select is((select level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), 1, 'whatever level the Dones were at');
+select lives_ok($$select public.set_home_drill_level('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 3)$$, 'a parent sets the level');
+select is((select level from public.home_drill_levels('e6000000-0000-0000-0000-00000000000a') where item_id = (select v from ctx where k = 'taps')), 3, 'and the child is on it');
 select throws_ok($$select public.set_home_drill_level('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'taps'), 4)$$, '22023', null, 'there are three levels');
 select throws_ok($$select public.set_home_drill_level('e6000000-0000-0000-0000-00000000000a', (select v from ctx where k = 'touch'), 2)$$, '22023', null, 'only an at-home drill has a level');
 select throws_ok($$select public.set_home_drill_level('e6000000-0000-0000-0000-00000000000b', (select v from ctx where k = 'taps'), 2)$$, '42501', null, 'a parent cannot set another child''s level');

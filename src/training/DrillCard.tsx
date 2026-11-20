@@ -1,9 +1,23 @@
-import { type ReactNode, useId, useState } from 'react';
+import { useId, useState } from 'react';
 import { Button } from '@/components/Button';
 import { Segmented } from '@/components/Segmented';
+import { fmtDate } from '@/games/format';
 import { libraryImageUrl } from '@/library/api';
+import { DrillDiagram } from '@/library/DrillDiagram';
 import { type HomeLevel, levelLabel } from '@/library/types';
-import { type Completion, type DrillLevel, type DrillMode, type HomeDrill, MODE_LABEL } from './api';
+import {
+  type Attempt,
+  type Best,
+  type Completion,
+  type DrillLevel,
+  type DrillMode,
+  type HomeDrill,
+  MODE_LABEL,
+  type Score,
+} from './api';
+import { scoreText, targetLine } from './challenge';
+import { StopwatchChallenge } from './StopwatchChallenge';
+import { TimerChallenge } from './TimerChallenge';
 
 export interface DrillCardProps {
   drill: HomeDrill;
@@ -15,15 +29,22 @@ export interface DrillCardProps {
   level: DrillLevel;
   /** Today's completion of this drill, if there is one. */
   done: Completion | null;
+  /** The child's personal best at the level shown; null before the first score. */
+  best: Best | null;
+  /** The child's scores on this drill, newest first. */
+  attempts: readonly Attempt[];
   busy: boolean;
+  /** Record Score: saves the attempt and goes to the results page. */
+  onRecord: (level: number, mode: DrillMode, score: Score) => void;
+  /** Done without a score, for a level that has no challenge. */
   onDone: (level: number, mode: DrillMode) => void;
-  /** Take back today's Done; absent when it is not this parent's to take back. */
-  onUndo?: () => void;
   /** A parent picks another level under "More". */
   onSetLevel: (level: number) => void;
-  /** Extra controls for the level and mode (the Cone Dribbling stopwatch). */
-  extra?: (level: number, mode: DrillMode) => ReactNode;
 }
+
+const RECENT = 5;
+const NO_PARAMS = [] as const;
+const NO_OVERRIDES = {} as const;
 
 /** The level's picture, when one is set; nothing at all when it is not, or when it fails to load. */
 function LevelImage({ level }: { level: HomeLevel }) {
@@ -43,11 +64,11 @@ function LevelImage({ level }: { level: HomeLevel }) {
 }
 
 /**
- * One home drill (D138), kept to what a parent needs while watching their child: its group as a
- * tag (D139), the instruction
- * for the child's level to read aloud, a picture when there is one, the parent's job, and Done.
- * No timer and nothing to follow on screen (Cone Dribbling keeps its stopwatch: it is the drill).
- * "More" holds the other levels, the coaching tips and the On My Own version.
+ * One home drill (D138, D140): its group as a tag, the instruction for the child's level to read
+ * aloud, a picture when there is one, the parent's job, and the level's timed challenge: a
+ * countdown with a rep counter, or a stopwatch. Record Score saves the attempt; the day's first
+ * is the drill Done. "More" holds the other levels, "Make it harder", On My Own, the course
+ * diagram, the coaching tips and the recent scores.
  */
 export function DrillCard({
   drill,
@@ -56,11 +77,12 @@ export function DrillCard({
   onToggle,
   level,
   done,
+  best,
+  attempts,
   busy,
+  onRecord,
   onDone,
-  onUndo,
   onSetLevel,
-  extra,
 }: DrillCardProps) {
   const { home } = drill;
   const id = useId();
@@ -68,13 +90,14 @@ export function DrillCard({
   const [more, setMore] = useState(false);
   const count = Math.max(home.levels.length, 1);
   const current = Math.min(Math.max(level.level, 1), count);
-  // once it is Done today the card keeps showing what was done, even if that Done moved the child up
-  const shown = Math.min(Math.max(done?.level ?? current, 1), count);
-  const lvl = home.levels[shown - 1];
+  const lvl = home.levels[current - 1];
+  const challenge = lvl?.challenge ?? null;
+  const target = challenge && targetLine(challenge, current, count);
+  const recent = attempts.filter((a) => a.level === current).slice(0, RECENT);
 
   const body = (
     <div className="drillbody" id={`${id}-body`}>
-      {lvl && <LevelImage key={`${drill.id}:${shown}`} level={lvl} />}
+      {lvl && <LevelImage key={`${drill.id}:${current}`} level={lvl} />}
       <p className="drillsay">{lvl?.text}</p>
       {mode === 'parent'
         ? lvl?.parentJob && (
@@ -88,24 +111,42 @@ export function DrillCard({
             </p>
           )}
 
-      {extra?.(shown, mode)}
-
-      {done ? (
-        <p className="drilldone" role="status">
+      {challenge && (
+        <p className="drillgoal">
           <span>
-            <b>Done today</b> · Level {done.level}
-            {done.mode === 'solo' ? ` · ${MODE_LABEL.solo}` : ''}
+            Level {current} best: <b>{best ? scoreText(best) : 'no score yet'}</b>
           </span>
-          {onUndo && (
-            <button type="button" className="linkbtn" onClick={onUndo} disabled={busy}>
-              Undo
-            </button>
-          )}
+          {target && <span>{target}</span>}
         </p>
-      ) : (
-        <Button className="drillgo" disabled={busy} onClick={() => onDone(shown, mode)}>
+      )}
+      {/* another level or another way of doing it is another attempt: start clean */}
+      {challenge?.mode === 'timer' && (
+        <TimerChallenge
+          key={`${current}:${mode}`}
+          seconds={challenge.seconds}
+          busy={busy}
+          onRecord={(reps) => onRecord(current, mode, { reps })}
+        />
+      )}
+      {challenge?.mode === 'stopwatch' && (
+        <StopwatchChallenge
+          key={`${current}:${mode}`}
+          busy={busy}
+          onRecord={(seconds) => onRecord(current, mode, { seconds })}
+        />
+      )}
+      {!challenge && !done && (
+        <Button className="drillgo" disabled={busy} onClick={() => onDone(current, mode)}>
           Done
         </Button>
+      )}
+      {done && (
+        <p className="drilldone" role="status">
+          <span>
+            <b>Done today</b>
+            {challenge ? ' · go again any time, every score is saved' : ''}
+          </span>
+        </p>
       )}
 
       <p className="drillmore">
@@ -121,6 +162,11 @@ export function DrillCard({
       </p>
       {more && (
         <div className="drillextra" id={`${id}-more`}>
+          {lvl?.harder && (
+            <p className="drillnote">
+              <b>Make it harder:</b> {lvl.harder}
+            </p>
+          )}
           <div className="drilllevels" role="radiogroup" aria-label={`${drill.title}: level`}>
             {home.levels.map((l, i) => (
               <button
@@ -140,9 +186,11 @@ export function DrillCard({
             ))}
           </div>
           <p className="drillnote">
-            {current < count
-              ? `Each Done moves up a level next time: Level ${current + 1} after this one. Tap a level to change it.`
-              : 'This is the top level. Tap a level to change it.'}
+            {current < count && target
+              ? `A score that meets the target unlocks Level ${current + 1}. Tap a level to change it.`
+              : current < count
+                ? 'Tap a level to change it.'
+                : 'This is the top level. Tap a level to change it.'}
           </p>
 
           <Segmented<DrillMode>
@@ -160,6 +208,7 @@ export function DrillCard({
             </p>
           )}
 
+          {home.diagram && <DrillDiagram spec={home.diagram} params={NO_PARAMS} overrides={NO_OVERRIDES} />}
           {home.notes.map((n) => (
             <p className="drillnote" key={n.title}>
               <b>{n.title}:</b> {n.text}
@@ -170,6 +219,20 @@ export function DrillCard({
               <b>Coaching tips:</b> {home.tips}
             </p>
           )}
+
+          {recent.length > 0 && (
+            <ol className="drillscores" aria-label={`Level ${current} recent scores`}>
+              {recent.map((a) => (
+                <li key={a.id}>
+                  <span>
+                    {fmtDate(a.done_on)}
+                    {a.old_course ? ' · five cones' : ''}
+                  </span>
+                  <span>{scoreText(a)}</span>
+                </li>
+              ))}
+            </ol>
+          )}
         </div>
       )}
     </div>
@@ -179,7 +242,7 @@ export function DrillCard({
     <span className="lbl">
       <b>{drill.title}</b>
       {home.skill && <span className="drilltag">{home.skill}</span>}
-      <span className="drilllevel">Level {shown}</span>
+      <span className="drilllevel">Level {current}</span>
     </span>
   );
   const mark = done && (
