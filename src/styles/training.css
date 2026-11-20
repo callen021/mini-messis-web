@@ -202,6 +202,13 @@
 .drillcard.pinned .drillhead:active {
   background: none;
 }
+.drillhead .drilltag {
+  display: block;
+  margin-top: 2px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--tint);
+}
 .drillhead .drilllevel {
   display: block;
   margin-top: 2px;

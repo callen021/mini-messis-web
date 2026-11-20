@@ -38,7 +38,7 @@ export const trainingKeys = {
   levels: (playerId: string) => ['training', playerId, 'levels'] as const,
 };
 
-/** The sport's at-home drills in the sheet's order (soccer only so far). */
+/** The sport's published at-home drills in the sheet's order (soccer only so far); never a draft. */
 export function useHomeDrills(sport: SportKey) {
   return useQuery({
     queryKey: trainingKeys.drills(sport),
@@ -49,6 +49,7 @@ export function useHomeDrills(sport: SportKey) {
         .select('id, slug, title, content')
         .eq('sport', sport)
         .eq('category', 'home')
+        .eq('is_published', true)
         .order('sort_order');
       if (error) throw dbError(error);
       return data.flatMap((r) => {

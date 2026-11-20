@@ -28,7 +28,9 @@ export function useLibraryItems(sport: SportKey) {
     queryFn: async (): Promise<LibraryItemSummary[]> => {
       const { data, error } = await supabase
         .from('library_items')
-        .select('id, slug, sport, category, title, age_min, age_max, sort_order, is_published')
+        .select(
+          'id, slug, sport, category, title, age_min, age_max, sort_order, is_published, drill_group:content->home->>skill',
+        )
         .eq('sport', sport)
         .order('sort_order')
         .order('title');
@@ -53,6 +55,24 @@ export function useLibraryItem(slug: string | undefined) {
       if (error) throw dbError(error);
       return data;
     },
+  });
+}
+
+/**
+ * Publish or unpublish an item (D139). Platform admins only; the database refuses anyone else.
+ * Everything read from the library is refreshed: the list, the item and the Daily Drills.
+ */
+export function useSetLibraryPublished() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (v: { itemId: string; published: boolean }) => {
+      const { error } = await supabase.rpc('set_library_item_published', {
+        p_item_id: v.itemId,
+        p_published: v.published,
+      });
+      if (error) throw dbError(error);
+    },
+    onSettled: () => qc.invalidateQueries({ queryKey: ['library'] }),
   });
 }
 

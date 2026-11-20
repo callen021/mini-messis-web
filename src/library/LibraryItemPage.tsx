@@ -1,13 +1,18 @@
 import { useMemo } from 'react';
 import { useParams, useSearchParams } from 'react-router';
+import { useIsPlatformAdmin } from '@/admin/useIsPlatformAdmin';
 import { STAFF_ROLES } from '@/auth/guards';
 import { useWakeLock } from '@/clock/useWakeLock';
+import { Button } from '@/components/Button';
 import { Group } from '@/components/List';
 import { Page } from '@/components/Page';
 import { Segmented } from '@/components/Segmented';
+import { useActionSheet } from '@/components/Sheet';
+import { useToast } from '@/components/Toast';
 import { errorMessage } from '@/lib/supabase';
 import { useCurrentTeam } from '@/teams/TeamContext';
-import { useLibraryItem } from './api';
+import { ROTATION } from '@/training/rotation';
+import { useLibraryItem, useSetLibraryPublished } from './api';
 import { HomeTab } from './HomeTab';
 import { LearnTab } from './LearnTab';
 import { SetupTab } from './SetupTab';
@@ -25,6 +30,10 @@ export function LibraryItemPage() {
   const { team, role } = useCurrentTeam();
   const item = useLibraryItem(slug);
   const [search, setSearch] = useSearchParams();
+  const isAdmin = useIsPlatformAdmin() === true;
+  const setPublished = useSetLibraryPublished();
+  const sheet = useActionSheet();
+  const toast = useToast();
   useWakeLock(true);
 
   const row = item.data ?? null;
@@ -56,12 +65,37 @@ export function LibraryItemPage() {
   }
 
   const sub = [categoryLabel(row.category), ageText(row.age_min, row.age_max)].filter(Boolean).join(' · ');
+  // Publish / Unpublish (D139): platform admins only, since an item is shared by every team
+  const publish = (published: boolean) =>
+    setPublished.mutate(
+      { itemId: row.id, published },
+      {
+        onSuccess: () => toast(published ? `${row.title} is published` : `${row.title} is a draft again`),
+        onError: (e) => toast(errorMessage(e)),
+      },
+    );
+  const unpublish = async () => {
+    const inRotation = row.category === 'home' && ROTATION.some((s) => s === row.slug);
+    const ok = await sheet({
+      title: `Unpublish ${row.title}?`,
+      message: inRotation
+        ? 'Parents will no longer see it, and another drill will show on its day in Daily Drills.'
+        : 'Parents and coaches will no longer see it.',
+      actions: [{ label: 'Unpublish', value: true, destructive: true }],
+    });
+    if (ok) publish(false);
+  };
   return (
     <Page title={row.title} sub={sub} back={BACK} className="libitem">
       {!row.is_published && (
-        <p className="libdraft" role="status">
-          Draft: only you can see this item until it is published.
-        </p>
+        <div className="libdraft" role="status">
+          Draft: only platform admins can see this item until it is published.
+          {isAdmin && (
+            <Button size="sm" disabled={setPublished.isPending} onClick={() => publish(true)}>
+              Publish
+            </Button>
+          )}
+        </div>
       )}
       {tabs.length > 1 && tab && (
         <Segmented<TabKey>
@@ -82,6 +116,19 @@ export function LibraryItemPage() {
         />
       )}
       {tab === 'home' && content.home && <HomeTab home={content.home} />}
+      {isAdmin && row.is_published && (
+        <p className="libunpublish">
+          Published for every team.{' '}
+          <button
+            type="button"
+            className="linkbtn"
+            disabled={setPublished.isPending}
+            onClick={() => void unpublish()}
+          >
+            Unpublish
+          </button>
+        </p>
+      )}
     </Page>
   );
 }

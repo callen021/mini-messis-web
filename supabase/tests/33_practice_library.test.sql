@@ -4,7 +4,7 @@
 -- built-in content; "Reset to default" is deleting the row.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(34);
+select plan(50);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -81,9 +81,45 @@ select pg_temp.logout();
 -- ---------- a platform admin previews drafts, and still writes nothing (D125) ----------
 select pg_temp.login('d5000000-0000-0000-0000-000000000006');
 select is((select count(*)::int from public.library_items where slug in ('pl-test-draft', 'passing-the-ball', 'win-it-and-keep-it', 'striking-the-ball')), 4, 'a platform admin reads unpublished items');
-select throws_ok($$update public.library_items set is_published = true where slug = 'pl-test-draft'$$, '42501', null, 'but does not publish from the app');
+select throws_ok($$update public.library_items set is_published = true where slug = 'pl-test-draft'$$, '42501', null, 'and cannot write the table directly');
 select pg_temp.logout();
 select is((select count(*)::int from public.library_items i, jsonb_array_elements(i.content #> '{learn,steps}') s where i.slug in ('passing-the-ball', 'win-it-and-keep-it', 'striking-the-ball') and s #>> '{image,path}' like i.slug || '/step-%.webp'), 16, 'their sixteen steps name images under the item''s own folder');
+
+-- ---------- Publish / Unpublish (D139): platform admins only; a parent never sees a draft ----------
+select pg_temp.login('d5000000-0000-0000-0000-000000000003');
+select throws_ok($$select public.set_library_item_published('f5000000-0000-0000-0000-000000000001', true)$$, '42501', null, 'a parent cannot publish');
+select pg_temp.logout();
+select pg_temp.login('d5000000-0000-0000-0000-000000000001');
+select throws_ok($$select public.set_library_item_published('f5000000-0000-0000-0000-000000000001', true)$$, '42501', null, 'a coach cannot publish: items are shared by every team');
+select is((select count(*)::int from public.library_items where slug = 'pl-test-draft'), 0, 'and a coach does not see the draft');
+select pg_temp.logout();
+select pg_temp.login('d5000000-0000-0000-0000-000000000002');
+select throws_ok($$select public.set_library_item_published('f5000000-0000-0000-0000-000000000001', true)$$, '42501', null, 'an assistant coach cannot publish');
+select pg_temp.logout();
+select pg_temp.logout(); select set_config('role', 'anon', true);
+select throws_ok($$select public.set_library_item_published('f5000000-0000-0000-0000-000000000001', true)$$, '42501', null, 'nobody signed out can publish');
+select pg_temp.logout();
+select is((select is_published from public.library_items where slug = 'pl-test-draft'), false, 'the draft is still a draft');
+select pg_temp.login('d5000000-0000-0000-0000-000000000006');
+select throws_ok($$select public.set_library_item_published('f5000000-0000-0000-0000-0000000000ff', true)$$, '22023', null, 'an unknown item is refused');
+select lives_ok($$select public.set_library_item_published('f5000000-0000-0000-0000-000000000001', true)$$, 'a platform admin publishes');
+select pg_temp.logout();
+select pg_temp.login('d5000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from public.library_items where slug = 'pl-test-draft'), 1, 'now the parent reads it');
+select throws_ok($$select public.set_library_item_published('f5000000-0000-0000-0000-000000000001', false)$$, '42501', null, 'a parent cannot unpublish');
+select pg_temp.logout();
+select pg_temp.login('d5000000-0000-0000-0000-000000000006');
+select lives_ok($$select public.set_library_item_published('f5000000-0000-0000-0000-000000000001', false)$$, 'a platform admin unpublishes');
+select is((select count(*)::int from public.library_items where slug = 'pl-test-draft'), 1, 'and still sees it as a draft');
+select pg_temp.logout();
+select pg_temp.login('d5000000-0000-0000-0000-000000000003');
+select is((select count(*)::int from public.library_items where slug = 'pl-test-draft'), 0, 'the parent no longer sees it');
+select pg_temp.logout();
+
+-- ---------- the six drill groups (D139) ----------
+select is((select count(*)::int from public.library_items where category = 'home' and content #>> '{home,skill}' in ('First Touch and Ball Control', 'Dribbling and Ball Mastery', 'Striking (Passing and Shooting)', 'Heading and Aerial Play', '1v1 Defending', 'Goalkeeping')), 10, 'every drill is in one of the six groups');
+select is((select string_agg(content #>> '{home,skill}' || ' ' || n, ', ' order by n desc) from (select content, count(*) over (partition by content #>> '{home,skill}') as n, row_number() over (partition by content #>> '{home,skill}') as r from public.library_items where category = 'home') x where r = 1), 'Dribbling and Ball Mastery 7, Striking (Passing and Shooting) 2, First Touch and Ball Control 1', 'seven dribbling, two striking, one first touch');
+select is((select content #>> '{home,skill}' from public.library_items where slug = 'juggling'), 'First Touch and Ball Control', 'Juggling is First Touch and Ball Control');
 
 -- ---------- the coach adjusts the setup for the team ----------
 select pg_temp.login('d5000000-0000-0000-0000-000000000001');

@@ -27,6 +27,9 @@ export interface UIState {
   /** The child a parent last looked at, per team (D135): the first tab, Home and Training follow it. */
   childByTeam: Record<string, string>;
   setChild: (teamId: string, playerId: string) => void;
+  /** Training → Library: the categories left open on this device (D139); closed to start. */
+  libraryOpen: string[];
+  toggleLibrary: (category: string) => void;
   /** Schedule tab segment. */
   gamesView: GamesView;
   setGamesView: (gamesView: GamesView) => void;
@@ -47,6 +50,13 @@ export const useUIStore = create<UIState>()(
       setTeamView: (teamView) => set({ teamView }),
       childByTeam: {},
       setChild: (teamId, playerId) => set((s) => ({ childByTeam: { ...s.childByTeam, [teamId]: playerId } })),
+      libraryOpen: [],
+      toggleLibrary: (category) =>
+        set((s) => ({
+          libraryOpen: s.libraryOpen.includes(category)
+            ? s.libraryOpen.filter((c) => c !== category)
+            : [...s.libraryOpen, category],
+        })),
       gamesView: 'all',
       setGamesView: (gamesView) => set({ gamesView }),
       setTheme: (theme) => set({ theme }),
@@ -71,6 +81,7 @@ export const useUIStore = create<UIState>()(
         teamView: s.teamView,
         childByTeam: s.childByTeam,
         gamesView: s.gamesView,
+        libraryOpen: s.libraryOpen,
       }),
     },
   ),

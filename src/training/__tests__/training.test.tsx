@@ -23,7 +23,7 @@ const SLUGS = [
 const drill = (slug: string): HomeDrill => {
   const home = parseContent({
     home: {
-      skill: 'Footwork',
+      skill: 'Dribbling and Ball Mastery',
       type: 'repetition',
       minutes: 3,
       intro: `Intro of ${slug}.`,
@@ -160,6 +160,11 @@ describe('Daily Drills (D138)', () => {
     expect(api.wake).toHaveBeenLastCalledWith(false);
   });
 
+  it('tags the card with the drill’s Library group (D139)', () => {
+    api.levels = seasoned();
+    show();
+    expect(within(todays()).getByText('Dribbling and Ball Mastery')).toHaveClass('drilltag');
+  });
   it('a brand-new child gets Toe Taps at Level 1', () => {
     api.levels = new Map(SLUGS.map((s) => [`id-${s}`, at(1, 0, null)]));
     show();

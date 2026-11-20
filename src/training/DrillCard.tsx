@@ -43,7 +43,8 @@ function LevelImage({ level }: { level: HomeLevel }) {
 }
 
 /**
- * One home drill (D138), kept to what a parent needs while watching their child: the instruction
+ * One home drill (D138), kept to what a parent needs while watching their child: its group as a
+ * tag (D139), the instruction
  * for the child's level to read aloud, a picture when there is one, the parent's job, and Done.
  * No timer and nothing to follow on screen (Cone Dribbling keeps its stopwatch: it is the drill).
  * "More" holds the other levels, the coaching tips and the On My Own version.
@@ -177,6 +178,7 @@ export function DrillCard({
   const label = (
     <span className="lbl">
       <b>{drill.title}</b>
+      {home.skill && <span className="drilltag">{home.skill}</span>}
       <span className="drilllevel">Level {shown}</span>
     </span>
   );

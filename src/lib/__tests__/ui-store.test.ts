@@ -34,6 +34,7 @@ describe('ui-store', () => {
       teamView: 'rotation',
       childByTeam: {},
       gamesView: 'all',
+      libraryOpen: [],
     });
     expect(parsed.version).toBe(3);
   });

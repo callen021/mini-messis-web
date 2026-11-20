@@ -53,10 +53,91 @@
   flex: none;
 }
 
+/* categories (D139): closed to start, a row with the count that opens on tap */
+.libcat {
+  margin: 0 0 10px;
+}
+.libcat h2 {
+  margin: 0 16px;
+  font: inherit;
+}
+.libcathead {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 56px;
+  padding: 12px 16px;
+  border: 0;
+  border-radius: 12px;
+  background: var(--panel);
+  box-shadow: var(--shadow);
+  color: inherit;
+  font: inherit;
+  font-size: 19px;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+}
+.libcathead:active {
+  background: var(--fill);
+}
+.libcathead .name {
+  flex: 1;
+  min-width: 0;
+}
+.libcathead .count {
+  min-width: 28px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: var(--fill);
+  color: var(--text2);
+  font-size: 14px;
+  font-weight: 600;
+  text-align: center;
+}
+.libcathead .chev {
+  width: 8px;
+  height: 8px;
+  border-right: 2px solid var(--text3);
+  border-bottom: 2px solid var(--text3);
+  transform: rotate(-45deg);
+  margin-right: 2px;
+  flex: none;
+  transition: transform 0.15s;
+}
+.libcat.open .libcathead .chev {
+  transform: rotate(45deg);
+}
+.libcatbody {
+  padding: 10px 0 6px;
+}
+.libgroup {
+  margin: 10px 16px 8px;
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text2);
+}
+.libgroup:first-child {
+  margin-top: 2px;
+}
+.libgroup + .libcards {
+  margin-bottom: 14px;
+}
+
 /* an unpublished item, seen by a platform admin only (D125) */
 .pill.draft {
   color: #8a5a00;
   background: #ffe9b8;
+}
+.libdraft .btn {
+  display: block;
+  margin-top: 8px;
+}
+.libunpublish {
+  margin: 22px 16px 8px;
+  font-size: 15px;
+  color: var(--text2);
 }
 .libdraft {
   margin: 0 16px 12px;

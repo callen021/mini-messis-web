@@ -263,6 +263,49 @@ export type Database = {
           },
         ]
       }
+      game_checkins: {
+        Row: {
+          created_at: string
+          game_id: string
+          player_id: string
+          set_by: string | null
+        }
+        Insert: {
+          created_at?: string
+          game_id: string
+          player_id: string
+          set_by?: string | null
+        }
+        Update: {
+          created_at?: string
+          game_id?: string
+          player_id?: string
+          set_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "game_checkins_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "game_scores"
+            referencedColumns: ["game_id"]
+          },
+          {
+            foreignKeyName: "game_checkins_game_id_fkey"
+            columns: ["game_id"]
+            isOneToOne: false
+            referencedRelation: "games"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "game_checkins_player_id_fkey"
+            columns: ["player_id"]
+            isOneToOne: false
+            referencedRelation: "players"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       game_coach_notes: {
         Row: {
           game_id: string
@@ -338,42 +381,6 @@ export type Database = {
           },
           {
             foreignKeyName: "game_players_player_id_fkey"
-            columns: ["player_id"]
-            isOneToOne: false
-            referencedRelation: "players"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
-      game_checkins: {
-        Row: {
-          created_at: string
-          game_id: string
-          player_id: string
-          set_by: string | null
-        }
-        Insert: {
-          created_at?: string
-          game_id: string
-          player_id: string
-          set_by?: string | null
-        }
-        Update: {
-          created_at?: string
-          game_id?: string
-          player_id?: string
-          set_by?: string | null
-        }
-        Relationships: [
-          {
-            foreignKeyName: "game_checkins_game_id_fkey"
-            columns: ["game_id"]
-            isOneToOne: false
-            referencedRelation: "games"
-            referencedColumns: ["id"]
-          },
-          {
-            foreignKeyName: "game_checkins_player_id_fkey"
             columns: ["player_id"]
             isOneToOne: false
             referencedRelation: "players"
@@ -2408,6 +2415,15 @@ export type Database = {
         Args: { p_player_id: string; p_user_id: string }
         Returns: undefined
       }
+      home_drill_levels: {
+        Args: { p_player_id: string }
+        Returns: {
+          dones_at_level: number
+          first_done_on: string
+          item_id: string
+          level: number
+        }[]
+      }
       import_legacy_backup: {
         Args: { p_data: Json; p_team_id: string }
         Returns: Json
@@ -2587,8 +2603,20 @@ export type Database = {
         Args: { p_season_id: string; p_team_id: string }
         Returns: undefined
       }
+      set_game_went: {
+        Args: { p_game_id: string; p_player_id: string; p_went?: boolean }
+        Returns: undefined
+      }
+      set_home_drill_level: {
+        Args: { p_item_id: string; p_level: number; p_player_id: string }
+        Returns: undefined
+      }
       set_join_enabled: {
         Args: { p_enabled: boolean; p_team_id: string }
+        Returns: undefined
+      }
+      set_library_item_published: {
+        Args: { p_item_id: string; p_published: boolean }
         Returns: undefined
       }
       set_member_children: {
@@ -2604,23 +2632,6 @@ export type Database = {
       }
       set_player_available: {
         Args: { p_available: boolean; p_player_id: string }
-        Returns: undefined
-      }
-      home_drill_levels: {
-        Args: { p_player_id: string }
-        Returns: {
-          dones_at_level: number
-          first_done_on: string
-          item_id: string
-          level: number
-        }[]
-      }
-      set_game_went: {
-        Args: { p_game_id: string; p_player_id: string; p_went?: boolean }
-        Returns: undefined
-      }
-      set_home_drill_level: {
-        Args: { p_item_id: string; p_level: number; p_player_id: string }
         Returns: undefined
       }
       set_practice_went: {

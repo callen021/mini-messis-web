@@ -14,6 +14,13 @@ const SUPABASE_URL = process.env.VITE_SUPABASE_URL ?? '';
 const LOCAL = /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?/.test(SUPABASE_URL);
 const PASSWORD = 'playwright-pass-1';
 const PLAYERS = ['Ava', 'Ben', 'Cal', 'Dee', 'Eli', 'Fay', 'Gus', 'Hal'];
+/** Open a Library category if it is closed (D139: closed to start, remembered on the device). */
+async function openCategory(page: Page, name: string) {
+  const head = page.locator('.libcathead').filter({ hasText: name });
+  if ((await head.getAttribute('aria-expanded')) !== 'true') await head.click();
+  await expect(head).toHaveAttribute('aria-expanded', 'true');
+}
+
 /** The demo coach from supabase/seed.sql, a platform admin (team creation is admin-only, D48). */
 const ADMIN_COACH = { email: 'coach@example.com', password: 'password123' };
 /** Team-setup controls save a moment after the tap (D88); wait for the request before reloading. */
@@ -670,6 +677,12 @@ test.describe('coach and parent flows', () => {
     await coach.getByRole('navigation', { name: 'Main' }).getByRole('link', { name: 'Training' }).click();
     await coach.getByRole('radio', { name: 'Library' }).click();
     await expect(coach).toHaveURL(/\/training\?tab=library$/);
+    // categories are closed to start, each with its count, and open on tap (D139)
+    const heads = coach.locator('.libcathead');
+    await expect(heads.locator('.name')).toHaveText(['Fundamentals', 'Drills', 'Games']);
+    await expect(heads.first()).toHaveAttribute('aria-expanded', 'false');
+    await expect(coach.locator('.libcard')).toHaveCount(0);
+    await openCategory(coach, 'Fundamentals');
     const card = coach.getByRole('link', { name: /^First Touch\s*Fundamentals/ });
     await expect(card).toContainText('Fundamentals');
     await expect(card).toContainText('Ages 6–10');
@@ -726,6 +739,7 @@ test.describe('coach and parent flows', () => {
     await expect(coach.getByRole('group', { name: 'Duration' })).toContainText('5 min');
 
     await parent.goto('/training?tab=library');
+    await openCategory(parent, 'Fundamentals');
     await parent.getByRole('link', { name: /^First Touch\s*Fundamentals/ }).click();
     await expect(parent.locator('.stepcard')).toHaveCount(4);
     await parent.getByRole('radio', { name: 'Coach Setup' }).click();
@@ -742,6 +756,72 @@ test.describe('coach and parent flows', () => {
     await coach.setViewportSize({ width: 412, height: 915 });
   });
 
+  test('the Library list: Drills under their groups with counts, left open on the device; a platform admin unpublishes a drill and publishes it again, and the parent never sees the draft (D139)', async () => {
+    const GROUPS = [
+      'First Touch and Ball Control',
+      'Dribbling and Ball Mastery',
+      'Striking (Passing and Shooting)',
+    ];
+    await parent.goto('/training?tab=library');
+    const drills = parent
+      .locator('.libcat')
+      .filter({ has: parent.locator('.name', { hasText: /^Drills$/ }) });
+    await expect(drills.locator('.count')).toHaveText('10');
+    await expect(parent.getByText('At home', { exact: true })).toHaveCount(0);
+    await openCategory(parent, 'Drills');
+    // only the groups that have a drill, in the set order
+    await expect(drills.locator('.libgroup')).toHaveText(GROUPS);
+    await expect(
+      parent.getByRole('group', { name: 'Dribbling and Ball Mastery' }).getByRole('link'),
+    ).toHaveCount(7);
+    await expect(
+      parent.getByRole('group', { name: 'Striking (Passing and Shooting)' }).getByRole('link'),
+    ).toHaveCount(2);
+    await expect(
+      parent.getByRole('group', { name: 'First Touch and Ball Control' }).getByRole('link'),
+    ).toHaveText(/Juggling/);
+    // into a drill and back: the category is still open; the parent has no publish control
+    await parent.getByRole('link', { name: /^Juggling/ }).click();
+    await expect(parent.getByRole('heading', { level: 1, name: 'Juggling' })).toBeVisible();
+    await expect(parent.locator('.homemeta .pill')).toHaveText('First Touch and Ball Control');
+    await expect(parent.getByRole('button', { name: /publish/i })).toHaveCount(0);
+    await parent.locator('.back').click();
+    await expect(parent.getByRole('link', { name: /^Juggling/ })).toBeVisible();
+    await parent.reload();
+    await expect(parent.getByRole('link', { name: /^Juggling/ })).toBeVisible();
+
+    // the coach here is a platform admin: Unpublish asks first, and says what parents will see
+    await coach.goto('/library/juggling');
+    await coach.getByRole('button', { name: 'Unpublish' }).click();
+    const sheet = coach.getByRole('dialog', { name: 'Unpublish Juggling?' });
+    await expect(sheet).toContainText(
+      'Parents will no longer see it, and another drill will show on its day in Daily Drills.',
+    );
+    await sheet.getByRole('button', { name: 'Unpublish' }).click();
+    await expect(coach.getByText(/^Draft: only platform admins can see this item/)).toBeVisible();
+    // the admin still finds it in the list, marked Draft
+    await coach.goto('/training?tab=library');
+    await openCategory(coach, 'Drills');
+    await expect(coach.getByRole('link', { name: /^Juggling/ })).toContainText('Draft');
+
+    // the parent: one drill fewer, its group gone, and the page itself is not there
+    await parent.reload();
+    await expect(drills.locator('.count')).toHaveText('9');
+    await expect(drills.locator('.libgroup')).toHaveText(GROUPS.slice(1));
+    await expect(parent.getByRole('link', { name: /^Juggling/ })).toHaveCount(0);
+    await parent.goto('/library/juggling');
+    await expect(parent.getByText('This item is not in your team’s practice library.')).toBeVisible();
+
+    // published again from the item
+    await coach.getByRole('link', { name: /^Juggling/ }).click();
+    await coach.getByRole('button', { name: 'Publish', exact: true }).click();
+    await expect(coach.getByRole('button', { name: 'Unpublish' })).toBeVisible();
+    await expect(coach.getByText(/^Draft:/)).toHaveCount(0);
+    await parent.goto('/training?tab=library');
+    await expect(drills.locator('.count')).toHaveText('10');
+    await expect(drills.locator('.libgroup')).toHaveText(GROUPS);
+  });
+
   test('Daily Drills: the parent marks today’s drill Done, the streak goes up by one, and when that drill comes round again the child is a level up (D138)', async ({
     browser,
   }) => {
@@ -749,6 +829,8 @@ test.describe('coach and parent flows', () => {
     // a child with no Done yet starts with Toe Taps at Level 1, whatever the date
     const card = parent.locator('.drillcard.pinned');
     await expect(card).toContainText('Toe Taps');
+    // the tag is the drill's Library group (D139)
+    await expect(card.locator('.drilltag')).toHaveText('Dribbling and Ball Mastery');
     await expect(card).toContainText('Level 1');
     await expect(card).toContainText('Tap the top of the ball with one foot, then the other. 20 times.');
     await expect(card).toContainText('Your job: Count the touches out loud together.');
@@ -805,6 +887,7 @@ test.describe('coach and parent flows', () => {
 
   test('library games: the Games section opens Coach’s Call full screen in a frame, and the bar leads back (D124)', async () => {
     await coach.goto('/library');
+    await openCategory(coach, 'Games');
     const card = coach.getByRole('link', { name: /Coach’s Call/ });
     await expect(card).toContainText('Game');
     await card.click();

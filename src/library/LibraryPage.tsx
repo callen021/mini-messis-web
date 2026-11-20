@@ -1,24 +1,152 @@
+import { type ReactNode, useId } from 'react';
 import { Link } from 'react-router';
-import { Group, Section } from '@/components/List';
+import { Group } from '@/components/List';
 import { errorMessage } from '@/lib/supabase';
+import { useUIStore } from '@/lib/ui-store';
 import { useCurrentTeam } from '@/teams/TeamContext';
 import { useLibraryItems } from './api';
-import { gamesFor } from './games';
-import { ageText, CATEGORY_ORDER, categoryLabel } from './types';
+import { gamesFor, type LibraryGame } from './games';
+import {
+  ageText,
+  categoryLabel,
+  GAMES_CATEGORY,
+  groupDrills,
+  LIBRARY_CATEGORIES,
+  type LibraryItemSummary,
+} from './types';
+
+function ItemCard({ row }: { row: LibraryItemSummary }) {
+  return (
+    <li>
+      <Link to={`/library/${row.slug}`} className="libcard">
+        <span className="lbl">
+          <b>{row.title}</b>
+          <small>
+            <span className="pill">{categoryLabel(row.category)}</span>
+            {ageText(row.age_min, row.age_max)}
+            {!row.is_published && <span className="pill draft">Draft</span>}
+          </small>
+        </span>
+        <span className="chev" aria-hidden="true" />
+      </Link>
+    </li>
+  );
+}
+
+function GameCard({ game }: { game: LibraryGame }) {
+  return (
+    <li>
+      <Link to={`/library/play/${game.slug}`} className="libcard">
+        <span className="lbl">
+          <b>{game.title}</b>
+          <small>
+            <span className="pill">Game</span>
+            {ageText(game.ageMin, game.ageMax)}
+          </small>
+          <small>{game.blurb}</small>
+        </span>
+        <span className="chev" aria-hidden="true" />
+      </Link>
+    </li>
+  );
+}
+
+/** One category: a row with its name and count that opens and closes its items. */
+function Category({
+  label,
+  count,
+  open,
+  onToggle,
+  children,
+}: {
+  label: string;
+  count: number;
+  open: boolean;
+  onToggle: () => void;
+  children: ReactNode;
+}) {
+  const id = useId();
+  return (
+    <section className={open ? 'libcat open' : 'libcat'}>
+      <h2>
+        <button
+          type="button"
+          className="libcathead"
+          aria-expanded={open}
+          aria-controls={`${id}-items`}
+          onClick={onToggle}
+        >
+          <span className="name">{label}</span>
+          <span className="count" aria-label={`${count} ${count === 1 ? 'item' : 'items'}`}>
+            {count}
+          </span>
+          <span className="chev" aria-hidden="true" />
+        </button>
+      </h2>
+      {open && (
+        <div className="libcatbody" id={`${id}-items`}>
+          {children}
+        </div>
+      )}
+    </section>
+  );
+}
 
 /**
- * Training → Library (D135; it was Settings → Practice library): the sport's items as cards,
- * grouped by category.
+ * Training → Library (D135, reorganized in D139): the sport's items by category. Each category is
+ * a row with its count, closed until tapped; the ones left open are remembered on the device.
+ * Drills are listed under their groups. A count is what this viewer can open: drafts are counted
+ * for a platform admin, the only one who gets them.
  */
 export function LibraryList() {
   const { sport } = useCurrentTeam();
   const items = useLibraryItems(sport);
+  const openKeys = useUIStore((s) => s.libraryOpen);
+  const toggle = useUIStore((s) => s.toggleLibrary);
   const rows = items.data ?? [];
   const games = gamesFor(sport);
-  const categories = [
-    ...CATEGORY_ORDER.filter((c) => rows.some((r) => r.category === c)),
-    ...[...new Set(rows.map((r) => r.category))].filter((c) => !CATEGORY_ORDER.some((k) => k === c)),
+
+  // the listed categories in order, then any the database has that this build does not name
+  const keys = [
+    ...LIBRARY_CATEGORIES.map((c) => c.key),
+    ...[...new Set(rows.map((r) => r.category))].filter((c) => !LIBRARY_CATEGORIES.some((k) => k.key === c)),
   ];
+  const categories = keys.flatMap((key) => {
+    if (key === GAMES_CATEGORY) {
+      if (games.length === 0) return [];
+      const body = (
+        <ul className="libcards">
+          {games.map((g) => (
+            <GameCard key={g.slug} game={g} />
+          ))}
+        </ul>
+      );
+      return [{ key, count: games.length, body }];
+    }
+    const mine = rows.filter((r) => r.category === key);
+    if (mine.length === 0) return [];
+    const body =
+      key === 'home' ? (
+        groupDrills(mine).map((g) => (
+          <div key={g.group} role="group" aria-label={g.group}>
+            <h3 className="libgroup">{g.group}</h3>
+            <ul className="libcards">
+              {g.rows.map((r) => (
+                <ItemCard key={r.id} row={r} />
+              ))}
+            </ul>
+          </div>
+        ))
+      ) : (
+        <ul className="libcards">
+          {mine.map((r) => (
+            <ItemCard key={r.id} row={r} />
+          ))}
+        </ul>
+      );
+    return [{ key, count: mine.length, body }];
+  });
+
   return (
     <>
       {items.isPending && (
@@ -33,57 +161,23 @@ export function LibraryList() {
           </div>
         </Group>
       )}
-      {items.data && rows.length === 0 && games.length === 0 && (
+      {items.data && categories.length === 0 && (
         <Group>
           <div className="empty">Nothing here yet for this sport.</div>
         </Group>
       )}
-      {categories.map((c) => (
-        <div key={c}>
-          <Section>{categoryLabel(c)}</Section>
-          <ul className="libcards">
-            {rows
-              .filter((r) => r.category === c)
-              .map((r) => (
-                <li key={r.id}>
-                  <Link to={`/library/${r.slug}`} className="libcard">
-                    <span className="lbl">
-                      <b>{r.title}</b>
-                      <small>
-                        <span className="pill">{categoryLabel(r.category)}</span>
-                        {ageText(r.age_min, r.age_max)}
-                        {!r.is_published && <span className="pill draft">Draft</span>}
-                      </small>
-                    </span>
-                    <span className="chev" aria-hidden="true" />
-                  </Link>
-                </li>
-              ))}
-          </ul>
-        </div>
-      ))}
-      {games.length > 0 && (
-        <div>
-          <Section>Games</Section>
-          <ul className="libcards">
-            {games.map((g) => (
-              <li key={g.slug}>
-                <Link to={`/library/play/${g.slug}`} className="libcard">
-                  <span className="lbl">
-                    <b>{g.title}</b>
-                    <small>
-                      <span className="pill">Game</span>
-                      {ageText(g.ageMin, g.ageMax)}
-                    </small>
-                    <small>{g.blurb}</small>
-                  </span>
-                  <span className="chev" aria-hidden="true" />
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </div>
-      )}
+      {!items.isPending &&
+        categories.map((c) => (
+          <Category
+            key={c.key}
+            label={categoryLabel(c.key)}
+            count={c.count}
+            open={openKeys.includes(c.key)}
+            onToggle={() => toggle(c.key)}
+          >
+            {c.body}
+          </Category>
+        ))}
     </>
   );
 }

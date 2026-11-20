@@ -2019,3 +2019,33 @@ already marked a higher level Done started from the highest one
 
 Unchanged: Cone Dribbling times and personal bests, Home skill tests, and who may record or see
 training.
+
+### D139. Training → Library: collapsed categories, drill groups, Publish / Unpublish
+
+**The list.** Each category is one row with its count, closed until tapped: Fundamentals, Drills,
+Games. The categories left open are remembered on the device (`libraryOpen` in the UI store), so
+going into an item and back does not close the list. Categories come from one ordered list in
+code (`LIBRARY_CATEGORIES`); a category shows once it holds something, so Tactics and
+Position-specific are listed there and stay hidden until they have items. A count is what the
+viewer can open: a platform admin's includes drafts.
+
+- "At Home" is now "Drills" wherever it shows. The database category is still `home`: the Daily
+  Drills rules check for it.
+
+**Drill groups.** Inside Drills, the drills sit under six groups, in this order: First Touch and
+Ball Control; Dribbling and Ball Mastery; Striking (Passing and Shooting); Heading and Aerial
+Play; 1v1 Defending; Goalkeeping. A group shows only when it has a drill the viewer can see,
+which for everyone but a platform admin means a published one. A drill names its group in
+`content.home.skill`; the migration re-tags the ten drills (it was Footwork, Dribbling,
+Dribbling move, Passing, Ball control). The same name is the tag on a Daily Drills card.
+
+**Publish / Unpublish.** Until now an item left Draft only by an `update` in the SQL editor. A
+platform admin now has Publish on a draft's page and Unpublish on a published item's page
+(`set_library_item_published`). Platform admins only, not coaches: an item is shared by every
+team of its sport, so one team's coach would change what every other team sees. Unpublish asks
+first; for a drill in the Daily Drills rotation it says that parents will no longer see it and
+another drill will show on its day. The table is otherwise still read-only from the app, and the
+read rule is unchanged: nobody but a platform admin is ever sent a draft.
+
+- Daily Drills reads published drills only, for a platform admin too, so an admin sees what
+  parents see there.

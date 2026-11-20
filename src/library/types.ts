@@ -9,19 +9,54 @@ export type LibraryItemRow = Tables<'library_items'>;
 export type LibraryItemSummary = Pick<
   LibraryItemRow,
   'id' | 'slug' | 'sport' | 'category' | 'title' | 'age_min' | 'age_max' | 'sort_order' | 'is_published'
->;
+> & {
+  /** A drill's group (`content.home.skill`); null for an item that is not a drill. */
+  drill_group: string | null;
+};
 
 /** Sports that have a practice library so far (D123); the Settings row shows for these only. */
 export const LIBRARY_SPORTS: readonly string[] = ['soccer'];
 
-export const CATEGORY_LABEL: Readonly<Record<string, string>> = {
-  fundamentals: 'Fundamentals',
-  tactics: 'Tactics',
-  position: 'Position-specific',
-  home: 'At home',
-};
-export const CATEGORY_ORDER = ['fundamentals', 'tactics', 'position', 'home'] as const;
-export const categoryLabel = (key: string): string => CATEGORY_LABEL[key] ?? key;
+/**
+ * The Library's categories, in the order they are listed (D139). Adding one is a line here: a
+ * category shows once it holds something. `home` is the at-home drills, shown as "Drills" (the
+ * key stays: the Daily Drills rules check for it). `games` is not a database category: its
+ * items are the games that ship with the build.
+ */
+export const GAMES_CATEGORY = 'games';
+export const LIBRARY_CATEGORIES: readonly { key: string; label: string }[] = [
+  { key: 'fundamentals', label: 'Fundamentals' },
+  { key: 'tactics', label: 'Tactics' },
+  { key: 'position', label: 'Position-specific' },
+  { key: 'home', label: 'Drills' },
+  { key: GAMES_CATEGORY, label: 'Games' },
+];
+export const categoryLabel = (key: string): string =>
+  LIBRARY_CATEGORIES.find((c) => c.key === key)?.label ?? key;
+
+/**
+ * The groups inside Drills, in order (D139). A drill names its group in `content.home.skill`,
+ * which is also its tag on a Daily Drills card. A group with no drill is not shown.
+ */
+export const DRILL_GROUPS: readonly string[] = [
+  'First Touch and Ball Control',
+  'Dribbling and Ball Mastery',
+  'Striking (Passing and Shooting)',
+  'Heading and Aerial Play',
+  '1v1 Defending',
+  'Goalkeeping',
+];
+/** Where a drill with no group, or one this build does not know, is listed. */
+export const OTHER_GROUP = 'Other drills';
+
+/** Rows split into the groups that have any, in order; unknown groups last, under one heading. */
+export function groupDrills<T extends { drill_group: string | null }>(
+  rows: readonly T[],
+): { group: string; rows: T[] }[] {
+  const known = DRILL_GROUPS.map((group) => ({ group, rows: rows.filter((r) => r.drill_group === group) }));
+  const other = rows.filter((r) => !DRILL_GROUPS.some((g) => g === r.drill_group));
+  return [...known, { group: OTHER_GROUP, rows: other }].filter((g) => g.rows.length > 0);
+}
 
 /** "Ages 6–10", "Ages 6+", "Up to age 10", or nothing. */
 export function ageText(min: number | null, max: number | null): string {
@@ -115,7 +150,7 @@ export interface HomeLevel {
 }
 /** An at-home drill (D127): what a parent and child do together or the child does alone. */
 export interface HomeSection {
-  /** "Footwork", "Dribbling move", … */
+  /** The drill's group, one of `DRILL_GROUPS` (D139); also its tag on a Daily Drills card. */
   skill: string;
   type: DrillType;
   /** The type as the sheet words it; falls back to the type's own name. */
@@ -327,7 +362,7 @@ export type TabKey = 'learn' | 'setup' | 'home';
 export const TAB_LABEL: Readonly<Record<TabKey, string>> = {
   learn: 'Learn',
   setup: 'Coach Setup',
-  home: 'At Home',
+  home: 'Drills',
 };
 export function tabsOf(content: LibraryContent): TabKey[] {
   const tabs: TabKey[] = [];
