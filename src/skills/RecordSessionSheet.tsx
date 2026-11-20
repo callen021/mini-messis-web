@@ -3,6 +3,8 @@ import { Button } from '@/components/Button';
 import { Field, Select, TextInput } from '@/components/Form';
 import { FormSheet } from '@/components/Sheet';
 import { todayISO } from '@/games/format';
+import { timeFieldValue } from '@/training/times';
+import { TimeStopwatch } from '@/training/TimeStopwatch';
 import { type Player } from '@/teams/api';
 import { type SkillResultInput } from './api';
 import { type SkillTest } from './defaults';
@@ -41,6 +43,10 @@ export function RecordSessionSheet({
   const [cells, setCells] = useState<Record<string, Cell>>({});
   const [prevOpen, setPrevOpen] = useState(false);
   const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  // a timed test (D137): the one stopwatch above the list times one player at a time
+  const [timing, setTiming] = useState('');
+  const [takes, setTakes] = useState(0);
+  const [running, setRunning] = useState(false);
 
   if (open !== prevOpen) {
     setPrevOpen(open);
@@ -48,11 +54,27 @@ export function RecordSessionSheet({
       setTest(testId ?? tests[0]?.id ?? '');
       setDate(todayISO());
       setCells({});
+      setTiming('');
+      setTakes(0);
+      setRunning(false);
     }
   }
 
   const t = tests.find((x) => x.id === test);
   const made = t?.metric === 'made_of_attempted';
+  const timed = t?.metric === 'time_seconds';
+  const timedIdx = Math.max(
+    0,
+    players.findIndex((p) => p.id === timing),
+  );
+  const timedPlayer = timed ? players[timedIdx] : undefined;
+  const nextPlayer = timed ? players[timedIdx + 1] : undefined;
+  /** Point the stopwatch at a player; never while it is running for someone. */
+  const timePlayer = (playerId: string) => {
+    if (running || playerId === timedPlayer?.id) return;
+    setTiming(playerId);
+    setTakes((n) => n + 1);
+  };
   const sides: SideKey[] = made && t.has_sides ? ['right', 'left'] : [''];
   const defaultAttempts = String(t?.attempts ?? 5);
   const cell = (playerId: string, side: SideKey): Cell =>
@@ -108,6 +130,9 @@ export function RecordSessionSheet({
           onChange={(e) => {
             setTest(e.target.value);
             setCells({});
+            setTiming('');
+            setTakes((n) => n + 1);
+            setRunning(false);
           }}
         >
           {tests.map((x) => (
@@ -120,9 +145,28 @@ export function RecordSessionSheet({
       <Field label="Date">
         <TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
+      {timedPlayer && (
+        <TimeStopwatch
+          key={`${test}:${takes}`}
+          caption={
+            <>
+              Timing <b>{timedPlayer.first_name}</b>
+            </>
+          }
+          onRunning={setRunning}
+          onStop={(seconds) => setCell(timedPlayer.id, '', { value: timeFieldValue(seconds) })}
+          after={
+            nextPlayer && (
+              <Button variant="tinted" size="sm" onClick={() => timePlayer(nextPlayer.id)}>
+                Next: {nextPlayer.first_name}
+              </Button>
+            )
+          }
+        />
+      )}
       <div className="session" role="group" aria-label={`Results per player (${unitHint})`}>
         {players.map((p) => (
-          <div key={p.id} className="srow">
+          <div key={p.id} className={p.id === timedPlayer?.id ? 'srow timing' : 'srow'}>
             <div className="pname">
               {p.first_name}
               {p.jersey_number && <small>#{p.jersey_number}</small>}
@@ -148,8 +192,10 @@ export function RecordSessionSheet({
                       value={c.value}
                       onChange={(e) => setCell(p.id, side, { value: e.target.value })}
                       onKeyDown={onKeyDown(idx)}
+                      onFocus={timed ? () => timePlayer(p.id) : undefined}
                       aria-label={`${label} value`}
-                      data-autofocus={idx === 0 ? '' : undefined}
+                      // with the stopwatch above, the keyboard waits for a tap on a field (D137)
+                      data-autofocus={idx === 0 && !timed ? '' : undefined}
                     />
                     {made && (
                       <>

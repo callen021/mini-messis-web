@@ -1,7 +1,8 @@
-import { useEffect, useRef, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/Button';
 import { fmtDate } from '@/games/format';
-import { bestOf, formatSeconds, judge, type RunVerdict, type TimedRun, toTenths } from './times';
+import { bestOf, formatSeconds, judge, type RunVerdict, type TimedRun } from './times';
+import { useStopwatch } from './useStopwatch';
 
 export interface StopwatchProps {
   level: number;
@@ -14,7 +15,7 @@ export interface StopwatchProps {
 
 type Phase =
   | { at: 'idle' }
-  | { at: 'running'; since: number }
+  | { at: 'running' }
   | { at: 'stopped'; seconds: number }
   | { at: 'saved'; seconds: number; verdict: RunVerdict };
 
@@ -27,31 +28,19 @@ const HISTORY = 5;
  */
 export function Stopwatch({ level, runs, saving, onSave }: StopwatchProps) {
   const [phase, setPhase] = useState<Phase>({ at: 'idle' });
-  const [elapsed, setElapsed] = useState(0);
-  const frame = useRef<number | null>(null);
-
-  useEffect(() => {
-    if (phase.at !== 'running') return;
-    const tick = () => {
-      setElapsed(performance.now() - phase.since);
-      frame.current = window.requestAnimationFrame(tick);
-    };
-    frame.current = window.requestAnimationFrame(tick);
-    return () => {
-      if (frame.current !== null) window.cancelAnimationFrame(frame.current);
-    };
-  }, [phase]);
+  // the clock is shared with the stopwatch on the skill result sheets (D137)
+  const sw = useStopwatch();
 
   const best = bestOf(runs);
-  const shown = phase.at === 'running' ? toTenths(elapsed) : phase.at === 'idle' ? 0 : phase.seconds;
+  const shown = phase.at === 'running' ? sw.seconds : phase.at === 'idle' ? 0 : phase.seconds;
 
   const start = () => {
-    setElapsed(0);
-    setPhase({ at: 'running', since: performance.now() });
+    sw.start();
+    setPhase({ at: 'running' });
   };
   const stop = () => {
     if (phase.at !== 'running') return;
-    const seconds = toTenths(performance.now() - phase.since);
+    const seconds = sw.stop();
     // a tap too quick to be a run is not offered for saving
     setPhase(seconds > 0 ? { at: 'stopped', seconds } : { at: 'idle' });
   };

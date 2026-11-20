@@ -4,6 +4,8 @@ import { Field, TextInput } from '@/components/Form';
 import { FormSheet } from '@/components/Sheet';
 import { type SkillResultInput, type SkillResultPatch } from '@/skills/api';
 import { type SkillResult, type SkillTest } from '@/skills/defaults';
+import { timeFieldValue } from './times';
+import { TimeStopwatch } from './TimeStopwatch';
 
 export interface HomeResultSheetProps {
   open: boolean;
@@ -65,6 +67,7 @@ export function HomeResultSheet({
   if (!t) return null;
 
   const made = t.metric === 'made_of_attempted';
+  const timed = t.metric === 'time_seconds';
   const sides: SideKey[] = made && t.has_sides && !existing ? ['right', 'left'] : [existing?.side ?? ''];
   const label = (side: SideKey) =>
     made
@@ -121,6 +124,13 @@ export function HomeResultSheet({
       <Field label="Date">
         <TextInput type="date" value={date} max={today} onChange={(e) => setDate(e.target.value)} />
       </Field>
+      {/* a timed test (D137): Stop fills the Time field below, which stays editable; nothing is saved here */}
+      {timed && (
+        <TimeStopwatch
+          key={key}
+          onStop={(seconds) => setValues((v) => ({ ...v, [sides[0] ?? '']: timeFieldValue(seconds) }))}
+        />
+      )}
       {sides.map((side) => (
         <Field key={side || 'one'} label={label(side)}>
           <div className="inrow">
@@ -132,7 +142,8 @@ export function HomeResultSheet({
               value={values[side]}
               onChange={(e) => setValues((v) => ({ ...v, [side]: e.target.value }))}
               aria-label={`${label(side)} value`}
-              data-autofocus={side === sides[0] ? '' : undefined}
+              // with the stopwatch above, the keyboard waits for a tap on the field (D137)
+              data-autofocus={side === sides[0] && !timed ? '' : undefined}
             />
             {made ? (
               <>

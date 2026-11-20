@@ -3,6 +3,8 @@ import { Button } from '@/components/Button';
 import { Field, Select, TextInput } from '@/components/Form';
 import { FormSheet } from '@/components/Sheet';
 import { todayISO } from '@/games/format';
+import { timeFieldValue } from '@/training/times';
+import { TimeStopwatch } from '@/training/TimeStopwatch';
 import { type SkillResultInput } from './api';
 import { type SkillResult, type SkillTest } from './defaults';
 
@@ -80,6 +82,7 @@ export function RecordResultSheet({
 
   const t = tests.find((x) => x.id === test);
   const made = t?.metric === 'made_of_attempted';
+  const timed = t?.metric === 'time_seconds';
   const sides: SideKey[] = made && t.has_sides && !existing ? ['right', 'left'] : [existing?.side ?? ''];
   const setField = (side: SideKey, patch: Partial<Draft>) =>
     setFields((f) => ({ ...f, [side]: { ...f[side], ...patch } }));
@@ -161,6 +164,13 @@ export function RecordResultSheet({
       <Field label="Date">
         <TextInput type="date" value={date} onChange={(e) => setDate(e.target.value)} />
       </Field>
+      {/* a timed test (D137): Stop fills the Time field below, which stays editable; nothing is saved here */}
+      {timed && (
+        <TimeStopwatch
+          key={`${key}:${test}:${saved}`}
+          onStop={(seconds) => setField(sides[0] ?? '', { value: timeFieldValue(seconds) })}
+        />
+      )}
       {sides.map((side) => (
         <Field key={`${test}-${side || 'one'}`} label={valueLabel(side)}>
           <div className="inrow">
@@ -173,7 +183,8 @@ export function RecordResultSheet({
               value={fields[side].value}
               onChange={(e) => setField(side, { value: e.target.value })}
               aria-label={`${valueLabel(side)} value`}
-              data-autofocus={side === sides[0] ? '' : undefined}
+              // with the stopwatch above, the keyboard waits for a tap on the field (D137)
+              data-autofocus={side === sides[0] && !timed ? '' : undefined}
             />
             {made ? (
               <>

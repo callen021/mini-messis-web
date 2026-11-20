@@ -267,6 +267,39 @@
   font-weight: 700;
 }
 
+/* the same stopwatch on a skill result sheet (D137): one line, short enough to share a phone
+   screen with the Time field and the keyboard */
+.stopwatch.compact {
+  gap: 6px;
+  padding: 8px 10px;
+  margin-bottom: 10px;
+}
+.stopwatch.compact .swline {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.stopwatch.compact .swtime {
+  flex: 1;
+  min-width: 0;
+  font-size: 40px;
+  text-align: left;
+  padding-left: 4px;
+}
+.stopwatch.compact .swbtn {
+  width: auto;
+  min-width: 132px;
+  min-height: 48px;
+  font-size: 18px;
+}
+.stopwatch.compact .swbest {
+  text-align: left;
+  padding-left: 4px;
+}
+.session .srow.timing .pname {
+  color: var(--tint);
+}
+
 /* the streak at the top of the Training page (D130) */
 .streakcard {
   display: flex;

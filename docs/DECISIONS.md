@@ -1950,3 +1950,25 @@ addresses.
   moved by a line change leaves their old spot open unless the line fills it, and the toast
   says so). The flow now picks the starting six before the three line players are on the
   roster. Auto-fill itself is unchanged.
+
+### D137. A stopwatch on recording a timed skill test
+
+A skill test measured in time (`metric = time_seconds`: Sprint speed, the cone dribbling time,
+any custom test set to Time) shows a stopwatch above its Time field wherever a result is
+recorded: the parent's "Record at home" sheet, the coach's single-result sheet and the coach's
+whole-team "Record results" sheet. Tests that are not timed are unchanged.
+
+- **One stopwatch.** The Cone Dribbling stopwatch's clock (D129) moved into `useStopwatch`;
+  the drill stopwatch and the compact one on the sheets both run on it. Same precision, a tenth
+  of a second, which is what the Time field already takes.
+- **It only fills the field.** Start, then Stop: the time goes into the Time field as plain
+  seconds ("62.3", never "1:02.3"). The field stays editable. "Start again" takes a new time
+  that replaces it. Nothing is saved until the sheet's own Save button, so Home and Coach
+  results save exactly as before. A tap too quick to be a run changes nothing.
+- **The whole-team sheet has one stopwatch for the list.** It names the player it is timing
+  (the first to begin with), fills that player's row, and offers "Next: <name>" after a time is
+  taken. Tapping a player's field points it at that player; it does not move while running.
+- **The keyboard no longer opens by itself on a timed test.** These sheets used to focus the
+  first value field on opening; with the stopwatch above it, a timed test waits for a tap on
+  the field, so the stopwatch, the field and Save share the screen. Other tests still focus it.
+- No database change.
