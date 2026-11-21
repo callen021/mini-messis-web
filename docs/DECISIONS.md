@@ -2123,3 +2123,21 @@ V-Cuts, L-Drags, Juggling; then round again.
 - Children on a team are no longer all on the same drill on the same day. The order of the "Do
   another" list and of the Library is unchanged.
 - No database change.
+
+### D142. Toe Taps, Inside-Inside Touches and Sole Rolls have a picture
+
+The first drill pictures: one photo per drill, the same for its three levels
+(`content.home.levels[n].image`). Toe Taps is `toe-taps/drill.webp` (1000×1250), Inside-Inside
+Touches ("tic-tocs") is `inside-inside-touches/drill.webp` (1000×750), Sole Rolls is
+`sole-rolls/drill.webp` (1000×1250); WebP, 110 to 150 kB each. A data-only migration sets them;
+the files are made by `scripts/crop-practice-images.mjs` (a crop with a `width` is scaled
+down), stay out of the repository like every other picture, and are dragged into the hosted
+bucket by hand.
+
+- _The card._ The picture slot takes the picture's shape, no taller than 4:3 and no wider than
+  16:9, and the picture fills it anchored to the bottom: a taller picture loses its top, a wider
+  one its sides, never the feet and the ball.
+- _The Library page._ The drill's picture is shown whole, once, under the introduction (its own
+  shape, kept between 3:4 and 16:9, also anchored to the bottom). Levels with different pictures
+  would each show theirs, labelled with their levels.
+- Until the file is in the bucket nothing shows, as before.

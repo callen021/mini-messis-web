@@ -4,7 +4,8 @@
 //
 //   node scripts/crop-practice-images.mjs
 //
-// The crops keep the source's own pixels (no upscaling). The browser that ships with Playwright
+// The crops keep the source's own pixels (no upscaling); a crop with a `width` is scaled down to
+// it, for a whole photo sized for a phone. The browser that ships with Playwright
 // does the decoding and the WebP encoding, so no image library is needed.
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
@@ -13,7 +14,10 @@ import { chromium } from '@playwright/test';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-/** One entry per sheet: where it is, where the crops go, and the photo rectangles [x, y, w, h]. */
+/**
+ * One entry per sheet: where it is, where the crops go, and the photo rectangles [x, y, w, h].
+ * `width` scales a crop down to that many pixels wide.
+ */
 const SHEETS = [
   {
     source: 'practice-library/source/First Touch.jpg',
@@ -63,6 +67,22 @@ const SHEETS = [
       { name: 'tip-3.webp', rect: [970, 768, 124, 190] },
     ],
   },
+  {
+    // a whole photo, one picture for all three levels (D142)
+    source: 'practice-library/toe-taps.png',
+    out: 'practice-library/out/toe-taps',
+    crops: [{ name: 'drill.webp', rect: [0, 0, 1122, 1402], width: 1000 }],
+  },
+  {
+    source: 'practice-library/tic-tocs.png',
+    out: 'practice-library/out/inside-inside-touches',
+    crops: [{ name: 'drill.webp', rect: [0, 0, 1448, 1086], width: 1000 }],
+  },
+  {
+    source: 'practice-library/sole-rolls.png',
+    out: 'practice-library/out/sole-rolls',
+    crops: [{ name: 'drill.webp', rect: [0, 0, 1122, 1402], width: 1000 }],
+  },
 ];
 const QUALITY = 0.86;
 
@@ -74,26 +94,30 @@ for (const sheet of SHEETS) {
   const dataUrl = `data:${mime};base64,${bytes.toString('base64')}`;
   await mkdir(path.join(root, sheet.out), { recursive: true });
   for (const crop of sheet.crops) {
-    const b64 = await page.evaluate(
-      async ({ src, rect, quality }) => {
+    const made = await page.evaluate(
+      async ({ src, rect, width, quality }) => {
         const img = new Image();
         img.src = src;
         await img.decode();
         const [x, y, w, h] = rect;
         const canvas = document.createElement('canvas');
-        canvas.width = w;
-        canvas.height = h;
-        canvas.getContext('2d').drawImage(img, x, y, w, h, 0, 0, w, h);
-        return canvas.toDataURL('image/webp', quality).split(',')[1];
+        canvas.width = width ?? w;
+        canvas.height = width ? Math.round((h * width) / w) : h;
+        const ctx = canvas.getContext('2d');
+        ctx.imageSmoothingQuality = 'high';
+        ctx.drawImage(img, x, y, w, h, 0, 0, canvas.width, canvas.height);
+        return {
+          b64: canvas.toDataURL('image/webp', quality).split(',')[1],
+          w: canvas.width,
+          h: canvas.height,
+        };
       },
-      { src: dataUrl, rect: crop.rect, quality: QUALITY },
+      { src: dataUrl, rect: crop.rect, width: crop.width ?? null, quality: QUALITY },
     );
     const file = path.join(root, sheet.out, crop.name);
-    const buf = Buffer.from(b64, 'base64');
+    const buf = Buffer.from(made.b64, 'base64');
     await writeFile(file, buf);
-    console.log(
-      `${path.relative(root, file)}  ${crop.rect[2]}×${crop.rect[3]}  ${(buf.length / 1024).toFixed(1)} kB`,
-    );
+    console.log(`${path.relative(root, file)}  ${made.w}×${made.h}  ${(buf.length / 1024).toFixed(1)} kB`);
   }
 }
 await browser.close();

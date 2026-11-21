@@ -434,6 +434,27 @@
 .homedrill .libnote {
   margin-bottom: 10px;
 }
+/* the drill picture, whole where its shape allows; any cut comes off the top or the sides (D142) */
+.homepic {
+  margin: 0 16px 12px;
+}
+.homepic img {
+  display: block;
+  width: 100%;
+  max-width: 420px;
+  height: auto;
+  margin: 0 auto;
+  object-fit: cover;
+  object-position: center bottom;
+  border-radius: 12px;
+  background: var(--fill);
+}
+.homepic figcaption {
+  margin-top: 4px;
+  font-size: 13px;
+  color: var(--text2);
+  text-align: center;
+}
 .homelevels {
   list-style: none;
   margin: 0 16px;

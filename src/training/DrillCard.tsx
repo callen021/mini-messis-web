@@ -50,12 +50,17 @@ const NO_OVERRIDES = {} as const;
 function LevelImage({ level }: { level: HomeLevel }) {
   const [failed, setFailed] = useState(false);
   if (!level.image || failed) return null;
+  // the slot takes the picture's shape, no taller than 4:3 and no wider than 16:9; the picture
+  // fills it from the bottom up, so the feet and the ball are never what is cut (D142)
+  const { width, height } = level.image;
+  const ratio = Math.max(4 / 3, Math.min(16 / 9, width && height ? width / height : 4 / 3));
   return (
     <img
       className="drillimg"
       src={libraryImageUrl(level.image.path)}
       width={level.image.width ?? undefined}
       height={level.image.height ?? undefined}
+      style={{ aspectRatio: String(ratio) }}
       alt=""
       decoding="async"
       onError={() => setFailed(true)}

@@ -291,6 +291,27 @@ describe('an at-home drill (D127)', () => {
     expect(screen.getByText('Use drill 10 instead.')).toBeInTheDocument();
     expect(screen.getByText('Cushion it. Pass with the inside of your foot.')).toBeInTheDocument();
     expect(screen.queryByText(/Side view/)).toBeNull();
+    expect(document.querySelector('img')).toBeNull(); // no picture until a level has one
+  });
+  it('shows a picture shared by every level once, and separate pictures with their levels (D142)', () => {
+    const pic = { path: 'toe-taps/drill.webp', width: 1000, height: 1250 };
+    const withPics = (images: unknown[]) =>
+      must(
+        parseContent({ home: { ...HOME, levels: HOME.levels.map((l, i) => ({ ...l, image: images[i] })) } })
+          .home,
+      );
+    const one = render(<HomeTab home={withPics([pic, pic, pic])} />);
+    const imgs = document.querySelectorAll('.homepic img');
+    expect(imgs).toHaveLength(1);
+    expect(imgs[0]).toHaveAttribute('src', 'https://img.test/toe-taps/drill.webp');
+    expect(document.querySelector('.homepic figcaption')).toBeNull();
+    one.unmount();
+    render(<HomeTab home={withPics([pic, pic, 'toe-taps/three.webp'])} />);
+    expect(document.querySelectorAll('.homepic img')).toHaveLength(2);
+    expect([...document.querySelectorAll('.homepic figcaption')].map((c) => c.textContent)).toEqual([
+      'Level 1, Level 2',
+      'Level 3',
+    ]);
   });
 });
 

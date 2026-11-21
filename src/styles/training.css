@@ -219,8 +219,11 @@
   display: block;
   width: 100%;
   height: auto;
-  max-height: 240px;
-  object-fit: contain;
+  /* the slot (its shape is set on the element): the picture fills it and is cut from the top or
+     the sides, never the bottom, so the feet and the ball stay in (D142) */
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  object-position: center bottom;
   border-radius: 10px;
   background: var(--fill);
 }

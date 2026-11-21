@@ -1,12 +1,48 @@
+import { useState } from 'react';
 import { Section } from '@/components/List';
+import { libraryImageUrl } from './api';
 import { DrillDiagram } from './DrillDiagram';
-import { type Challenge, type HomeSection, levelLabel } from './types';
+import { type Challenge, type HomeSection, levelLabel, type StepImage } from './types';
 
 /** "60 seconds · target 40", "Stopwatch · target 10.0 s". */
 function challengeLine(c: Challenge): string {
   const how = c.mode === 'stopwatch' ? 'Stopwatch' : `${c.seconds} seconds`;
   if (c.target === null) return how;
   return `${how} · target ${c.mode === 'stopwatch' ? `${c.target.toFixed(1)} s` : c.target}`;
+}
+
+/** The drill's pictures, each once, with the levels it belongs to: one picture often serves all. */
+function picturesOf(home: HomeSection): { image: StepImage; levels: string[] }[] {
+  const out: { image: StepImage; levels: string[] }[] = [];
+  home.levels.forEach((l, i) => {
+    if (!l.image) return;
+    const path = l.image.path;
+    const have = out.find((p) => p.image.path === path);
+    if (have) have.levels.push(`Level ${i + 1}`);
+    else out.push({ image: l.image, levels: [`Level ${i + 1}`] });
+  });
+  return out;
+}
+
+/** One picture in its own shape, kept between a tall portrait and a wide landscape; nothing if it fails. */
+function HomePicture({ image, caption }: { image: StepImage; caption: string | null }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  const r = image.width && image.height ? image.width / image.height : 4 / 3;
+  return (
+    <figure className="homepic">
+      <img
+        src={libraryImageUrl(image.path)}
+        width={image.width ?? undefined}
+        height={image.height ?? undefined}
+        style={{ aspectRatio: String(Math.max(3 / 4, Math.min(16 / 9, r))) }}
+        alt=""
+        decoding="async"
+        onError={() => setFailed(true)}
+      />
+      {caption && <figcaption>{caption}</figcaption>}
+    </figure>
+  );
 }
 
 /** "Footwork · Repetition · 3 min", each part only when the drill gives it. */
@@ -26,10 +62,18 @@ export function HomeMeta({ home }: { home: HomeSection }) {
  * later and not shown: there are no videos yet.
  */
 export function HomeTab({ home }: { home: HomeSection }) {
+  const pictures = picturesOf(home);
   return (
     <div className="homedrill">
       <HomeMeta home={home} />
       {home.intro && <p className="homeintro">{home.intro}</p>}
+      {pictures.map((p) => (
+        <HomePicture
+          key={p.image.path}
+          image={p.image}
+          caption={pictures.length > 1 ? p.levels.join(', ') : null}
+        />
+      ))}
       {home.withParent && (
         <div className="libnote">
           <b>With a parent</b>

@@ -3,7 +3,7 @@
 -- level unlocks the next; bests per child, drill and level; old five-cone times never count.
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(62);
+select plan(66);
 
 create or replace function pg_temp.mk_user(p_id uuid, p_email text)
 returns void language plpgsql as $$
@@ -55,6 +55,10 @@ select is((select count(*)::int from public.library_items i, jsonb_array_element
 select is((select count(*)::int from public.library_items i, jsonb_array_elements(i.content #> '{home,levels}') l where i.slug = 'cone-dribbling' and l ->> 'text' like '%4 cones set about 3 yards apart, down and back%'), 3, 'Cone Dribbling is four cones about 3 yards apart at every level');
 select is((select content #>> '{home,levels,0,challenge,target}' || '/' || (content #>> '{home,levels,1,challenge,target}') from public.library_items where slug = 'cone-dribbling'), '10.0/8.0', 'with 10.0 and 8.0 seconds to beat');
 select is((select jsonb_array_length(content #> '{home,diagram,elements}') from public.library_items where slug = 'cone-dribbling'), 7, 'and a diagram of the course');
+select is((select count(*)::int from public.library_items i, jsonb_array_elements(i.content #> '{home,levels}') l where i.slug = 'toe-taps' and l #>> '{image,path}' = 'toe-taps/drill.webp' and (l #>> '{image,width}')::int = 1000 and (l #>> '{image,height}')::int = 1250 and l #>> '{challenge,mode}' = 'timer'), 3, 'all three Toe Taps levels have the picture, and keep their challenge (D142)');
+select is((select count(*)::int from public.library_items i, jsonb_array_elements(i.content #> '{home,levels}') l where i.slug = 'inside-inside-touches' and l #>> '{image,path}' = 'inside-inside-touches/drill.webp' and (l #>> '{image,width}')::int = 1000 and (l #>> '{image,height}')::int = 750), 3, 'and all three Inside-Inside Touches levels have theirs');
+select is((select count(*)::int from public.library_items i, jsonb_array_elements(i.content #> '{home,levels}') l where i.slug = 'sole-rolls' and l #>> '{image,path}' = 'sole-rolls/drill.webp' and (l #>> '{image,width}')::int = 1000 and (l #>> '{image,height}')::int = 1250), 3, 'and all three Sole Rolls levels');
+select is((select count(*)::int from public.library_items i, jsonb_array_elements(i.content #> '{home,levels}') l where i.category = 'home' and i.slug not in ('toe-taps', 'inside-inside-touches', 'sole-rolls') and l ? 'image'), 0, 'no other drill has a picture yet');
 
 -- ---------- a timer score: saved, the day's first is the Done, a tie is not a record ----------
 select pg_temp.login('da000000-0000-0000-0000-000000000003');
